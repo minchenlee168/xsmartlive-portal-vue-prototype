@@ -41,6 +41,8 @@ export interface OrderSettingFormData {
   allowMixColor: boolean
   allowOversell: boolean
   pickSpecAfterWinning: boolean
+  /** 後選規：留言下單時不選規格，僅以關鍵字下單；得標後再個別選規格 */
+  postPickSpec: boolean
   sku: string
   plusLimit: number
   starFilter: string
@@ -74,6 +76,7 @@ const form = reactive<OrderSettingFormData>({
   allowMixColor: false,
   allowOversell: false,
   pickSpecAfterWinning: false,
+  postPickSpec: false,
   sku: '',
   plusLimit: 0,
   starFilter: 'any',
@@ -181,6 +184,7 @@ function reset(): void {
     allowMixColor: false,
     allowOversell: false,
     pickSpecAfterWinning: false,
+    postPickSpec: false,
     sku: '',
     plusLimit: 0,
     starFilter: 'any',
@@ -378,6 +382,17 @@ defineExpose({ validate, getData, getSettings, reset, setAllowOversell })
           ></i>
         </span>
         <ToggleSwitch v-model="form.pickSpecAfterWinning" />
+      </div>
+      <div class="flex items-center justify-between gap-3 px-3 py-2.5">
+        <span class="flex items-center gap-1 text-[13px] text-[var(--p-text-color)]">
+          {{ t('live_order.form.field.post_pick_spec') }}
+          <i
+            class="pi pi-info-circle text-[var(--p-text-muted-color)]"
+            style="font-size: 12px"
+            v-tooltip.top="t('live_order.form.hint.post_pick_spec_tooltip')"
+          ></i>
+        </span>
+        <ToggleSwitch v-model="form.postPickSpec" />
       </div>
       <div class="flex items-center justify-between gap-3 px-3 py-2.5">
         <span class="text-[13px] text-[var(--p-text-color)]">{{ t('live_order.form.field.new_customer_any_star') }}</span>
