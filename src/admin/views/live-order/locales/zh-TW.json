@@ -169,7 +169,6 @@
         "spec": "規格",
         "discount_price": "優惠價格",
         "pick_spec_after_winning": "得標後再選規格",
-        "post_pick_spec": "後選規",
         "gift_name": "禮物名稱",
         "gift_message": "說明訊息"
       },
@@ -207,8 +206,7 @@
         "set_spec": "設定規格",
         "set_discount_price": "設定優惠價格",
         "allow_mix_color_tooltip": "同一規格不同顏色可一併下單",
-        "pick_spec_after_winning_tooltip": "買家先喊 +1 不用選規格，得標後結帳前再選；此模式下單時不扣庫存。",
-        "post_pick_spec_tooltip": "留言下單不需要打規格，只要關鍵字 + 數量；得標後再個別跟得標人確認規格。"
+        "pick_spec_after_winning_tooltip": "買家先喊 +1 不用選規格，得標後結帳前再選；此模式下單時不扣庫存。"
       }
     },
     "search_field": {

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import type { MenuItem } from 'primevue/menuitem'
+import { RouteName } from '@/admin/router'
 import {
   managedProducts,
   totalStockOf,
@@ -25,6 +28,7 @@ import StockBatchAdjustDialog, { type StockAdjustmentPayload } from './component
 
 const confirm = useConfirm()
 const toast = useToast()
+const router = useRouter()
 
 const keyword = ref('')
 const products = ref<ManagedProduct[]>(managedProducts)
@@ -83,17 +87,17 @@ function onBatchDelete(): void {
 }
 
 function onAddBundle(): void {
-  toast.add({ severity: 'info', summary: '新增組合商品（規劃中）', life: 1500 })
+  router.push({ name: RouteName.ProductBundleCreate })
 }
 function onAddNormal(): void {
-  toast.add({ severity: 'info', summary: '新增一般商品（規劃中）', life: 1500 })
+  router.push({ name: RouteName.ProductCreate })
 }
 
 function onView(p: ManagedProduct): void {
   toast.add({ severity: 'info', summary: `檢視「${p.name}」`, life: 1500 })
 }
 function onEdit(p: ManagedProduct): void {
-  toast.add({ severity: 'info', summary: `編輯「${p.name}」（規劃中）`, life: 1500 })
+  router.push({ name: RouteName.ProductUpdate, params: { id: p.id } })
 }
 function onDelete(p: ManagedProduct, event: Event): void {
   confirm.require({
@@ -211,7 +215,7 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
                 class="size-[35px] flex items-center justify-center rounded-[6px] border border-[#c29ffa] text-[var(--p-primary-color)] hover:bg-[var(--p-primary-50)]"
                 @click="onEdit(p)"
               >
-                <i class="pi pi-pencil" style="font-size: 14px"></i>
+                <FontAwesomeIcon :icon="['far', 'pen-to-square']" class="text-[14px]" />
               </button>
               <button
                 v-tooltip.top="'刪除'"

@@ -18,6 +18,22 @@ export interface ManagedProductSpec {
   price: number
 }
 
+export interface ProductPromote {
+  /** 達到件數 */
+  quantity: number
+  /** 折扣類型：金額折抵或百分比折扣 */
+  discountType: 'amount' | 'percent'
+  /** 折扣值 */
+  discountValue: number
+}
+
+export interface ProductImage {
+  id: number | string
+  url: string
+  filename?: string
+  size?: number
+}
+
 export interface ManagedProduct {
   id: number
   name: string
@@ -29,7 +45,36 @@ export interface ManagedProduct {
   specs: ManagedProductSpec[]
   /** 總銷量（mock 用，所有規格相加或單純帶大致數字） */
   totalSold: number
+  /** 直播 / 貼文留言比對用關鍵字 */
+  keyword?: string
+  /** 商品標籤（mock：純字串陣列） */
+  tags?: string[]
+  /** 啟用優惠券折抵 */
+  enableCoupon?: boolean
+  /** 商品重量（公克） */
+  weight?: number
+  /** 商品介紹（HTML 或純文字） */
+  description?: string
+  /** 商品備註（內部用） */
+  remark?: string
+  /** 多件優惠階梯 */
+  promotes?: ProductPromote[]
+  /** 商品圖片，依序，首張為主圖 */
+  images?: ProductImage[]
 }
+
+/** 共用分類選項（賣場分頁 mock） */
+export const PRODUCT_CATEGORIES = [
+  '健康與美容',
+  '居家生活',
+  '玩具與遊戲',
+  '服飾配件',
+  '3C 電子',
+  '食品飲料',
+]
+
+/** 共用商品標籤 mock（之後可由商品標籤頁產生） */
+export const PRODUCT_TAGS = ['熱銷', '新品', '優惠', '限量', '預購', 'VIP 專屬']
 
 export const managedProducts: ManagedProduct[] = [
   {
@@ -39,6 +84,16 @@ export const managedProducts: ManagedProduct[] = [
     status: 'on_shelf',
     kind: 'normal',
     totalSold: 500,
+    keyword: 'TOP',
+    tags: ['熱銷', '新品'],
+    enableCoupon: true,
+    weight: 250,
+    description: '輕薄透氣材質，適合日常與直播鏡頭呈現。',
+    remark: '6/22 補貨 200 件',
+    promotes: [
+      { quantity: 2, discountType: 'percent', discountValue: 10 },
+      { quantity: 5, discountType: 'amount',  discountValue: 100 },
+    ],
     specs: [
       { id: 100101, name: 'S',  stock: 60, price: 30 },
       { id: 100102, name: 'M',  stock: 60, price: 30 },

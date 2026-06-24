@@ -57,11 +57,16 @@ const showHistory = ref(true)
 const historyFilter = ref<number | 'all'>('all')
 const historyKeyword = ref('')
 
+/** 抽屜內視圖切換：main = 庫存調整 + 近十筆預覽；history = 調整紀錄全表 + 返回 */
+type DrawerView = 'main' | 'history'
+const view = ref<DrawerView>('main')
+
 /** dialog 開啟時：依商品的規格初始化空 adjustment rows（沒人改就 delta=0、reason=空） */
 watch(
   () => [props.visible, props.product] as const,
   ([v, p]) => {
     if (!v || !p) return
+    view.value = 'main'
     adjustments.value = (p as ManagedProduct).specs.map((s) => ({
       specId: s.id,
       specName: s.name,
@@ -81,6 +86,25 @@ function onSave(): void {
   if (!props.product) return
   // 只送有實際增減的列（delta != 0）
   const changes = adjustments.value.filter((a) => a.delta !== 0)
+  // 把這次調整也寫進下方「近十筆調整紀錄」最前面
+  if (changes.length > 0) {
+    const now = new Date()
+    const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    const reasonLabelMap = Object.fromEntries(ADJUSTMENT_REASONS.map((r) => [r.value, r.label]))
+    changes.forEach((c) => {
+      userHistory.value.unshift({
+        id: Date.now() + Math.random(),
+        time: stamp,
+        specId: c.specId,
+        specName: c.specName,
+        before: c.currentStock,
+        delta: c.delta,
+        after: c.currentStock + c.delta,
+        reason: reasonLabelMap[c.reason] ?? c.reason,
+        operator: 'Test Name',
+      })
+    })
+  }
   emit('save', { productId: props.product.id, adjustments: changes })
   close()
 }
@@ -97,20 +121,23 @@ interface HistoryEntry {
   reason: string
   operator: string
 }
+/**
+ * mock 假歷史紀錄：開好幾筆方便驗證；每個規格塞 4 筆，這樣切到「查看更多紀錄」
+ * 才會看到比主畫面預覽多出來的列。真實情境會從 API 拉。
+ */
 function buildMockHistory(p: ManagedProduct | null): HistoryEntry[] {
   if (!p) return []
-  // 為每個規格塞 2 筆假紀錄；總筆數 = specs * 2，最多 10
-  const reasons = ['進貨', '進貨', '盤點', '退貨', '內部使用']
+  const reasons = ['進貨', '進貨', '盤點', '退貨', '作廢', '內部使用']
   const operators = ['Test Name', '阿明', '小芳', '王太太']
   const list: HistoryEntry[] = []
   let id = 1
   p.specs.forEach((s, si) => {
-    for (let i = 0; i < 2; i++) {
-      const delta = i === 0 ? 100 : -20
-      const before = s.stock + (i === 0 ? 500 : 600)
+    for (let i = 0; i < 4; i++) {
+      const delta = i % 2 === 0 ? 100 : -100
+      const before = s.stock + (4 - i) * 100
       list.push({
         id: id++,
-        time: `2026-03-${(24 - id).toString().padStart(2, '0')} ${(14 - i).toString().padStart(2, '0')}:30`,
+        time: `2026-03-${(24 - i).toString().padStart(2, '0')} ${(14 - i).toString().padStart(2, '0')}:30`,
         specId: s.id,
         specName: s.name,
         before,
@@ -121,9 +148,17 @@ function buildMockHistory(p: ManagedProduct | null): HistoryEntry[] {
       })
     }
   })
-  return list.slice(0, 10)
+  return list
 }
-const allHistory = computed(() => buildMockHistory(props.product))
+
+/** 使用者按下確認後本機累積的調整紀錄（unshift 到最前面，最新先看到） */
+const userHistory = ref<HistoryEntry[]>([])
+
+/** 全部紀錄 = 本次累積 + mock 假紀錄 */
+const allHistory = computed<HistoryEntry[]>(() => [
+  ...userHistory.value,
+  ...buildMockHistory(props.product),
+])
 
 const filteredHistory = computed(() => {
   let list = allHistory.value
@@ -134,6 +169,11 @@ const filteredHistory = computed(() => {
   if (k) list = list.filter((h) => h.reason.includes(k))
   return list
 })
+
+/** 主畫面預覽：只列前 N 筆，剩下的留給「查看更多紀錄」全表 */
+const PREVIEW_LIMIT = 5
+const previewHistory = computed(() => filteredHistory.value.slice(0, PREVIEW_LIMIT))
+const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIMIT)
 </script>
 
 <template>
@@ -152,50 +192,56 @@ const filteredHistory = computed(() => {
   >
     <template #header>
       <span class="font-semibold text-[var(--p-text-color)]" style="font-size: 21px">
-        批量調整庫存 - {{ product?.name ?? '' }}
+        {{ view === 'history' ? '調整紀錄' : `批量調整庫存 - ${product?.name ?? ''}` }}
       </span>
     </template>
 
-    <!-- 規格庫存調整 -->
-    <div class="flex flex-col gap-3">
+    <!-- ========== Main 視圖：規格調整 + 近十筆預覽 ========== -->
+    <div v-if="view === 'main'" class="flex flex-col gap-3">
       <span class="text-[13px] text-[var(--p-text-muted-color)]">規格庫存調整</span>
 
-      <!-- 比照 Figma：無外框、無 striped；每列僅底部分隔線、白底、padding 較鬆 -->
-      <div>
-        <!-- header -->
-        <div class="grid items-center gap-3 px-3 py-3 border-b border-[var(--p-content-border-color)]"
-             style="grid-template-columns: 1fr 100px 180px 200px 100px">
-          <span class="text-[14px] font-semibold text-[var(--p-text-color)]">規格名稱</span>
-          <span class="text-[14px] font-semibold text-[var(--p-text-color)]">目前庫存</span>
-          <span class="text-[14px] font-semibold text-[var(--p-text-color)]">庫存調整</span>
-          <span class="text-[14px] font-semibold text-[var(--p-text-color)]">調整原因</span>
-          <span class="text-[14px] font-semibold text-[var(--p-text-color)]">調整後</span>
-        </div>
-        <div
-          v-for="row in adjustments"
-          :key="row.specId"
-          class="grid items-center gap-3 px-3 py-3 border-b border-[var(--p-content-border-color)]"
-          style="grid-template-columns: 1fr 100px 180px 200px 100px"
-        >
-          <span class="text-[14px] text-[var(--p-text-color)]">{{ row.specName }}</span>
-          <span class="text-[14px] text-[var(--p-text-color)]">{{ row.currentStock }}</span>
-          <InputNumber
-            v-model="row.delta"
-            show-buttons
-            button-layout="stacked"
-            :input-style="{ width: '110px' }"
-            :pt="{ root: { class: 'w-[150px]' } }"
-          />
-          <Select
-            v-model="row.reason"
-            :options="ADJUSTMENT_REASONS"
-            option-label="label"
-            option-value="value"
-            class="w-[180px]"
-          />
-          <span class="text-[14px] text-[var(--p-text-color)]">{{ row.currentStock + (row.delta ?? 0) }}</span>
-        </div>
-      </div>
+      <!-- 規格庫存調整 table（用 DataTable + Column，比照 PostListTable / OrderListPage 寫法） -->
+      <DataTable
+        :value="adjustments"
+        data-key="specId"
+        class="w-full"
+        :pt="{
+          column: {
+            headerCell: { style: 'background:transparent;font-size:14px;font-weight:600' },
+            bodyCell:   { style: 'font-size:14px' },
+          },
+        }"
+      >
+        <Column field="specName" header="規格名稱" />
+        <Column field="currentStock" header="目前庫存" style="width: 100px" />
+        <Column header="庫存調整" style="width: 180px">
+          <template #body="{ data }">
+            <InputNumber
+              v-model="data.delta"
+              show-buttons
+              button-layout="stacked"
+              :input-style="{ width: '110px' }"
+              :pt="{ root: { class: 'w-[150px]' } }"
+            />
+          </template>
+        </Column>
+        <Column header="調整原因" style="width: 200px">
+          <template #body="{ data }">
+            <Select
+              v-model="data.reason"
+              :options="ADJUSTMENT_REASONS"
+              option-label="label"
+              option-value="value"
+              class="w-[180px]"
+            />
+          </template>
+        </Column>
+        <Column header="調整後" style="width: 100px">
+          <template #body="{ data }">
+            {{ data.currentStock + (data.delta ?? 0) }}
+          </template>
+        </Column>
+      </DataTable>
 
       <div class="flex justify-end gap-2">
         <Button label="取消" severity="secondary" outlined @click="close" />
@@ -203,11 +249,11 @@ const filteredHistory = computed(() => {
       </div>
     </div>
 
-    <!-- 分隔線 -->
-    <div class="border-t border-[var(--p-content-border-color)] my-4"></div>
+    <!-- 分隔線（只在 main 視圖顯示，避免切到 history 後上面還殘留預覽） -->
+    <div v-if="view === 'main'" class="border-t border-[var(--p-content-border-color)] my-4"></div>
 
-    <!-- 近十筆調整紀錄 -->
-    <div class="flex flex-col gap-3">
+    <!-- 近十筆調整紀錄（main 視圖預覽） -->
+    <div v-if="view === 'main'" class="flex flex-col gap-3">
       <button
         type="button"
         class="flex items-center justify-between gap-2 text-left"
@@ -239,54 +285,122 @@ const filteredHistory = computed(() => {
               @click="historyFilter = s.id"
             >{{ s.name }}</button>
           </div>
-          <InputGroup class="!w-[260px]">
-            <InputGroupAddon>
-              <i class="pi pi-search" style="font-size: 13px"></i>
-            </InputGroupAddon>
-            <InputText v-model="historyKeyword" placeholder="搜尋操作原因" />
+          <InputGroup class="!w-fit">
+            <InputText v-model="historyKeyword" placeholder="搜尋調整原因" class="!w-[260px]" />
+            <Button label="搜尋" />
           </InputGroup>
         </div>
 
-        <!-- 比照規格庫存調整 table：白底、無外框、列底分隔線 -->
-        <div>
-          <div class="grid items-center gap-3 px-3 py-3 border-b border-[var(--p-content-border-color)]"
-               style="grid-template-columns: 160px 80px 80px 80px 80px 120px 1fr">
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">時間</span>
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">規格</span>
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">調整前</span>
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">異動</span>
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">調整後</span>
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">調整原因</span>
-            <span class="text-[14px] font-semibold text-[var(--p-text-color)]">操作人員</span>
-          </div>
-          <div
-            v-for="h in filteredHistory"
-            :key="h.id"
-            class="grid items-center gap-3 px-3 py-3 border-b border-[var(--p-content-border-color)]"
-            style="grid-template-columns: 160px 80px 80px 80px 80px 120px 1fr"
-          >
-            <span class="text-[13px] text-[var(--p-text-color)]">{{ h.time }}</span>
-            <span class="text-[13px] text-[var(--p-text-color)]">{{ h.specName }}</span>
-            <span class="text-[13px] text-[var(--p-text-color)]">{{ h.before }}</span>
-            <span
-              class="inline-flex items-center self-start px-1.5 py-0.5 rounded-[6px] text-[12.25px] font-bold leading-none w-fit"
-              :style="h.delta >= 0
-                ? 'background:#d1fae5;color:#047857'
-                : 'background:#fee2e2;color:#b91c1c'"
-            >{{ h.delta >= 0 ? '+' : '' }}{{ h.delta }}</span>
-            <span class="text-[13px] text-[var(--p-text-color)]">{{ h.after }}</span>
-            <span class="text-[13px] text-[var(--p-text-color)]">{{ h.reason }}</span>
-            <span class="text-[13px] text-[var(--p-text-color)]">{{ h.operator }}</span>
-          </div>
-          <div v-if="filteredHistory.length === 0" class="py-6 text-center text-[13px] text-[var(--p-text-muted-color)]">
-            沒有符合條件的調整紀錄
-          </div>
-        </div>
+        <!-- 預覽 table（DataTable + Column） -->
+        <DataTable
+          :value="previewHistory"
+          data-key="id"
+          class="w-full"
+          :pt="{
+            column: {
+              headerCell: { style: 'background:transparent;font-size:14px;font-weight:600' },
+              bodyCell:   { style: 'font-size:14px' },
+            },
+          }"
+        >
+          <Column field="time" header="時間" style="width: 160px" />
+          <Column field="specName" header="規格" style="width: 80px" />
+          <Column field="before" header="調整前" style="width: 80px" />
+          <Column header="異動" style="width: 80px">
+            <template #body="{ data }">
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded-[6px] text-[12.25px] font-bold leading-none"
+                :style="data.delta >= 0
+                  ? 'background:#d1fae5;color:#047857'
+                  : 'background:#fee2e2;color:#b91c1c'"
+              >{{ data.delta >= 0 ? '+' : '' }}{{ data.delta }}</span>
+            </template>
+          </Column>
+          <Column field="after" header="調整後" style="width: 80px" />
+          <Column field="reason" header="調整原因" style="width: 120px" />
+          <Column field="operator" header="操作人員" />
+          <template #empty>
+            <div class="py-6 text-center text-[14px] text-[var(--p-text-muted-color)]">
+              沒有符合條件的調整紀錄
+            </div>
+          </template>
+        </DataTable>
 
-        <div class="flex justify-center">
-          <Button label="查看更多紀錄" severity="primary" outlined size="small" />
+        <div v-if="hasMoreHistory" class="flex justify-center">
+          <Button label="查看更多紀錄" severity="primary" outlined size="small" @click="view = 'history'" />
         </div>
       </template>
+    </div>
+
+    <!-- ========== History 視圖：調整紀錄全表 + 返回 ========== -->
+    <div v-if="view === 'history'" class="flex flex-col gap-3">
+      <!-- 規格 chips + 原因搜尋（與 main 視圖共用 state） -->
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            class="px-3 py-1.5 rounded-[6px] text-[13px] font-medium border"
+            :class="historyFilter === 'all'
+              ? 'bg-[var(--p-primary-color)] text-white border-[var(--p-primary-color)]'
+              : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)]'"
+            @click="historyFilter = 'all'"
+          >全部規格</button>
+          <button
+            v-for="s in product?.specs ?? []"
+            :key="s.id"
+            type="button"
+            class="px-3 py-1.5 rounded-[6px] text-[13px] font-medium border"
+            :class="historyFilter === s.id
+              ? 'bg-[var(--p-primary-color)] text-white border-[var(--p-primary-color)]'
+              : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)]'"
+            @click="historyFilter = s.id"
+          >{{ s.name }}</button>
+        </div>
+        <InputText v-model="historyKeyword" placeholder="搜尋調整原因" class="!w-[260px]" />
+      </div>
+
+      <!-- 全表（DataTable + striped + pagination） -->
+      <DataTable
+        :value="filteredHistory"
+        data-key="id"
+        :striped-rows="true"
+        :paginator="true"
+        :rows="10"
+        :rows-per-page-options="[10, 20, 50]"
+        class="w-full"
+        :pt="{
+          column: {
+            headerCell: { style: 'background:transparent;font-size:14px;font-weight:600' },
+            bodyCell:   { style: 'font-size:14px' },
+          },
+        }"
+      >
+        <Column field="time" header="時間" style="width: 160px" />
+        <Column field="specName" header="規格" style="width: 80px" />
+        <Column field="before" header="調整前" style="width: 80px" />
+        <Column header="異動" style="width: 80px">
+          <template #body="{ data }">
+            <span
+              class="inline-flex items-center px-1.5 py-0.5 rounded-[6px] text-[12.25px] font-bold leading-none"
+              :style="data.delta >= 0
+                ? 'background:#d1fae5;color:#047857'
+                : 'background:#fee2e2;color:#b91c1c'"
+            >{{ data.delta >= 0 ? '+' : '' }}{{ data.delta }}</span>
+          </template>
+        </Column>
+        <Column field="after" header="調整後" style="width: 80px" />
+        <Column field="reason" header="調整原因" style="width: 120px" />
+        <Column field="operator" header="操作人員" />
+        <template #empty>
+          <div class="py-6 text-center text-[14px] text-[var(--p-text-muted-color)]">
+            沒有符合條件的調整紀錄
+          </div>
+        </template>
+      </DataTable>
+
+      <div class="flex justify-end mt-2">
+        <Button label="返回" severity="primary" outlined @click="view = 'main'" />
+      </div>
     </div>
   </Drawer>
 </template>

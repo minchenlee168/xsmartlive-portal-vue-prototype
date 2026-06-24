@@ -198,20 +198,20 @@
               </div>
               <div class="px-2 py-[6px] shrink-0" style="width: 120px">
                 <span class="text-[15px] text-[var(--p-text-color)]">
-                  {{ p.cost.toLocaleString() }}
+                  {{ specCostRange(p) }}
                 </span>
               </div>
               <div class="px-2 py-[6px] shrink-0" style="width: 120px">
                 <span class="text-[15px] text-[var(--p-text-color)]">
-                  {{ p.price.toLocaleString() }}
+                  {{ specPriceRange(p) }}
                 </span>
               </div>
               <div class="px-2 py-[6px] shrink-0" style="width: 100px">
                 <span
                   class="text-[15px]"
-                  :class="p.stock <= 10 ? 'text-[#ef4444]' : 'text-[var(--p-text-color)]'"
+                  :class="minSpecStock(p) <= 10 ? 'text-[#ef4444]' : 'text-[var(--p-text-color)]'"
                 >
-                  {{ p.stock }}
+                  {{ specStockRange(p) }}
                 </span>
               </div>
               <div class="px-2 py-[6px] shrink-0 ml-auto flex justify-center" style="width: 80px">
@@ -601,6 +601,30 @@ const existingNames = computed(() => new Set(
 /** 該 picker 商品是否已存在於場次（依名稱）。 */
 function isProductExisting(p: PickerProduct): boolean {
   return existingNames.value.has(p.name)
+}
+
+/**
+ * 把一組數字壓成顯示用區間字串：相同 → 單一數字；不同 → 「min ~ max」。
+ * 給多規格商品主列的成本 / 售價 / 庫存欄位用，看到 specs 內最小最大值的差距。
+ */
+function rangeStr(values: number[]): string {
+  if (values.length === 0) return '0'
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  return min === max ? min.toLocaleString() : `${min.toLocaleString()} ~ ${max.toLocaleString()}`
+}
+function specCostRange(p: PickerProduct): string {
+  return rangeStr(p.specs.length ? p.specs.map((s) => s.cost) : [p.cost])
+}
+function specPriceRange(p: PickerProduct): string {
+  return rangeStr(p.specs.length ? p.specs.map((s) => s.price) : [p.price])
+}
+function specStockRange(p: PickerProduct): string {
+  return rangeStr(p.specs.length ? p.specs.map((s) => s.stock) : [p.stock])
+}
+function minSpecStock(p: PickerProduct): number {
+  if (!p.specs.length) return p.stock
+  return Math.min(...p.specs.map((s) => s.stock))
 }
 const emit = defineEmits<{
   'update:visible': [value: boolean]
