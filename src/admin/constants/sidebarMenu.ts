@@ -90,6 +90,17 @@ export const sidebarMenu: MenuItem[] = [
     ],
   },
   {
+    labelKey: 'nav.invoice.invoice',
+    icon: ['far', 'receipt'],
+    items: [
+      {
+        labelKey: 'nav.invoice.operations',
+        icon: ['far', 'clipboard-list'],
+        to: RouteName.InvoiceOperations,
+      },
+    ],
+  },
+  {
     labelKey: 'nav.marketing',
     icon: ['far', 'chart-mixed'],
     items: [

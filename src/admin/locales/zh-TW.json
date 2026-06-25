@@ -18,6 +18,10 @@
     },
     "order": "訂單管理",
     "order_list": "訂單列表",
+    "invoice": {
+      "invoice": "電子發票",
+      "operations": "發票作業"
+    },
     "marketing": "行銷活動",
     "bid_gift_lottery": "得標禮抽獎",
     "keyword_lottery": "關鍵字抽獎",
@@ -33,6 +37,7 @@
     "live_order_community": "社團收單",
     "live_records": "收單紀錄",
     "order_list": "訂單列表",
+    "invoice_operations": "發票作業",
     "product_list": "商品列表",
     "product_update": "編輯商品",
     "product_create": "新增一般商品",

@@ -15,6 +15,10 @@
       "common_spec": "Saved specs",
       "tag": "Product tags"
     },
+    "invoice": {
+      "invoice": "E-Invoice",
+      "operations": "Invoice operations"
+    },
     "marketing": "Marketing",
     "bid_gift_lottery": "Bid Gift Lottery",
     "keyword_lottery": "Keyword Lottery",
@@ -28,6 +32,7 @@
     "live_order_post": "Post ordering",
     "live_order_community": "Community ordering",
     "live_records": "Order records",
+    "invoice_operations": "Invoice operations",
     "product_list": "Product list",
     "product_update": "Edit product",
     "product_create": "New product",
