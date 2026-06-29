@@ -67,7 +67,8 @@
       </Tabs>
 
     <!-- 一般商品 tab 內容 -->
-    <div v-show="pickerTab === 'general'" class="flex flex-col gap-4">
+    <div v-show="pickerTab === 'general'" class="flex flex-col gap-3">
+      <!-- Row 1：分類 + 搜尋（select + input + 紫色「搜尋」鈕） -->
       <div class="flex gap-4 items-end flex-wrap">
         <div class="flex flex-col gap-2">
           <label class="text-[14px] font-medium text-[var(--p-text-color)]">
@@ -85,7 +86,7 @@
             class="w-[220px]"
           />
         </div>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 flex-1 min-w-[320px]">
           <label class="text-[14px] font-medium text-[var(--p-text-color)]">
             {{ t('live_order.form.field.search') }}
           </label>
@@ -101,17 +102,20 @@
             <InputText
               v-model="pickerKeyword"
               :placeholder="t('live_order.form.placeholder.quick_search_products')"
-              class="w-[260px]"
+              class="flex-1"
               style="border-radius: 0"
             />
-            <button
-              class="bg-[var(--p-primary-color)] text-white w-[35px] rounded-r-[6px] flex items-center justify-center shrink-0"
-            >
-              <i class="pi pi-search text-[14px]"></i>
-            </button>
           </div>
         </div>
-        <label class="flex items-center gap-[7px] cursor-pointer ml-auto">
+        <Button label="搜尋" class="h-[42px] !min-w-[88px]" />
+      </div>
+
+      <!-- Row 2：已選擇 X 項商品（左）/ 只顯示可用商品（右） -->
+      <div class="flex items-center justify-between">
+        <span class="text-[13px] text-[var(--p-text-muted-color)]">
+          已選擇 <span class="text-[var(--p-text-color)] font-semibold">{{ selectedProductCount }}</span> 項商品
+        </span>
+        <label class="flex items-center gap-[7px] cursor-pointer">
           <Checkbox v-model="pickerOnlyAvailable" binary />
           <span class="text-[14px] text-[var(--p-text-color)]">
             {{ t('live_order.label.only_show_available') }}
@@ -124,6 +128,8 @@
           <div
             class="bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)] flex items-center px-4"
           >
+            <!-- checkbox 移到最前面 -->
+            <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px"></div>
             <div class="px-2 py-[6px] shrink-0 w-[28px]"></div>
             <div
               class="px-2 py-[6px] font-bold text-[15px] text-[var(--p-text-color)] shrink-0"
@@ -149,7 +155,6 @@
             >
               {{ t('live_order.label.stock') }}
             </div>
-            <div class="px-2 py-[6px] shrink-0 ml-auto" style="width: 80px"></div>
           </div>
 
           <template v-for="p in pagedPickerProducts" :key="p.id">
@@ -161,6 +166,15 @@
                   : 'border-b border-[var(--p-content-border-color)]',
               ]"
             >
+              <!-- checkbox 移到最前面 -->
+              <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px">
+                <Checkbox
+                  :model-value="isProductChecked(p)"
+                  binary
+                  :disabled="isProductExisting(p)"
+                  @change="toggleProduct(p)"
+                />
+              </div>
               <div class="px-2 py-[6px] shrink-0 w-[28px]">
                 <button
                   v-if="p.specs?.length"
@@ -220,14 +234,6 @@
                   {{ specStockRange(p) }}
                 </span>
               </div>
-              <div class="px-2 py-[6px] shrink-0 ml-auto flex justify-center" style="width: 80px">
-                <Checkbox
-                  :model-value="isProductChecked(p)"
-                  binary
-                  :disabled="isProductExisting(p)"
-                  @change="toggleProduct(p)"
-                />
-              </div>
             </div>
 
             <template v-if="pickerExpanded.includes(p.id) && p.specs?.length">
@@ -242,6 +248,15 @@
                 ]"
               >
                 <div class="border-l border-[var(--p-content-border-color)] flex h-full items-center w-full">
+                  <!-- checkbox 移到最前面（規格層） -->
+                  <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px">
+                    <Checkbox
+                      :model-value="isItemSelected('s-' + spec.id)"
+                      binary
+                      :disabled="isProductExisting(p)"
+                      @change="toggleSpec(p, spec)"
+                    />
+                  </div>
                   <div class="px-2 py-[6px] flex gap-3 items-center shrink-0" style="width: 380px">
                     <div
                       class="w-[40px] h-[40px] rounded-[6px] bg-[var(--p-content-hover-background)] flex items-center justify-center shrink-0"
@@ -272,14 +287,6 @@
                     >
                       {{ spec.stock }}
                     </span>
-                  </div>
-                  <div class="px-2 py-[6px] shrink-0 ml-auto flex justify-center" style="width: 80px">
-                    <Checkbox
-                      :model-value="isItemSelected('s-' + spec.id)"
-                      binary
-                      :disabled="isProductExisting(p)"
-                      @change="toggleSpec(p, spec)"
-                    />
                   </div>
                 </div>
               </div>
@@ -312,9 +319,10 @@
     </div>
 
     <!-- 組合商品 tab 內容（搜尋 + 表格 + 子商品展開 + 分頁） -->
-    <div v-show="pickerTab === 'bundle'" class="flex flex-col gap-4">
+    <div v-show="pickerTab === 'bundle'" class="flex flex-col gap-3">
+      <!-- Row 1：搜尋（select + input + 紫色「搜尋」鈕） -->
       <div class="flex gap-4 items-end flex-wrap">
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 flex-1 min-w-[320px]">
           <label class="text-[14px] font-medium text-[var(--p-text-color)]">
             {{ t('live_order.form.field.search') }}
           </label>
@@ -330,17 +338,20 @@
             <InputText
               v-model="bundleKeyword"
               :placeholder="t('live_order.form.placeholder.quick_search_products')"
-              class="w-[260px]"
+              class="flex-1"
               style="border-radius: 0"
             />
-            <button
-              class="bg-[var(--p-primary-color)] text-white w-[35px] rounded-r-[6px] flex items-center justify-center shrink-0"
-            >
-              <i class="pi pi-search text-[14px]"></i>
-            </button>
           </div>
         </div>
-        <label class="flex items-center gap-[7px] cursor-pointer ml-auto pb-2">
+        <Button label="搜尋" class="h-[42px] !min-w-[88px]" />
+      </div>
+
+      <!-- Row 2：已選擇 X 項商品（左）/ 只顯示可用商品（右） -->
+      <div class="flex items-center justify-between">
+        <span class="text-[13px] text-[var(--p-text-muted-color)]">
+          已選擇 <span class="text-[var(--p-text-color)] font-semibold">{{ selectedBundleIds.size }}</span> 項商品
+        </span>
+        <label class="flex items-center gap-[7px] cursor-pointer">
           <Checkbox v-model="bundleOnlyAvailable" binary />
           <span class="text-[14px] text-[var(--p-text-color)]">
             {{ t('live_order.label.only_show_available') }}
@@ -351,6 +362,8 @@
       <div class="overflow-x-auto">
         <div style="min-width: 880px">
           <div class="bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)] flex items-center px-4">
+            <!-- checkbox 移到最前面 -->
+            <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px"></div>
             <div class="px-2 py-[6px] shrink-0 w-[28px]"></div>
             <div class="px-2 py-[6px] font-bold text-[15px] text-[var(--p-text-color)] shrink-0" style="width: 380px">
               {{ t('live_order.label.product_name_spec') }}
@@ -364,7 +377,6 @@
             <div class="px-2 py-[6px] font-bold text-[15px] text-[var(--p-text-color)] shrink-0" style="width: 100px">
               {{ t('live_order.label.stock') }}
             </div>
-            <div class="px-2 py-[6px] shrink-0 ml-auto" style="width: 80px"></div>
           </div>
 
           <template v-for="b in pagedBundles" :key="b.id">
@@ -376,6 +388,15 @@
                   : 'border-b border-[var(--p-content-border-color)]',
               ]"
             >
+              <!-- checkbox 移到最前面 -->
+              <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px">
+                <Checkbox
+                  :model-value="selectedBundleIds.has(b.id)"
+                  binary
+                  :disabled="isBundleExisting(b)"
+                  @change="toggleBundle(b.id)"
+                />
+              </div>
               <div class="px-2 py-[6px] shrink-0 w-[28px]">
                 <button @click="toggleBundleExpand(b.id)" class="w-full flex items-center justify-center">
                   <i
@@ -416,14 +437,6 @@
               <div class="px-2 py-[6px] shrink-0" style="width: 100px">
                 <span class="text-[15px]" :class="b.stock <= 10 ? 'text-[#ef4444]' : 'text-[var(--p-text-color)]'">{{ b.stock }}</span>
               </div>
-              <div class="px-2 py-[6px] shrink-0 ml-auto flex justify-center" style="width: 80px">
-                <Checkbox
-                  :model-value="selectedBundleIds.has(b.id)"
-                  binary
-                  :disabled="isBundleExisting(b)"
-                  @change="toggleBundle(b.id)"
-                />
-              </div>
             </div>
 
             <template v-if="bundleExpanded.includes(b.id)">
@@ -436,6 +449,8 @@
                 ]"
               >
                 <div class="border-l border-[var(--p-content-border-color)] flex h-full items-center w-full">
+                  <!-- 對齊新表頭：leading 50px 空欄取代原本最右側的 80px 空欄 -->
+                  <div class="px-2 py-[6px] shrink-0" style="width: 50px"></div>
                   <div class="px-2 py-[6px] flex gap-3 items-center shrink-0" style="width: 380px">
                     <div class="w-[36px] h-[36px] rounded-[6px] bg-[var(--p-content-background)] border border-dashed border-[var(--p-content-border-color)] flex items-center justify-center shrink-0">
                       <i class="pi pi-image text-[14px] text-[var(--p-text-muted-color)]"></i>
@@ -452,7 +467,6 @@
                   <div class="px-2 py-[6px] shrink-0" style="width: 100px">
                     <span class="text-[14px] text-[var(--p-text-color)]">× {{ s.qty }}</span>
                   </div>
-                  <div class="px-2 py-[6px] shrink-0 ml-auto" style="width: 80px"></div>
                 </div>
               </div>
             </template>
@@ -489,20 +503,43 @@
     </div>
 
     <template #footer>
-      <div v-if="step === 'pick'" class="flex justify-end gap-2">
-        <Button
-          :label="t('live_order.button.cancel')"
-          severity="secondary"
-          variant="outlined"
-          @click="close"
-        />
-        <Button
-          :label="`${t('live_order.button.next_step')} (${selectedCount})`"
-          icon="pi pi-arrow-right"
-          icon-pos="right"
-          :disabled="selectedCount === 0"
-          @click="goToForm"
-        />
+      <div v-if="step === 'pick'" class="flex items-center justify-between gap-2">
+        <!-- 左側：
+             - 找不到商品 → 開「新增一般商品」彈窗
+             - 已勾 ≥ 2 個一般商品 → 拿勾選清單去「建立組合商品」（預填子商品） -->
+        <div class="flex items-center gap-3 text-[13px]">
+          <span class="text-[var(--p-text-muted-color)]">找不到商品？</span>
+          <a
+            class="text-[#2563EB] hover:underline cursor-pointer font-medium"
+            @click="productCreateDialogVisible = true"
+          >新增一般商品</a>
+          <span class="text-[var(--p-text-muted-color)]">．</span>
+          <a
+            class="font-medium"
+            :class="canBuildBundleFromSelection
+              ? 'text-[#2563EB] hover:underline cursor-pointer'
+              : 'text-[var(--p-text-muted-color)] cursor-not-allowed'"
+            v-tooltip.top="canBuildBundleFromSelection
+              ? '把已勾選的商品建立成組合商品'
+              : '勾選至少 2 個一般商品後可建立組合商品'"
+            @click="canBuildBundleFromSelection && openBundleCreateFromSelection()"
+          >建立組合商品<span v-if="selectedProductCount > 0">（{{ selectedProductCount }}）</span></a>
+        </div>
+        <div class="flex justify-end gap-2">
+          <Button
+            :label="t('live_order.button.cancel')"
+            severity="secondary"
+            variant="outlined"
+            @click="close"
+          />
+          <Button
+            :label="t('live_order.button.next_step')"
+            icon="pi pi-arrow-right"
+            icon-pos="right"
+            :disabled="selectedCount === 0"
+            @click="goToForm"
+          />
+        </div>
       </div>
       <div v-else class="flex justify-between gap-2">
         <Button
@@ -527,6 +564,17 @@
     v-model:visible="stockIssueDialogVisible"
     @confirm="onStockIssueResolve"
   />
+
+  <!-- 從 picker 直接新建商品 / 組合商品（建好後 reactive productCatalog / bundleCatalog 自動更新） -->
+  <ProductCreateDialog
+    v-model:visible="productCreateDialogVisible"
+    @created="onProductCreated"
+  />
+  <ProductBundleCreateDialog
+    v-model:visible="bundleCreateDialogVisible"
+    :initial-bundle-items="bundleInitialItems"
+    @created="onBundleCreated"
+  />
 </template>
 
 <script setup lang="ts">
@@ -535,7 +583,10 @@ import { useI18n } from 'vue-i18n'
 import OrderSettingForm, { type OrderSettingFormData } from './OrderSettingForm.vue'
 import StockIssueDialog, { type StockIssueChoice } from './StockIssueDialog.vue'
 import { productCatalog, bundleCatalog, type CatalogBundle } from '../utils/productCatalog'
-import { managedProducts } from '@/admin/views/product/utils/productMock'
+import { managedProducts, type ManagedProduct } from '@/admin/views/product/utils/productMock'
+import ProductCreateDialog from '@/admin/views/product/components/ProductCreateDialog.vue'
+import ProductBundleCreateDialog from '@/admin/views/product/components/ProductBundleCreateDialog.vue'
+import { useToast } from 'primevue/usetoast'
 
 interface PickerSpec {
   id: number
@@ -592,6 +643,17 @@ interface SelectedItem {
   stock: number
   /** 從 parent PickerProduct 繼承的直播關鍵字 */
   keyword?: string
+}
+
+/** picker 已勾選項目轉換給 BundleContentsCard 初始資料用 */
+interface BundlePickedSeed {
+  key: string
+  productId: number
+  specId?: number
+  name: string
+  stock: number
+  quantity: number
+  maxPerPurchase: number | null
 }
 
 interface Props {
@@ -820,6 +882,88 @@ function toggleSpec(p: PickerProduct, spec: PickerSpec): void {
     price: spec.price,
     stock: spec.stock,
     keyword: p.keyword,
+  })
+}
+
+// ── 直接從 picker 新建商品 / 組合商品 ─────────────────
+const toast = useToast()
+const productCreateDialogVisible = ref(false)
+const bundleCreateDialogVisible = ref(false)
+/** 開組合商品 dialog 時要預填的子商品列（從 picker 已勾選項目轉換出來） */
+const bundleInitialItems = ref<BundlePickedSeed[]>([])
+
+/** 至少要勾 2 個一般商品才能建立組合商品 */
+const canBuildBundleFromSelection = computed(() => selectedProductCount.value >= 2)
+
+/**
+ * 拿目前 picker 已勾選的項目當「組合子商品」打開組合商品建立彈窗。
+ * - 主商品（含全規格）→ 一筆 BundleItem，無 specId
+ * - 單一規格勾選 → 一筆 BundleItem，帶 specId
+ */
+function openBundleCreateFromSelection(): void {
+  const groups = new Map<number, SelectedItem[]>()
+  selectedItems.value.forEach((it) => {
+    const arr = groups.get(it.productId) ?? []
+    arr.push(it)
+    groups.set(it.productId, arr)
+  })
+  const seeds: BundlePickedSeed[] = []
+  groups.forEach((items, productId) => {
+    const parent = allPickerProducts.value.find((p) => p.id === productId)
+    const checkedSpecs = items.filter((it) => it.isSpec)
+    const parentSpecs = parent?.specs ?? []
+    // 整個主商品被勾（含規格全選）→ 一筆 productId 條目（不帶 specId）
+    const wholeProductChecked = parentSpecs.length > 0
+      ? checkedSpecs.length === parentSpecs.length
+      : items.some((it) => !it.isSpec)
+    if (wholeProductChecked) {
+      seeds.push({
+        key: `p-${productId}`,
+        productId,
+        name: parent?.name ?? items[0].name,
+        stock: parentSpecs.length
+          ? parentSpecs.reduce((sum, s) => sum + (s.stock ?? 0), 0)
+          : (parent?.stock ?? 0),
+        quantity: 1,
+        maxPerPurchase: null,
+      })
+    } else {
+      checkedSpecs.forEach((s) => {
+        seeds.push({
+          key: `s-${productId}-${s.itemId}`,
+          productId,
+          specId: s.itemId,
+          name: s.name,
+          stock: s.stock ?? 0,
+          quantity: 1,
+          maxPerPurchase: null,
+        })
+      })
+    }
+  })
+  bundleInitialItems.value = seeds
+  bundleCreateDialogVisible.value = true
+}
+
+function onProductCreated(p: ManagedProduct): void {
+  toast.add({ severity: 'success', summary: `已加進商品庫：${p.name}`, life: 1800 })
+  pickerTab.value = 'general'
+  pickerKeyword.value = ''
+  pickerPageFirst.value = 0
+  void nextTick(() => {
+    const picker = allPickerProducts.value.find((x) => x.id === p.id)
+    if (picker) toggleProduct(picker)
+  })
+}
+function onBundleCreated(p: ManagedProduct): void {
+  toast.add({ severity: 'success', summary: `已加進組合商品庫：${p.name}`, life: 1800 })
+  pickerTab.value = 'bundle'
+  // 清空當下勾選的「組成組合商品的個別商品」，只留下組合商品本身被勾
+  selectedItems.value = new Map()
+  void nextTick(() => {
+    if (bundleCatalog.some((b) => b.id === p.id)) {
+      selectedBundleIds.value = new Set([...selectedBundleIds.value, p.id])
+    }
   })
 }
 

@@ -1202,18 +1202,16 @@ const salesTotalDisplay = computed(() => {
   return n.toLocaleString()
 })
 
-const canPickSource = computed(() =>
-  Boolean(currentSession.value) && selectedProducts.value.length > 0)
+// 收單來源不再依賴是否已加商品；只需先建立 / 選擇場次即可開啟來源 dialog
+const canPickSource = computed(() => Boolean(currentSession.value))
 
 const pickSourceTooltip = computed(() => {
   if (!currentSession.value) return t('live_order.tooltip.pick_or_create_session')
-  if (selectedProducts.value.length === 0) return t('live_order.tooltip.add_product_first')
   return ''
 })
 
 const pickSourceHelperText = computed(() => {
   if (!currentSession.value) return t('live_order.tooltip.pick_or_create_session')
-  if (selectedProducts.value.length === 0) return t('live_order.empty.pick_source_after_adding')
   return t('live_order.empty.click_button_below_to_pick_source')
 })
 

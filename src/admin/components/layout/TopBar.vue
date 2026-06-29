@@ -37,12 +37,10 @@ function toggleShopMenu(event: MouseEvent) {
   shopMenuRef.value?.toggle(event);
 }
 
+/** 前台檢視：另開分頁到商城前台 prototype */
+const FRONT_VIEW_URL = 'https://minchenlee168.github.io/xsmartlive-mall/shop'
 function handleFrontView() {
-  if (currentShop.value) {
-    showSuccess({ detail: t('topbar.front_view_shop', { name: currentShop.value.name }) });
-    return;
-  }
-  showSuccess({ detail: t('topbar.front_view_merchant') });
+  window.open(FRONT_VIEW_URL, '_blank', 'noopener,noreferrer')
 }
 
 const items = computed(() => [

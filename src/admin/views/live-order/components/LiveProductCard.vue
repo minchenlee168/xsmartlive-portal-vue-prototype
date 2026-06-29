@@ -70,7 +70,15 @@
                 >
                   <i class="pi pi-gift" style="font-size:10px"></i>
                 </span>
-                <span ref="nameRef" v-tooltip.top="nameTruncated ? displayName : ''" class="font-bold text-[16px] text-[var(--p-text-color)] truncate flex-1 min-w-0 text-left">{{ displayName }}</span>
+                <!-- 組合商品 tag：用綠色「組」字標示（與商品列表的綠色組 tag 同色） -->
+                <span
+                  v-if="isBundle"
+                  v-tooltip.top="'組合商品'"
+                  class="shrink-0 inline-flex items-center justify-center px-2 py-0.5 rounded-[6px] text-[12.25px] font-bold leading-none bg-[#dcfce7] text-[#15803d]"
+                >組</span>
+                <!-- 名稱靠右對齊（與下方關鍵字 tag 同一邊）— 移除 flex-1 / text-left，
+                     讓 parent 的 justify-end 把 tag + 名稱整組包到右側 -->
+                <span ref="nameRef" v-tooltip.top="nameTruncated ? displayName : ''" class="font-bold text-[16px] text-[var(--p-text-color)] truncate min-w-0">{{ displayName }}</span>
               </template>
             </div>
 
@@ -164,8 +172,28 @@
           <i class="pi pi-angle-right text-[var(--p-text-muted-color)]" style="font-size:14px"></i>
         </button>
 
-        <!-- 規格區域：flex-wrap 流式；超出時以「+N 更多」按鈕承載 -->
-        <div v-if="displaySpecs.length" class="max-h-[104px] overflow-hidden">
+        <!-- 規格區域：組合商品 → 顯示子商品內容；一般商品 → 規格 chips -->
+        <div v-if="isBundle && bundleChildren.length" class="max-h-[104px] overflow-hidden">
+          <div class="flex flex-col gap-1">
+            <div
+              v-for="(it, i) in displayBundleChildren"
+              :key="i"
+              class="flex items-center justify-between text-[13px] gap-2"
+            >
+              <span class="truncate text-[var(--p-text-color)]">{{ it.name }}</span>
+              <span class="shrink-0 text-[var(--p-text-muted-color)] font-medium">× {{ it.qty }}</span>
+            </div>
+            <button
+              v-if="moreBundleChildrenCount > 0"
+              @mouseenter="onMoreEnter"
+              @mouseleave="onMoreLeave"
+              class="self-start text-[12.25px] font-medium text-[var(--p-primary-color)] hover:underline"
+            >
+              {{ t('live_order.label.more_specs', { count: moreBundleChildrenCount }) }}
+            </button>
+          </div>
+        </div>
+        <div v-else-if="displaySpecs.length" class="max-h-[104px] overflow-hidden">
           <div class="flex flex-wrap gap-1 content-start">
             <div v-for="spec in displaySpecs" :key="spec.label"
               v-tooltip.top="{
@@ -187,10 +215,25 @@
         </div>
         <div v-else class="h-[104px]"></div>
 
-        <!-- 所有規格 Popover（teleport 到 body，不受卡片 overflow-hidden 影響） -->
+        <!-- 所有規格 / 組合內容 Popover（teleport 到 body，不受卡片 overflow-hidden 影響） -->
         <Popover ref="morePopoverRef" :dismissable="false"
           @mouseenter="cancelHideMore" @mouseleave="onMoreLeave">
-          <div class="p-3 min-w-[280px] max-w-[320px]">
+          <!-- 組合商品：列出全部子商品 -->
+          <div v-if="isBundle" class="p-3 min-w-[260px] max-w-[320px]">
+            <div class="text-[14px] font-medium text-[var(--p-text-color)] mb-2">組合內容（共 {{ bundleChildren.length }} 件）</div>
+            <div class="flex flex-col gap-1 max-h-[280px] overflow-y-auto pr-1">
+              <div
+                v-for="(it, i) in bundleChildren"
+                :key="i"
+                class="flex items-center justify-between text-[13px] gap-2"
+              >
+                <span class="truncate text-[var(--p-text-color)]">{{ it.name }}</span>
+                <span class="shrink-0 text-[var(--p-text-muted-color)] font-medium">× {{ it.qty }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- 一般商品：列出全部規格 chips -->
+          <div v-else class="p-3 min-w-[280px] max-w-[320px]">
             <div class="text-[14px] font-medium text-[var(--p-text-color)] mb-2">{{ t('live_order.label.all_specs', { count: allSpecs.length }) }}</div>
             <div class="grid grid-cols-2 gap-1.5 max-h-[280px] overflow-y-auto pr-1">
               <div v-for="spec in allSpecs" :key="spec.label"
@@ -300,6 +343,7 @@ import GiftFormDialog, { type GiftSubmitPayload } from './GiftFormDialog.vue'
 import StockIssueDialog, { type StockIssueChoice } from './StockIssueDialog.vue'
 import SpecPriceEditDialog from './SpecPriceEditDialog.vue'
 import { imageForProductName } from '../utils/productImage'
+import { productCatalog } from '../utils/productCatalog'
 
 interface ProductSpec {
   id?: number
@@ -795,6 +839,27 @@ const allSpecs = computed<DisplaySpec[]>(() => {
 })
 const displaySpecs = computed(() => allSpecs.value.slice(0, MAX_SPECS))
 const moreSpecsCount = computed(() => Math.max(0, allSpecs.value.length - MAX_SPECS))
+
+// ── 組合商品：把 spec 區域改顯示「組合商品內容」（子商品清單） ─────
+const isBundle = computed(() => Boolean((props.product as Record<string, unknown>).isBundle))
+
+interface BundleChildView {
+  name: string
+  qty: number
+}
+const bundleChildren = computed<BundleChildView[]>(() => {
+  const raw = (props.product as Record<string, unknown>).bundleItems
+  if (!Array.isArray(raw)) return []
+  return (raw as Array<{ catalogProductId: number; qty: number }>).map((it) => {
+    const child = productCatalog.find((p) => p.id === it.catalogProductId)
+    return {
+      name: child?.name ?? `商品 #${it.catalogProductId}`,
+      qty: it.qty,
+    }
+  })
+})
+const displayBundleChildren = computed(() => bundleChildren.value.slice(0, MAX_SPECS))
+const moreBundleChildrenCount = computed(() => Math.max(0, bundleChildren.value.length - MAX_SPECS))
 
 /** Confirm-then-emit delete; parent removes the card from its session products. */
 function onDeleteClick(event: Event): void {

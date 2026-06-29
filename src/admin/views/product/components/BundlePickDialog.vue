@@ -271,8 +271,8 @@ function onConfirm(): void {
       <span class="font-semibold text-[var(--p-text-color)]" style="font-size: 17.5px">指定組合商品</span>
     </template>
 
-    <div class="flex flex-col gap-4 pt-2">
-      <!-- 篩選列 -->
+    <div class="flex flex-col gap-3 pt-2">
+      <!-- Row 1：分類 + 搜尋（select + input + 紫色「搜尋」鈕） -->
       <div class="flex gap-4 items-end flex-wrap">
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium text-color">分類</label>
@@ -285,7 +285,7 @@ function onConfirm(): void {
             class="!w-[220px]"
           />
         </div>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 flex-1 min-w-[320px]">
           <label class="text-sm font-medium text-color">搜尋</label>
           <div class="flex h-[42px]">
             <Select
@@ -299,28 +299,31 @@ function onConfirm(): void {
             <InputText
               v-model="keyword"
               placeholder="搜尋商品名稱或編號"
-              class="w-[260px]"
+              class="flex-1"
               style="border-radius: 0"
             />
-            <button
-              type="button"
-              class="bg-primary text-white w-[35px] rounded-r-md flex items-center justify-center shrink-0"
-            >
-              <i class="pi pi-search text-sm"></i>
-            </button>
           </div>
         </div>
-        <label class="flex items-center gap-2 cursor-pointer ml-auto pb-2">
+        <Button label="搜尋" class="h-[42px] !min-w-[88px]" />
+      </div>
+
+      <!-- Row 2：已選擇 X 項商品（左）/ 只顯示可用商品（右） -->
+      <div class="flex items-center justify-between">
+        <span class="text-[13px] text-[var(--p-text-muted-color)]">
+          已選擇 <span class="text-[var(--p-text-color)] font-semibold">{{ selectedCount }}</span> 項商品
+        </span>
+        <label class="flex items-center gap-2 cursor-pointer">
           <Checkbox v-model="onlyAvailable" binary />
-          <span class="text-sm text-color">僅顯示上架商品</span>
+          <span class="text-sm text-color">只顯示可用商品</span>
         </label>
       </div>
 
       <!-- 表格：欄寬 / padding 比照 AddProductDialog -->
       <div class="overflow-x-auto">
         <div style="min-width: 880px">
-          <!-- header row -->
+          <!-- header row：checkbox 移到最前 -->
           <div class="bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)] flex items-center px-4">
+            <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px"></div>
             <div class="px-2 py-[6px] shrink-0 w-[28px]"></div>
             <div class="px-2 py-[6px] font-bold text-[15px] text-[var(--p-text-color)] shrink-0" style="width: 380px">
               商品名稱
@@ -334,7 +337,6 @@ function onConfirm(): void {
             <div class="px-2 py-[6px] font-bold text-[15px] text-[var(--p-text-color)] shrink-0" style="width: 100px">
               庫存
             </div>
-            <div class="px-2 py-[6px] shrink-0 ml-auto" style="width: 80px"></div>
           </div>
 
           <template v-for="p in paged" :key="p.id">
@@ -347,6 +349,15 @@ function onConfirm(): void {
                   : 'border-b border-[var(--p-content-border-color)]',
               ]"
             >
+              <!-- checkbox 移到最前面 -->
+              <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px">
+                <Checkbox
+                  :model-value="isProductSelected(p)"
+                  binary
+                  :disabled="isExistingProduct(p)"
+                  @change="toggleProduct(p)"
+                />
+              </div>
               <div class="px-2 py-[6px] shrink-0 w-[28px]">
                 <button
                   v-if="hasSpecs(p)"
@@ -393,14 +404,6 @@ function onConfirm(): void {
               <div class="px-2 py-[6px] shrink-0" style="width: 100px">
                 <span class="text-[15px]" :class="minSpecStock(p) <= 10 ? 'text-[#ef4444]' : 'text-[var(--p-text-color)]'">{{ specStockRange(p) }}</span>
               </div>
-              <div class="px-2 py-[6px] shrink-0 ml-auto flex justify-center" style="width: 80px">
-                <Checkbox
-                  :model-value="isProductSelected(p)"
-                  binary
-                  :disabled="isExistingProduct(p)"
-                  @change="toggleProduct(p)"
-                />
-              </div>
             </div>
 
             <!-- 規格子列：bg + 左 border + 灰底 -->
@@ -416,6 +419,15 @@ function onConfirm(): void {
                 ]"
               >
                 <div class="border-l border-[var(--p-content-border-color)] flex h-full items-center w-full">
+                  <!-- checkbox 移到最前面（規格層） -->
+                  <div class="px-2 py-[6px] shrink-0 flex justify-center" style="width: 50px">
+                    <Checkbox
+                      :model-value="isSpecSelected(p, spec)"
+                      binary
+                      :disabled="isExistingSpec(p, spec)"
+                      @change="toggleSpec(p, spec)"
+                    />
+                  </div>
                   <div class="px-2 py-[6px] flex gap-3 items-center shrink-0" style="width: 380px">
                     <div class="w-[40px] h-[40px] rounded-[6px] bg-[var(--p-content-hover-background)] flex items-center justify-center shrink-0">
                       <i class="pi pi-image text-[14px] text-[var(--p-text-muted-color)]"></i>
@@ -436,14 +448,6 @@ function onConfirm(): void {
                   </div>
                   <div class="px-2 py-[6px] shrink-0" style="width: 100px">
                     <span class="text-[14px]" :class="spec.stock <= 10 ? 'text-[#ef4444]' : 'text-[var(--p-text-color)]'">{{ spec.stock }}</span>
-                  </div>
-                  <div class="px-2 py-[6px] shrink-0 ml-auto flex justify-center" style="width: 80px">
-                    <Checkbox
-                      :model-value="isSpecSelected(p, spec)"
-                      binary
-                      :disabled="isExistingSpec(p, spec)"
-                      @change="toggleSpec(p, spec)"
-                    />
                   </div>
                 </div>
               </div>
@@ -472,8 +476,7 @@ function onConfirm(): void {
       <div class="flex justify-end gap-2">
         <Button label="取消" severity="secondary" variant="outlined" @click="close" />
         <Button
-          :label="`確認加入（${selectedCount}）`"
-          icon="pi pi-check"
+          label="確認"
           :disabled="selectedCount === 0"
           @click="onConfirm"
         />

@@ -30,6 +30,22 @@ import AISuggestPanel, { type AiApplyPayload } from './components/AISuggestPanel
  * 存檔走 mock：直接覆寫 productCatalog 內對應 id 的商品 + toast。
  */
 
+/**
+ * Props：本元件支援兩種使用模式
+ * - 一般 route page：直接 mount 在 router，依 route.name / route.params 判斷 create / update
+ * - dialog 嵌入（embedded = true）：藏掉頁首返回 / 麵包屑 + sticky footer，由父元件
+ *   （ProductCreateDialog）負責 Dialog header / footer，並透過 expose 出來的方法觸發儲存
+ */
+const props = withDefaults(defineProps<{
+  embedded?: boolean
+}>(), {
+  embedded: false,
+})
+const emit = defineEmits<{
+  saved: [product: ManagedProduct]
+  cancel: []
+}>()
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -40,8 +56,10 @@ const original = computed<ManagedProduct | undefined>(() =>
   managedProducts.find((p) => p.id === productId.value),
 )
 
-/** 路由名稱 = product.create，或 id 缺/找不到對應商品 → 視為新增模式 */
-const isCreateMode = computed(() => route.name === RouteName.ProductCreate || !route.params.id)
+/** 路由名稱 = product.create，或 id 缺/找不到對應商品，或被 dialog 嵌入 → 視為新增模式 */
+const isCreateMode = computed(() =>
+  props.embedded || route.name === RouteName.ProductCreate || !route.params.id,
+)
 const pageTitle = computed(() => isCreateMode.value ? '新增一般商品' : '編輯商品')
 
 /**
@@ -275,6 +293,11 @@ function backToList(): void {
 }
 
 function onCancel(): void {
+  // 嵌入 dialog 時：把離開決策交回父層（dialog 統一用自家 confirm），不走 router
+  if (props.embedded) {
+    emit('cancel')
+    return
+  }
   confirm.require({
     header: '取消編輯',
     message: '尚未儲存的變更會遺失，確定要離開？',
@@ -305,7 +328,7 @@ function onSave(): void {
           }
         })
       : [{ id: newId + 1, name: '單一規格', stock: form.value.noSpecVariant.stock, price: form.value.noSpecVariant.salePrice }]
-    addManagedProduct({
+    const newProduct: ManagedProduct = {
       id: newId,
       name: form.value.name.trim(),
       category: form.value.category,
@@ -320,8 +343,13 @@ function onSave(): void {
       remark: form.value.remark,
       images: form.value.images.map((img) => ({ ...img })),
       specs: variantSpecs,
-    })
+    }
+    addManagedProduct(newProduct)
     toast.add({ severity: 'success', summary: '已建立商品', detail: form.value.name.trim(), life: 2000 })
+    if (props.embedded) {
+      emit('saved', newProduct)
+      return
+    }
     backToList()
     return
   }
@@ -358,12 +386,22 @@ function onSave(): void {
   toast.add({ severity: 'success', summary: '已儲存商品變更', detail: p.name, life: 2000 })
   backToList()
 }
+
+// 給 dialog 外層觸發用：dialog footer 的「建立 / 取消」按鈕透過 ref 呼叫
+defineExpose({ onSave, onCancel })
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 flex-1 min-h-0">
-    <!-- 頁首：返回 + 標題 + 右側麵包屑 -->
-    <div class="flex items-center gap-3">
+  <!-- 全頁的「卡片區隔」改成「間隔線區隔」（Design.md 6.5）：
+       - standalone：外層自己當大 Card（白底 + border + 圓角 + 內距），裡面區塊用 border-t 分隔
+       - embedded：Dialog 已是大容器，裡面區塊也用 border-t 分隔，不再加 Card 外觀
+       兩種模式共用 .embedded-form scoped CSS 把內層 <Card> 拍平 -->
+  <div
+    class="flex flex-col gap-4"
+    :class="embedded ? '' : 'flex-1 min-h-0'"
+  >
+    <!-- 頁首：返回 + 標題 + 右側麵包屑（dialog 嵌入時隱藏，header 由 Dialog 自己處理） -->
+    <div v-if="!embedded" class="flex items-center gap-3">
       <Button
         v-tooltip.bottom="'返回商品列表'"
         icon="pi pi-arrow-left"
@@ -384,150 +422,148 @@ function onSave(): void {
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-      <!-- 商品資料：對齊 portal-vue ProductForm 的「基本資料區塊」layout：
-           Card #title + 2-column grid (max-w-2xl)、商品重量單欄、其他欄位 col-span-2 全寬 -->
-      <Card class="relative">
-        <template #title>商品資料</template>
-        <template #content>
-          <!-- AI 浮動按鈕：點下展開右側 AISuggestPanel -->
-          <button
-            v-tooltip.left="'AI 建議'"
-            class="absolute top-5 right-5 size-[44px] rounded-full bg-primary text-white text-[13px] font-bold flex items-center justify-center shadow-md hover:opacity-90"
-            @click="aiPanelVisible = true"
-          >AI</button>
+    <!-- 內容包裝：standalone 模式自身當 Card-like 容器（白底 + 圓角，無外框避免下方按鈕上方多出邊框線）
+         內部區塊用 divide-y 間隔線分隔 -->
+    <div
+      class="flex flex-col px-6 divide-y divide-[var(--p-content-border-color)]"
+      :class="embedded
+        ? '!px-0'
+        : 'flex-1 min-h-0 overflow-y-auto bg-[var(--p-content-background)] rounded-lg'"
+    >
+      <!-- 商品資料 -->
+      <section class="relative py-6 first:pt-0">
+        <h3 class="text-[18px] font-bold text-[var(--p-text-color)] mb-4">商品資料</h3>
+        <!-- AI 浮動按鈕 -->
+        <button
+          v-tooltip.left="'AI 建議'"
+          class="absolute top-5 right-0 size-[44px] rounded-full bg-primary text-white text-[13px] font-bold flex items-center justify-center shadow-md hover:opacity-90"
+          @click="aiPanelVisible = true"
+        >AI</button>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-            <!-- 商品名稱 -->
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">
-                <span class="text-red-600 mr-1">*</span>商品名稱
-              </label>
-              <InputText v-model="form.name" placeholder="請輸入商品名稱" class="w-full" />
-            </div>
-
-            <!-- 商品類別 -->
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">商品類別</label>
-              <Select
-                v-model="form.category"
-                :options="categoryOptions"
-                option-label="label"
-                option-value="value"
-                placeholder="請選擇商品類別"
-                class="w-full"
-              />
-            </div>
-
-            <!-- 直播關鍵字 -->
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">直播關鍵字</label>
-              <InputText v-model="form.keyword" placeholder="可設定直播使用關鍵字加單" class="w-full" />
-            </div>
-
-            <!-- 商品標籤 -->
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">標籤</label>
-              <MultiSelect
-                v-model="form.tags"
-                :options="tagOptions"
-                option-label="label"
-                option-value="value"
-                placeholder="請選擇商品標籤"
-                class="w-full"
-                display="chip"
-              />
-            </div>
-
-            <!-- 啟用優惠券 -->
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">啟用優惠券</label>
-              <ToggleSwitch v-model="form.enableCoupon" />
-            </div>
-
-            <!-- 商品重量（單欄） -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">商品重量（公克）</label>
-              <InputNumber v-model="form.weight" :min="0" suffix=" g" class="w-full" />
-            </div>
-
-            <!-- 商品介紹（Quill） -->
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">商品介紹</label>
-              <Editor v-model="form.description" editor-style="height: 320px" />
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">
+              <span class="text-red-600 mr-1">*</span>商品名稱
+            </label>
+            <InputText v-model="form.name" placeholder="請輸入商品名稱" class="w-full" />
           </div>
-        </template>
-      </Card>
 
-      <!-- 商品圖片：多圖上傳（MultiImageUploader） -->
-      <Card>
-        <template #title>商品圖片</template>
-        <template #content>
-          <MultiImageUploader
-            v-model:images="form.images"
-            :max-count="8"
-            :aspect-ratio="1"
-          />
-        </template>
-      </Card>
-
-      <!-- 銷售設定（沒規格時）：4 個價格 / 庫存欄位 + 建立規格按鈕 -->
-      <Card v-if="form.specs.length === 0">
-        <template #title>銷售設定</template>
-        <template #content>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">成本價</label>
-              <InputNumber v-model="form.noSpecVariant.cost" mode="currency" currency="TWD" locale="zh-TW" :min="0" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">原價</label>
-              <InputNumber v-model="form.noSpecVariant.originalPrice" mode="currency" currency="TWD" locale="zh-TW" :min="0" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">售價</label>
-              <InputNumber v-model="form.noSpecVariant.salePrice" mode="currency" currency="TWD" locale="zh-TW" :min="0" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">庫存</label>
-              <InputNumber v-model="form.noSpecVariant.stock" :min="0" class="w-full" />
-            </div>
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">商品類別</label>
+            <Select
+              v-model="form.category"
+              :options="categoryOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="請選擇商品類別"
+              class="w-full"
+            />
           </div>
-          <div class="py-8 flex flex-col items-center gap-4">
-            <p class="text-sm text-color-secondary">此商品尚未設定規格，您可以設定商品規格（例如：顏色、尺寸）</p>
-            <Button label="建立規格" icon="pi pi-plus" @click="enableSpec" />
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">直播關鍵字</label>
+            <InputText v-model="form.keyword" placeholder="可設定直播使用關鍵字加單" class="w-full" />
           </div>
-        </template>
-      </Card>
 
-      <!-- 規格設定（有規格時）：SpecTable v-model -->
-      <SpecTable
-        v-else
-        v-model:specs="form.specs"
-        v-model:variants="form.variants"
-        @close-spec="form.specs = []; form.variants = []"
-      />
-
-      <!-- 多件優惠：PromoteTable v-model -->
-      <PromoteTable v-model="form.promote" />
-
-      <!-- 商品詳情：對齊 portal-vue 「商品備註」 -->
-      <Card>
-        <template #title>商品詳情</template>
-        <template #content>
-          <div class="grid grid-cols-1 gap-4 max-w-2xl">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">商品備註</label>
-              <Textarea v-model="form.remark" rows="5" placeholder="僅內部可見的備註，前台不顯示" class="w-full" />
-            </div>
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">標籤</label>
+            <MultiSelect
+              v-model="form.tags"
+              :options="tagOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="請選擇商品標籤"
+              class="w-full"
+              display="chip"
+            />
           </div>
-        </template>
-      </Card>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">啟用優惠券</label>
+            <ToggleSwitch v-model="form.enableCoupon" />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">商品重量（公克）</label>
+            <InputNumber v-model="form.weight" :min="0" suffix=" g" class="w-full" />
+          </div>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">商品介紹</label>
+            <Editor v-model="form.description" editor-style="height: 320px" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 商品圖片 -->
+      <section class="py-6">
+        <h3 class="text-[18px] font-bold text-[var(--p-text-color)] mb-4">商品圖片</h3>
+        <MultiImageUploader
+          v-model:images="form.images"
+          :max-count="8"
+          :aspect-ratio="1"
+        />
+      </section>
+
+      <!-- 銷售設定（沒規格時） -->
+      <section v-if="form.specs.length === 0" class="py-6">
+        <h3 class="text-[18px] font-bold text-[var(--p-text-color)] mb-4">銷售設定</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">成本價</label>
+            <InputNumber v-model="form.noSpecVariant.cost" mode="currency" currency="TWD" locale="zh-TW" :min="0" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">原價</label>
+            <InputNumber v-model="form.noSpecVariant.originalPrice" mode="currency" currency="TWD" locale="zh-TW" :min="0" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">售價</label>
+            <InputNumber v-model="form.noSpecVariant.salePrice" mode="currency" currency="TWD" locale="zh-TW" :min="0" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">庫存</label>
+            <InputNumber v-model="form.noSpecVariant.stock" :min="0" class="w-full" />
+          </div>
+        </div>
+        <div class="py-8 flex flex-col items-center gap-4">
+          <p class="text-sm text-color-secondary">此商品尚未設定規格，您可以設定商品規格（例如：顏色、尺寸）</p>
+          <Button label="建立規格" icon="pi pi-plus" @click="enableSpec" />
+        </div>
+      </section>
+
+      <!-- 規格設定（有規格時）：SpecTable 內部 Card 已改 section，掛 .form-section-wrap 維持與其他區塊一致的 py-6 -->
+      <div v-else class="form-section-wrap py-6">
+        <SpecTable
+          v-model:specs="form.specs"
+          v-model:variants="form.variants"
+          @close-spec="form.specs = []; form.variants = []"
+        />
+      </div>
+
+      <!-- 多件優惠：PromoteTable 內部 Card 已改 section -->
+      <div class="form-section-wrap py-6">
+        <PromoteTable v-model="form.promote" />
+      </div>
+
+      <!-- 商品詳情：商品備註 -->
+      <section class="py-6">
+        <h3 class="text-[18px] font-bold text-[var(--p-text-color)] mb-4">商品詳情</h3>
+        <div class="grid grid-cols-1 gap-4 max-w-2xl">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">商品備註</label>
+            <Textarea v-model="form.remark" rows="5" placeholder="僅內部可見的備註，前台不顯示" class="w-full" />
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- 底部 sticky 操作列 -->
-    <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
+    <!-- 底部操作列（dialog 嵌入時隱藏，footer 由 Dialog 自己處理）
+         上方內容包裝已自帶 border 邊框，這列不再加 border-t -->
+    <div
+      v-if="!embedded"
+      class="flex items-center justify-end gap-2"
+    >
       <Button label="取消" severity="secondary" outlined @click="onCancel" />
       <Button :label="isCreateMode ? '建立商品' : '儲存變更'" icon="pi pi-save" @click="onSave" />
     </div>
@@ -545,3 +581,19 @@ function onSave(): void {
     />
   </div>
 </template>
+
+<style scoped>
+/* SpecTable / PromoteTable 內部仍是 <Card>，在 .form-section-wrap 內把它拍平
+   以對齊上下「以 divide-y 間隔線分隔」的視覺 — 之後若把那兩個子元件也改成 section
+   可以拿掉這段 */
+.form-section-wrap :deep(.p-card) {
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.form-section-wrap :deep(.p-card-body),
+.form-section-wrap :deep(.p-card-content) {
+  padding: 0;
+}
+</style>

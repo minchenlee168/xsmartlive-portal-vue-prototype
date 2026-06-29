@@ -15,6 +15,8 @@ import {
   type ProductStatus,
 } from './utils/productMock'
 import StockBatchAdjustDialog, { type StockAdjustmentPayload } from './components/StockBatchAdjustDialog.vue'
+import ProductCreateDialog from './components/ProductCreateDialog.vue'
+import ProductBundleCreateDialog from './components/ProductBundleCreateDialog.vue'
 
 /**
  * 商品管理 → 商品列表頁。
@@ -97,11 +99,20 @@ function onBatchDelete(): void {
   })
 }
 
+// 新增一般 / 組合商品都改用彈窗（與收單頁 picker footer 的入口共用 ProductCreateDialog / ProductBundleCreateDialog）
+const productCreateDialogVisible = ref(false)
+const bundleCreateDialogVisible = ref(false)
 function onAddBundle(): void {
-  router.push({ name: RouteName.ProductBundleCreate })
+  bundleCreateDialogVisible.value = true
 }
 function onAddNormal(): void {
-  router.push({ name: RouteName.ProductCreate })
+  productCreateDialogVisible.value = true
+}
+function onProductCreated(p: ManagedProduct): void {
+  toast.add({ severity: 'success', summary: `已建立商品「${p.name}」`, life: 1800 })
+}
+function onBundleCreated(p: ManagedProduct): void {
+  toast.add({ severity: 'success', summary: `已建立組合商品「${p.name}」`, life: 1800 })
 }
 
 function onView(p: ManagedProduct): void {
@@ -385,6 +396,16 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
       v-model:visible="stockDialogVisible"
       :product="stockDialogProduct"
       @save="onStockAdjustSave"
+    />
+
+    <!-- 新增一般 / 組合商品彈窗（與收單頁 picker footer 入口共用） -->
+    <ProductCreateDialog
+      v-model:visible="productCreateDialogVisible"
+      @created="onProductCreated"
+    />
+    <ProductBundleCreateDialog
+      v-model:visible="bundleCreateDialogVisible"
+      @created="onBundleCreated"
     />
   </div>
 </template>

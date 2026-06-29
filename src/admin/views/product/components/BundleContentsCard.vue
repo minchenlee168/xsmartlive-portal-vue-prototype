@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import type { MenuItem } from 'primevue/menuitem'
 import BundlePickDialog, { type PickedItem } from './BundlePickDialog.vue'
 
 /**
@@ -32,8 +30,12 @@ export interface BundleItem {
 interface Props {
   items: BundleItem[]
   remark: string
+  /** 隱藏「指定商品」按鈕（從 picker 已勾選商品建組合時不需要再挑選） */
+  hidePickProducts?: boolean
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  hidePickProducts: false,
+})
 const emit = defineEmits<{
   'update:items': [value: BundleItem[]]
   'update:remark': [value: string]
@@ -126,23 +128,6 @@ function onRowDelete(item: BundleItem, event: Event): void {
   })
 }
 
-function onView(item: BundleItem): void {
-  toast.add({ severity: 'info', summary: `檢視「${item.name}」`, life: 1500 })
-}
-function onEdit(item: BundleItem): void {
-  toast.add({ severity: 'info', summary: `編輯「${item.name}」（規劃中）`, life: 1500 })
-}
-
-const moreMenuRef = ref<{ toggle: (e: Event) => void } | null>(null)
-const activeItem = ref<BundleItem | null>(null)
-const moreMenuItems: MenuItem[] = [
-  { label: '複製', icon: 'pi pi-copy', command: () => toast.add({ severity: 'info', summary: `複製「${activeItem.value?.name ?? ''}」`, life: 1500 }) },
-  { label: '匯出', icon: 'pi pi-download', command: () => toast.add({ severity: 'info', summary: '匯出（規劃中）', life: 1500 }) },
-]
-function openMore(item: BundleItem, event: Event): void {
-  activeItem.value = item
-  moreMenuRef.value?.toggle(event)
-}
 </script>
 
 <template>
@@ -151,7 +136,7 @@ function openMore(item: BundleItem, event: Event): void {
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <span>組合商品內容</span>
         <div class="flex items-center gap-2">
-          <Button label="指定商品" variant="outlined" @click="onPickProducts">
+          <Button v-if="!hidePickProducts" label="指定商品" variant="outlined" @click="onPickProducts">
             <template #icon>
               <i class="pi pi-tag" style="font-size: 14px"></i>
             </template>
@@ -214,23 +199,9 @@ function openMore(item: BundleItem, event: Event): void {
             </div>
           </template>
         </Column>
-        <Column header="操作" style="width: 180px">
+        <Column header="操作" style="width: 80px">
           <template #body="{ data }">
             <div class="flex items-center gap-1" @click.stop>
-              <button
-                v-tooltip.top="'檢視'"
-                class="size-[32px] flex items-center justify-center rounded-md text-green-600 hover:bg-green-50"
-                @click="onView(data)"
-              >
-                <i class="pi pi-eye" style="font-size: 15px"></i>
-              </button>
-              <button
-                v-tooltip.top="'編輯'"
-                class="size-[32px] flex items-center justify-center rounded-md text-primary hover:bg-primary-50"
-                @click="onEdit(data)"
-              >
-                <FontAwesomeIcon :icon="['far', 'pen-to-square']" class="text-[14px]" />
-              </button>
               <button
                 v-tooltip.top="'刪除'"
                 class="size-[32px] flex items-center justify-center rounded-md text-red-500 hover:bg-red-50"
@@ -238,24 +209,15 @@ function openMore(item: BundleItem, event: Event): void {
               >
                 <i class="pi pi-trash" style="font-size: 15px"></i>
               </button>
-              <button
-                v-tooltip.top="'更多'"
-                class="size-[32px] flex items-center justify-center rounded-md text-color-secondary hover:bg-surface-100"
-                @click="openMore(data, $event)"
-              >
-                <i class="pi pi-ellipsis-v" style="font-size: 15px"></i>
-              </button>
             </div>
           </template>
         </Column>
         <template #empty>
           <div class="py-6 text-center text-sm text-color-secondary">
-            尚未加入任何商品，按右上「指定商品」開始挑選。
+            {{ hidePickProducts ? '尚未帶入任何商品' : '尚未加入任何商品，按右上「指定商品」開始挑選。' }}
           </div>
         </template>
       </DataTable>
-
-      <Menu ref="moreMenuRef" :model="moreMenuItems" :popup="true" />
 
       <!-- 備註 -->
       <div class="mt-5 flex flex-col gap-1.5">

@@ -27,13 +27,34 @@ import AISuggestPanel, { type AiApplyPayload } from './components/AISuggestPanel
  * - 商品詳情 Card 移除（備註已併入組合商品內容）
  */
 
+/**
+ * Props：支援兩種使用模式
+ * - 一般 route page（embedded=false）
+ * - dialog 嵌入（embedded=true）：藏頁首返回 / 麵包屑 + sticky footer，由父元件
+ *   （ProductBundleCreateDialog）統一管 Dialog header / footer
+ */
+const props = withDefaults(defineProps<{
+  embedded?: boolean
+  /** dialog 嵌入模式時，預填子商品（如從 picker 已勾選項目轉換而來） */
+  initialBundleItems?: BundleItem[]
+}>(), {
+  embedded: false,
+  initialBundleItems: () => [],
+})
+const emit = defineEmits<{
+  saved: [product: ManagedProduct]
+  cancel: []
+}>()
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 
-/** route name = bundle.update 視為編輯模式；否則為新增 */
-const isUpdateMode = computed(() => route.name === RouteName.ProductBundleUpdate)
+/** route name = bundle.update 視為編輯模式；dialog 嵌入時固定走「新增」 */
+const isUpdateMode = computed(() =>
+  !props.embedded && route.name === RouteName.ProductBundleUpdate,
+)
 const productId = computed(() => Number(route.params.id))
 const original = computed<ManagedProduct | undefined>(() =>
   managedProducts.find((p) => p.id === productId.value),
@@ -105,6 +126,13 @@ function adaptBundleItems(p: ManagedProduct): BundleItem[] {
 }
 
 onMounted(() => {
+  // dialog 嵌入 + 帶 initialBundleItems → 預填子商品（用於從 picker 已勾選清單建組合）
+  if (props.embedded) {
+    if (props.initialBundleItems.length > 0) {
+      form.value.bundleItems = props.initialBundleItems.map((it) => ({ ...it }))
+    }
+    return
+  }
   if (!isUpdateMode.value) return
   const p = original.value
   if (!p || p.kind !== 'bundle') {
@@ -135,6 +163,10 @@ function backToList(): void {
 }
 
 function onCancel(): void {
+  if (props.embedded) {
+    emit('cancel')
+    return
+  }
   confirm.require({
     header: isUpdateMode.value ? '取消編輯' : '取消新增',
     message: '尚未儲存的內容會遺失，確定離開？',
@@ -186,7 +218,7 @@ function onSave(): void {
   }
 
   const newId = Date.now()
-  addManagedProduct({
+  const newProduct: ManagedProduct = {
     id: newId,
     name: form.value.name.trim(),
     category: form.value.category,
@@ -204,10 +236,18 @@ function onSave(): void {
     bundleItems,
     bundlePrice: 0,
     bundleStock,
-  })
+  }
+  addManagedProduct(newProduct)
   toast.add({ severity: 'success', summary: '已建立組合商品', detail: form.value.name, life: 2000 })
+  if (props.embedded) {
+    emit('saved', newProduct)
+    return
+  }
   backToList()
 }
+
+// 給 dialog 外層觸發用
+defineExpose({ onSave, onCancel })
 
 // ── AI 建議面板 ───────────────────────────────────
 const aiPanelVisible = ref(false)
@@ -270,9 +310,15 @@ function applyAi(payload: AiApplyPayload): void {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 flex-1 min-h-0">
-    <!-- 頁首 -->
-    <div class="flex items-center gap-3">
+  <!-- 卡片區隔 → 間隔線區隔（Design.md 6.5）：
+       - standalone：外層當大 Card（白底 + 邊框 + 圓角 + 內距），裡面區塊以 border-t 分隔
+       - embedded：Dialog 已是大容器，裡面區塊也以 border-t 分隔 -->
+  <div
+    class="flex flex-col gap-4"
+    :class="embedded ? '' : 'flex-1 min-h-0'"
+  >
+    <!-- 頁首：dialog 嵌入時隱藏，由 Dialog header 處理 -->
+    <div v-if="!embedded" class="flex items-center gap-3">
       <Button
         v-tooltip.bottom="'返回商品列表'"
         icon="pi pi-arrow-left"
@@ -293,93 +339,105 @@ function applyAi(payload: AiApplyPayload): void {
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
+    <!-- 內容包裝：standalone 自身當大 Card-like 容器（白底 + 圓角，無外框避免下方按鈕上方多出邊框線）
+         內部區塊用 divide-y 間隔線分隔 -->
+    <div
+      class="flex flex-col px-6 divide-y divide-[var(--p-content-border-color)]"
+      :class="embedded
+        ? '!px-0'
+        : 'flex-1 min-h-0 overflow-y-auto bg-[var(--p-content-background)] rounded-lg'"
+    >
       <!-- 商品資料 -->
-      <Card class="relative">
-        <template #title>商品資料</template>
-        <template #content>
-          <button
-            v-tooltip.left="'AI 建議'"
-            class="absolute top-5 right-5 size-[44px] rounded-full bg-primary text-white text-[13px] font-bold flex items-center justify-center shadow-md hover:opacity-90"
-            @click="aiPanelVisible = true"
-          >AI</button>
+      <section class="relative py-6 first:pt-0">
+        <h3 class="text-[18px] font-bold text-[var(--p-text-color)] mb-4">商品資料</h3>
+        <button
+          v-tooltip.left="'AI 建議'"
+          class="absolute top-5 right-0 size-[44px] rounded-full bg-primary text-white text-[13px] font-bold flex items-center justify-center shadow-md hover:opacity-90"
+          @click="aiPanelVisible = true"
+        >AI</button>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">
-                <span class="text-red-600 mr-1">*</span>組合商品名稱
-              </label>
-              <InputText v-model="form.name" placeholder="請輸入組合商品名稱" class="w-full" />
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">商品類別</label>
-              <Select
-                v-model="form.category"
-                :options="categoryOptions"
-                option-label="label"
-                option-value="value"
-                placeholder="請選擇商品類別"
-                class="w-full"
-              />
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">直播關鍵字</label>
-              <InputText v-model="form.keyword" placeholder="可設定直播使用關鍵字加單" class="w-full" />
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">標籤</label>
-              <MultiSelect
-                v-model="form.tags"
-                :options="tagOptions"
-                option-label="label"
-                option-value="value"
-                placeholder="請選擇商品標籤"
-                class="w-full"
-                display="chip"
-              />
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">啟用優惠券</label>
-              <ToggleSwitch v-model="form.enableCoupon" />
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">商品重量（公克）</label>
-              <InputNumber v-model="form.weight" :min="0" suffix=" g" class="w-full" />
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1.5">
-              <label class="text-sm font-bold text-color">組合商品介紹</label>
-              <Editor v-model="form.description" editor-style="height: 320px" />
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">
+              <span class="text-red-600 mr-1">*</span>組合商品名稱
+            </label>
+            <InputText v-model="form.name" placeholder="請輸入組合商品名稱" class="w-full" />
           </div>
-        </template>
-      </Card>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">商品類別</label>
+            <Select
+              v-model="form.category"
+              :options="categoryOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="請選擇商品類別"
+              class="w-full"
+            />
+          </div>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">直播關鍵字</label>
+            <InputText v-model="form.keyword" placeholder="可設定直播使用關鍵字加單" class="w-full" />
+          </div>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">標籤</label>
+            <MultiSelect
+              v-model="form.tags"
+              :options="tagOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="請選擇商品標籤"
+              class="w-full"
+              display="chip"
+            />
+          </div>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">啟用優惠券</label>
+            <ToggleSwitch v-model="form.enableCoupon" />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">商品重量（公克）</label>
+            <InputNumber v-model="form.weight" :min="0" suffix=" g" class="w-full" />
+          </div>
+
+          <div class="col-span-2 flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-color">組合商品介紹</label>
+            <Editor v-model="form.description" editor-style="height: 320px" />
+          </div>
+        </div>
+      </section>
 
       <!-- 商品圖片 -->
-      <Card>
-        <template #title>商品圖片</template>
-        <template #content>
-          <MultiImageUploader v-model:images="form.images" :max-count="8" :aspect-ratio="1" />
-        </template>
-      </Card>
+      <section class="py-6">
+        <h3 class="text-[18px] font-bold text-[var(--p-text-color)] mb-4">商品圖片</h3>
+        <MultiImageUploader v-model:images="form.images" :max-count="8" :aspect-ratio="1" />
+      </section>
 
-      <!-- 組合商品內容 -->
-      <BundleContentsCard
-        v-model:items="form.bundleItems"
-        v-model:remark="form.bundleRemark"
-      />
+      <!-- 組合商品內容（內部仍是 Card，靠 .form-section-wrap 拍平對齊） -->
+      <div class="form-section-wrap py-6">
+        <BundleContentsCard
+          v-model:items="form.bundleItems"
+          v-model:remark="form.bundleRemark"
+          :hide-pick-products="embedded && initialBundleItems.length > 0"
+        />
+      </div>
 
       <!-- 多件優惠 -->
-      <PromoteTable v-model="form.promote" />
+      <div class="form-section-wrap py-6">
+        <PromoteTable v-model="form.promote" />
+      </div>
     </div>
 
-    <!-- 底部 sticky 操作列 -->
-    <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
+    <!-- 底部操作列：dialog 嵌入時隱藏，由 Dialog footer 處理。
+         上方內容包裝已自帶 border 邊框，這列不再加 border-t（避免重複線條） -->
+    <div
+      v-if="!embedded"
+      class="flex items-center justify-end gap-2"
+    >
       <Button label="取消" severity="secondary" outlined @click="onCancel" />
       <Button :label="isUpdateMode ? '儲存變更' : '建立組合商品'" icon="pi pi-save" @click="onSave" />
     </div>
@@ -396,3 +454,18 @@ function applyAi(payload: AiApplyPayload): void {
     />
   </div>
 </template>
+
+<style scoped>
+/* BundleContentsCard / PromoteTable 內部仍是 <Card>，靠 .form-section-wrap 拍平
+   對齊上下「以 divide-y 間隔線分隔」的視覺 */
+.form-section-wrap :deep(.p-card) {
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.form-section-wrap :deep(.p-card-body),
+.form-section-wrap :deep(.p-card-content) {
+  padding: 0;
+}
+</style>
