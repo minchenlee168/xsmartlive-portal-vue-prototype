@@ -56,14 +56,43 @@ function handleLogout() {
   showSuccess({ detail: t('topbar.logout_mock') });
 }
 
-/** 把 vite.config 注入的 ISO 字串轉成「YYYY/MM/DD HH:mm」顯示 */
-const prototypeUpdateTime = computed(() => {
-  const iso = typeof __LAST_COMMIT_TIME__ === 'string' ? __LAST_COMMIT_TIME__ : ''
+/** ISO 字串 → 「YYYY/MM/DD HH:mm」 */
+function formatCommitTime(iso: string): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   const pad = (n: number): string => String(n).padStart(2, '0')
   return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const prototypeUpdateTime = computed(() => {
+  const iso = typeof __LAST_COMMIT_TIME__ === 'string' ? __LAST_COMMIT_TIME__ : ''
+  return formatCommitTime(iso)
+})
+
+/** info icon 開的 changelog Dialog 狀態與資料：解析 vite 注入的 commit 區塊（第一行 `ISO|subject`，後續為 body） */
+const changelogDialogVisible = ref(false)
+interface CommitEntry {
+  time: string
+  subject: string
+  /** body 拆成多行，過濾掉空行；若是 `- xxx` / `* xxx` 開頭就去掉符號當作子條列項 */
+  bullets: string[]
+}
+const recentCommits = computed<CommitEntry[]>(() => {
+  const list = Array.isArray(__RECENT_COMMITS__) ? __RECENT_COMMITS__ : []
+  return list.map((block) => {
+    const lines = block.split('\n')
+    const firstLine = lines[0] ?? ''
+    const idx = firstLine.indexOf('|')
+    const time = idx < 0 ? '' : formatCommitTime(firstLine.slice(0, idx))
+    const subject = idx < 0 ? firstLine : firstLine.slice(idx + 1)
+    const bullets = lines
+      .slice(1)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith('Co-Authored-By:'))
+      .map((l) => l.replace(/^[-*]\s*/, ''))
+    return { time, subject, bullets }
+  })
 })
 </script>
 
@@ -154,14 +183,45 @@ const prototypeUpdateTime = computed(() => {
         <span class="hidden sm:inline ml-2">{{ t('topbar.front_view') }}</span>
       </Button>
 
-      <!-- prototype 更新時間提示：手機隱藏，避免擠壓主要 buttons -->
+      <!-- prototype 更新時間提示：手機隱藏，避免擠壓主要 buttons；右側 info icon 點開 changelog Dialog -->
       <span
         v-if="prototypeUpdateTime"
-        class="hidden lg:inline text-[11px] text-[#ef4444] font-medium whitespace-nowrap"
+        class="hidden lg:inline-flex items-center gap-1 text-[11px] text-[#ef4444] font-medium whitespace-nowrap"
       >
         此為 prototype 展示，更新時間：{{ prototypeUpdateTime }}
+        <button
+          type="button"
+          v-tooltip.bottom="'查看更新內容'"
+          class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full hover:bg-[#fee2e2]"
+          @click="changelogDialogVisible = true"
+        >
+          <i class="pi pi-info-circle" style="font-size: 13px"></i>
+        </button>
       </span>
     </div>
+
+    <!-- Changelog Dialog：顯示最近 10 筆 commit 的時間 + subject -->
+    <Dialog
+      v-model:visible="changelogDialogVisible"
+      modal
+      :draggable="false"
+      header="更新內容"
+      :style="{ width: 'min(560px, calc(100vw - 32px))' }"
+    >
+      <div v-if="recentCommits.length === 0" class="text-[14px] text-[var(--p-text-muted-color)] py-4 text-center">
+        尚無 commit 紀錄
+      </div>
+      <ul v-else class="divide-y divide-[var(--p-content-border-color)]">
+        <li v-for="(c, i) in recentCommits" :key="i" class="py-3 flex flex-col gap-1.5">
+          <span class="text-[12px] text-[var(--p-text-muted-color)] font-mono">{{ c.time }}</span>
+          <span class="text-[14px] font-medium text-[var(--p-text-color)] leading-snug">{{ c.subject }}</span>
+          <!-- commit body 拆出來的條列子項；沒有 body 就不顯示 -->
+          <ul v-if="c.bullets.length" class="list-disc pl-5 flex flex-col gap-0.5">
+            <li v-for="(b, bi) in c.bullets" :key="bi" class="text-[13px] text-[var(--p-text-color)] leading-snug">{{ b }}</li>
+          </ul>
+        </li>
+      </ul>
+    </Dialog>
 
     <!-- 右區 3 顆 icon 永遠顯示，shrink-0 避免被左區擠掉 -->
     <div class="inline-flex items-center h-10 gap-2 sm:gap-4 shrink-0">
