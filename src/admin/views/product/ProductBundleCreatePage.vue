@@ -16,7 +16,7 @@ import {
 } from './utils/productMock'
 import PromoteTable, { type PromoteData } from './components/PromoteTable.vue'
 import MultiImageUploader, { type UploaderItem } from './components/MultiImageUploader.vue'
-import BundleContentsCard, { type BundleItem } from './components/BundleContentsCard.vue'
+import BundleContentsCard, { type BundleItem, type BundleMode } from './components/BundleContentsCard.vue'
 import AISuggestPanel, { type AiApplyPayload } from './components/AISuggestPanel.vue'
 
 /**
@@ -81,6 +81,10 @@ interface FormState {
   images: UploaderItem[]
   bundleItems: BundleItem[]
   bundleRemark: string
+  /** 組合類型：固定（套組）/ 任選（mix-and-match） */
+  bundleMode: BundleMode
+  /** 任選模式：買家總共可選件數 */
+  bundleTotalPick: number
   promote: PromoteData
 }
 
@@ -98,6 +102,8 @@ function emptyForm(): FormState {
     images: [],
     bundleItems: [],
     bundleRemark: '',
+    bundleMode: 'fixed',
+    bundleTotalPick: 1,
     promote: { startAt: null, endAt: null, tiers: [] },
   }
 }
@@ -161,6 +167,8 @@ onMounted(() => {
     images: (p.images ?? []).map((img) => ({ ...img })),
     bundleItems: adaptBundleItems(p),
     bundleRemark: p.remark ?? '',
+    bundleMode: p.bundleMode ?? 'fixed',
+    bundleTotalPick: p.bundleTotalPick ?? 1,
     promote: { startAt: null, endAt: null, tiers: [] },
   }
 })
@@ -227,6 +235,8 @@ function onSave(): void {
     p.images = form.value.images.map((img) => ({ ...img }))
     p.bundleItems = bundleItems
     p.bundleStock = bundleStock
+    p.bundleMode = form.value.bundleMode
+    p.bundleTotalPick = form.value.bundleMode === 'pick' ? form.value.bundleTotalPick : undefined
     // 保留既有 bundlePrice；如未設過則沿用 0
     p.bundlePrice = p.bundlePrice ?? 0
     p.specs = [{ id: p.specs[0]?.id ?? Date.now(), name: '單一規格', stock: bundleStock, price: p.bundlePrice ?? 0 }]
@@ -259,6 +269,8 @@ function onSave(): void {
     bundleItems,
     bundlePrice: 0,
     bundleStock,
+    bundleMode: form.value.bundleMode,
+    bundleTotalPick: form.value.bundleMode === 'pick' ? form.value.bundleTotalPick : undefined,
   }
   addManagedProduct(newProduct)
   toast.add({ severity: 'success', summary: '已建立組合商品', detail: form.value.name, life: 2000 })
@@ -483,6 +495,8 @@ function applyAi(payload: AiApplyPayload): void {
         <BundleContentsCard
           v-model:items="form.bundleItems"
           v-model:remark="form.bundleRemark"
+          v-model:mode="form.bundleMode"
+          v-model:total-pick="form.bundleTotalPick"
           :hide-pick-products="embedded && initialBundleItems.length > 0"
         />
       </div>

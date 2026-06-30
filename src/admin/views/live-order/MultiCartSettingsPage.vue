@@ -228,9 +228,9 @@ function onDeleteCart(c: Cart, event: Event): void {
         ></i>
       </div>
 
-      <!-- 檢視 tab：卡片 / 列表 -->
+      <!-- 檢視 tab：卡片 / 列表（TabList 加 px-6 對齊上下內容的左右內距） -->
       <Tabs :value="viewMode" @update:value="(v) => viewMode = v as ViewMode">
-        <TabList>
+        <TabList :pt="{ root: { class: 'px-6' } }">
           <Tab value="card">卡片版本</Tab>
           <Tab value="list">列表版本</Tab>
         </TabList>

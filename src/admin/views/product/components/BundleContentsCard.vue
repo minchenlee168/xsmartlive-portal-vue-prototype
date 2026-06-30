@@ -21,25 +21,49 @@ export interface BundleItem {
   specId?: number
   name: string
   stock: number
-  /** 每組組合包含這個子商品的數量；預設 1 */
+  /** 固定組合用：每組包含此子商品的件數（預設 1） */
   quantity: number
-  /** 客人單次購買的上限件數；null = 不限制 */
+  /** 任選組合用：買家單次此項可選的最多件數；null = 不限制 */
   maxPerPurchase: number | null
 }
+
+/** 組合類型：固定（套組）/ 任選（mix-and-match） */
+export type BundleMode = 'fixed' | 'pick'
 
 interface Props {
   items: BundleItem[]
   remark: string
+  /** 組合類型 */
+  mode?: BundleMode
+  /** 任選模式：買家總共可挑選的件數 */
+  totalPick?: number
   /** 隱藏「指定商品」按鈕（從 picker 已勾選商品建組合時不需要再挑選） */
   hidePickProducts?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
+  mode: 'fixed',
+  totalPick: 1,
   hidePickProducts: false,
 })
 const emit = defineEmits<{
   'update:items': [value: BundleItem[]]
   'update:remark': [value: string]
+  'update:mode': [value: BundleMode]
+  'update:totalPick': [value: number]
 }>()
+
+const modeModel = computed<BundleMode>({
+  get: () => props.mode,
+  set: (v) => emit('update:mode', v),
+})
+const totalPickModel = computed<number>({
+  get: () => props.totalPick,
+  set: (v) => emit('update:totalPick', v),
+})
+const modeOptions = [
+  { label: '固定組合', value: 'fixed' as BundleMode },
+  { label: '任選組合', value: 'pick'  as BundleMode },
+]
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -146,9 +170,28 @@ function onRowDelete(item: BundleItem, event: Event): void {
       </div>
     </template>
     <template #content>
+      <!-- 組合類型 toggle + 任選總數（任選模式才顯示） -->
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <span class="text-sm font-bold text-color">組合類型</span>
+        <SelectButton
+          v-model="modeModel"
+          :options="modeOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+        />
+        <template v-if="modeModel === 'pick'">
+          <span class="text-sm text-color-secondary ml-3">買家可任選</span>
+          <InputNumber v-model="totalPickModel" :min="1" :input-style="{ width: '64px', textAlign: 'center' }" />
+          <span class="text-sm text-color-secondary">件</span>
+        </template>
+      </div>
+
       <!-- 紅色警語：寬度貼齊文字，不再撐滿整張卡片 -->
       <div class="mb-3 inline-block max-w-full px-3 py-2 rounded-md border border-red-300 bg-red-50 text-sm text-red-600">
-        設定商品組合時，請確認庫存，避免超過可出貨量而導致無法出貨。
+        {{ modeModel === 'fixed'
+          ? '設定商品組合時，請確認庫存，避免超過可出貨量而導致無法出貨。'
+          : '任選組合：買家結帳時可從清單挑選最多上述件數的商品，每項可額外設「限購上限」。' }}
       </div>
 
       <!-- 子商品表 -->
@@ -173,7 +216,8 @@ function onRowDelete(item: BundleItem, event: Event): void {
         </Column>
         <Column field="name" header="商品名稱" />
         <Column field="stock" header="庫存" style="width: 100px" />
-        <Column header="數量" style="width: 130px">
+        <!-- 固定組合：必含件數 -->
+        <Column v-if="modeModel === 'fixed'" header="數量" style="width: 130px">
           <template #body="{ data }">
             <InputNumber
               v-model="data.quantity"
@@ -185,7 +229,8 @@ function onRowDelete(item: BundleItem, event: Event): void {
             />
           </template>
         </Column>
-        <Column header="限購上限" style="width: 160px">
+        <!-- 任選組合：此項限購上限 -->
+        <Column v-else header="限購上限" style="width: 160px">
           <template #body="{ data }">
             <div class="flex items-center gap-2">
               <InputNumber

@@ -91,6 +91,10 @@ export interface ManagedProduct {
   bundlePrice?: number
   /** 組合商品的庫存（單一值）；給 kind='bundle' 用 */
   bundleStock?: number
+  /** 組合類型：fixed = 固定套組（每項依 quantity 必含），pick = 任選（買家從清單挑） */
+  bundleMode?: 'fixed' | 'pick'
+  /** 任選模式：買家總共可挑選的件數 */
+  bundleTotalPick?: number
 }
 
 /** 共用分類選項（賣場分頁 mock） */
