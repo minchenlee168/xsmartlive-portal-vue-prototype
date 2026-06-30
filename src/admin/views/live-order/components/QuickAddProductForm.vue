@@ -22,6 +22,11 @@ interface QuickAddProductPayload {
   category: string
 }
 
+interface Props {
+  /** bare = 拿掉外框 / 背景 / padding + 隱藏 inline「新增」鈕（給 dialog 嵌入用，submit 由 dialog footer 觸發） */
+  bare?: boolean
+}
+const props = withDefaults(defineProps<Props>(), { bare: false })
 const emit = defineEmits<{
   submit: [payloads: QuickAddProductPayload[]]
 }>()
@@ -70,11 +75,17 @@ function onSubmit(): void {
 
 /** 給父層程式化收合用 — 沿用 API（這版沒有收合需求，呼叫不做事） */
 function collapse(): void { /* no-op：表單一直顯示 */ }
-defineExpose({ collapse })
+/** 給 dialog 外層觸發用 — bare 模式時 dialog footer 的「新增」鈕透過 ref 呼叫 */
+defineExpose({ collapse, submit: onSubmit, canSubmit })
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2 rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-2">
+  <!-- 手機 → 每個 input 全寬 stack；桌機 ≥ sm → 固定寬度 inline；
+       bare 模式（dialog 內）→ 拿掉外框 / 背景 / padding -->
+  <div
+    class="flex flex-wrap items-center gap-2"
+    :class="bare ? '' : 'rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-2'"
+  >
     <Select
       v-model="category"
       :options="categoryOptions"
@@ -83,20 +94,20 @@ defineExpose({ collapse })
       placeholder="常用分類"
       show-clear
       size="small"
-      class="!w-[140px]"
+      class="!w-full sm:!w-[140px]"
       :pt="{ label: { class: 'flex items-center !py-0' } }"
     />
     <InputText
       v-model="name"
       :placeholder="t('live_order.quick_add.placeholder.name')"
-      class="!w-[200px]"
+      class="!w-full sm:!w-[200px]"
       size="small"
       @keyup.enter="onSubmit"
     />
     <InputText
       v-model="keyword"
       :placeholder="t('live_order.quick_add.placeholder.keyword')"
-      class="!w-[120px]"
+      class="!w-full sm:!w-[120px]"
       size="small"
       @keyup.enter="onSubmit"
     />
@@ -105,8 +116,10 @@ defineExpose({ collapse })
       :placeholder="t('live_order.quick_add.placeholder.price')"
       :min="0"
       :use-grouping="false"
-      input-class="!w-[110px]"
+      input-class="!w-full sm:!w-[110px]"
       size="small"
+      fluid
+      class="w-full sm:w-auto"
       @keyup.enter="onSubmit"
     />
     <InputNumber
@@ -114,14 +127,19 @@ defineExpose({ collapse })
       :placeholder="t('live_order.quick_add.placeholder.stock')"
       :min="0"
       :use-grouping="false"
-      input-class="!w-[110px]"
+      input-class="!w-full sm:!w-[110px]"
       size="small"
+      fluid
+      class="w-full sm:w-auto"
       @keyup.enter="onSubmit"
     />
+    <!-- bare 模式時隱藏 inline 新增鈕，由 dialog footer 觸發 -->
     <Button
+      v-if="!bare"
       icon="pi pi-plus"
       :label="t('live_order.quick_add.button.add_one')"
       size="small"
+      class="w-full sm:w-auto"
       :disabled="!canSubmit"
       @click="onSubmit"
     />

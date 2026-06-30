@@ -2,7 +2,7 @@
   <Dialog
     v-model:visible="innerVisible"
     modal :draggable="false"
-    :style="{ width: '1100px' }"
+    :style="{ width: 'min(1100px, calc(100vw - 32px))' }"
     :pt="{
       header:  { style: 'padding: 17.5px' },
       content: { style: 'padding: 0 17.5px 17.5px' },

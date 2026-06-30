@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -82,6 +82,17 @@ function toggleSelect(id: number): void {
   selectedIds.value = next
 }
 function isSelected(id: number): boolean { return selectedIds.value.has(id) }
+
+// 全選 checkbox：以「當前頁可見商品」為操作範圍
+const allSelected = computed<boolean>({
+  get: () => pagedProducts.value.length > 0 && pagedProducts.value.every(p => selectedIds.value.has(p.id)),
+  set: (v: boolean) => {
+    const next = new Set(selectedIds.value)
+    if (v) pagedProducts.value.forEach(p => next.add(p.id))
+    else pagedProducts.value.forEach(p => next.delete(p.id))
+    selectedIds.value = next
+  },
+})
 
 function onBatchDelete(): void {
   if (selectedIds.value.size === 0) {
@@ -166,17 +177,47 @@ function onDelete(p: ManagedProduct, event: Event): void {
   })
 }
 
-// 「更多」menu：複製 / 匯出（規劃中）
+// 手機尺寸偵測（< md 768px）：用來把 檢視/編輯/刪除 收進「更多」、新增鈕合成下拉
+const isMobile = ref(false)
+let mediaQuery: MediaQueryList | null = null
+const updateMobile = (): void => { if (mediaQuery) isMobile.value = mediaQuery.matches }
+onMounted(() => {
+  mediaQuery = window.matchMedia('(max-width: 767px)')
+  updateMobile()
+  mediaQuery.addEventListener('change', updateMobile)
+})
+onUnmounted(() => mediaQuery?.removeEventListener('change', updateMobile))
+
+// 「更多」menu：手機版前置 檢視 / 編輯 / 刪除（icon 按鈕被隱藏）；PC 只保留 複製 / 匯出
 const moreMenuRef = ref<{ toggle: (e: Event) => void } | null>(null)
 const activeProduct = ref<ManagedProduct | null>(null)
-const moreMenuItems: MenuItem[] = [
-  { label: '複製商品', icon: 'pi pi-copy', command: () => toast.add({ severity: 'info', summary: `複製「${activeProduct.value?.name ?? ''}」`, life: 1500 }) },
-  { label: '匯出 CSV', icon: 'pi pi-download', command: () => toast.add({ severity: 'info', summary: '匯出 CSV（規劃中）', life: 1500 }) },
-]
+const lastMoreEvent = ref<Event | null>(null)
+const moreMenuItems = computed<MenuItem[]>(() => {
+  const mobileItems: MenuItem[] = isMobile.value && activeProduct.value ? [
+    { label: '檢視', icon: 'pi pi-eye',   command: () => activeProduct.value && onView(activeProduct.value) },
+    { label: '編輯', icon: 'pi pi-pencil', command: () => activeProduct.value && onEdit(activeProduct.value) },
+    { label: '刪除', icon: 'pi pi-trash',  command: () => activeProduct.value && lastMoreEvent.value && onDelete(activeProduct.value, lastMoreEvent.value) },
+    { separator: true },
+  ] : []
+  return [
+    ...mobileItems,
+    { label: '複製商品', icon: 'pi pi-copy',     command: () => toast.add({ severity: 'info', summary: `複製「${activeProduct.value?.name ?? ''}」`, life: 1500 }) },
+    { label: '匯出 CSV', icon: 'pi pi-download', command: () => toast.add({ severity: 'info', summary: '匯出 CSV（規劃中）', life: 1500 }) },
+  ]
+})
 function openMore(p: ManagedProduct, event: Event): void {
   activeProduct.value = p
+  lastMoreEvent.value = event
   moreMenuRef.value?.toggle(event)
 }
+
+// 手機版「+ 新增 ▾」下拉 menu：新增一般商品 / 新增組合商品
+const addMenuRef = ref<{ toggle: (e: Event) => void } | null>(null)
+const addMenuItems: MenuItem[] = [
+  { label: '新增一般商品', icon: 'pi pi-plus',      command: () => onAddNormal() },
+  { label: '新增組合商品', icon: 'pi pi-th-large',  command: () => onAddBundle() },
+]
+function openAddMenu(event: Event): void { addMenuRef.value?.toggle(event) }
 
 /**
  * 組合商品展開時要顯示的子商品列：依 MP.bundleItems 反查 managedProducts，
@@ -229,19 +270,28 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
 
 <template>
   <div class="flex flex-col gap-4 flex-1 min-h-0">
-    <!-- 頁首：標題 + 搜尋 + 右側動作 -->
+    <!-- 頁首第一列：標題 + 搜尋（+ 手機新增）+ 商品類型篩選 + 桌機新增 -->
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-4 flex-1 min-w-0 flex-wrap">
-        <h2 class="text-[20px] font-medium text-[var(--p-text-color)] shrink-0">商品列表</h2>
-        <div class="flex items-center" style="filter: drop-shadow(0px 1px 1px rgba(18,18,23,0.05))">
-          <InputGroup>
-            <InputText
-              v-model="keyword"
-              placeholder="快速搜尋您的商品"
-              class="!w-[320px]"
-            />
-            <Button label="搜尋" />
-          </InputGroup>
+        <!-- 手機讓標題獨占一列，搜尋 + 新增鈕才能並排 -->
+        <h2 class="text-[20px] font-medium text-[var(--p-text-color)] shrink-0 w-full sm:w-auto">商品列表</h2>
+        <!-- 搜尋 + 手機新增鈕一定同列；items-stretch 讓兩個按鈕跟 InputGroup 同高 -->
+        <div class="flex items-stretch gap-2 w-full sm:w-auto">
+          <div class="flex items-center flex-1 sm:flex-initial sm:w-[380px]">
+            <InputGroup>
+              <InputText v-model="keyword" placeholder="快速搜尋您的商品" />
+              <Button label="搜尋" />
+            </InputGroup>
+          </div>
+          <!-- 手機新增鈕：跟搜尋同列 -->
+          <div class="sm:hidden shrink-0">
+            <Button @click="openAddMenu($event)">
+              <i class="pi pi-plus" style="font-size: 14px"></i>
+              <span>新增</span>
+              <i class="pi pi-chevron-down" style="font-size: 11px"></i>
+            </Button>
+            <Menu ref="addMenuRef" :model="addMenuItems" :popup="true" />
+          </div>
         </div>
         <!-- 商品類型篩選：一般商品 / 組合商品（兩個都勾或都不勾 = 顯示全部） -->
         <label class="flex items-center gap-1.5 text-[14px] cursor-pointer">
@@ -253,8 +303,8 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
           <span>組合商品</span>
         </label>
       </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <Button label="批次刪除" icon="pi pi-trash" severity="danger" variant="outlined" @click="onBatchDelete" />
+      <!-- 桌機才出現兩顆獨立新增按鈕 -->
+      <div class="hidden sm:flex items-center gap-2 shrink-0">
         <Button label="新增組合商品" variant="outlined" @click="onAddBundle">
           <template #icon>
             <i class="pi pi-th-large" style="font-size: 14px"></i>
@@ -262,6 +312,15 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
         </Button>
         <Button label="新增一般商品" icon="pi pi-plus" @click="onAddNormal" />
       </div>
+    </div>
+
+    <!-- 頁首第二列：全選 + 批次刪除 -->
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <label class="flex items-center gap-1.5 text-[14px] cursor-pointer">
+        <Checkbox v-model="allSelected" binary />
+        <span>全選</span>
+      </label>
+      <Button label="批次刪除" icon="pi pi-trash" severity="danger" variant="outlined" @click="onBatchDelete" />
     </div>
 
     <!-- 商品卡列表 -->
@@ -291,23 +350,24 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
             >{{ statusMeta(p.status).label }}</span>
 
             <div class="ml-auto flex items-center gap-1.5">
+              <!-- 桌機才顯示 檢視 / 編輯 / 刪除 icon 按鈕；手機收進「更多」menu -->
               <button
                 v-tooltip.top="'檢視'"
-                class="size-[35px] flex items-center justify-center rounded-[6px] border border-[#bbf7d0] text-[#22c55e] hover:bg-[#dcfce7]"
+                class="hidden md:flex size-[35px] items-center justify-center rounded-[6px] border border-[#bbf7d0] text-[#22c55e] hover:bg-[#dcfce7]"
                 @click="onView(p)"
               >
                 <i class="pi pi-eye" style="font-size: 14px"></i>
               </button>
               <button
                 v-tooltip.top="'編輯'"
-                class="size-[35px] flex items-center justify-center rounded-[6px] border border-[#c29ffa] text-[var(--p-primary-color)] hover:bg-[var(--p-primary-50)]"
+                class="hidden md:flex size-[35px] items-center justify-center rounded-[6px] border border-[#c29ffa] text-[var(--p-primary-color)] hover:bg-[var(--p-primary-50)]"
                 @click="onEdit(p)"
               >
                 <FontAwesomeIcon :icon="['far', 'pen-to-square']" class="text-[14px]" />
               </button>
               <button
                 v-tooltip.top="'刪除'"
-                class="size-[35px] flex items-center justify-center rounded-[6px] border border-[#fecaca] text-[#ef4444] hover:bg-[#fee2e2]"
+                class="hidden md:flex size-[35px] items-center justify-center rounded-[6px] border border-[#fecaca] text-[#ef4444] hover:bg-[#fee2e2]"
                 @click="onDelete(p, $event)"
               >
                 <i class="pi pi-trash" style="font-size: 14px"></i>
@@ -330,7 +390,8 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
           </div>
 
           <!-- 摘要列（淺灰底）：分類 / 價格 / 總庫存 / 總銷量；卡片左右留白 → 灰塊不貼齊邊 -->
-          <div class="mx-4 mb-4 grid gap-4 px-4 py-3 bg-[#f5f5f5] rounded-[6px]" style="grid-template-columns: 1fr 1fr 1fr 1fr">
+          <!-- 摘要 4 欄 grid：手機（< 640px）→ 2 欄；≥ sm → 4 欄 -->
+          <div class="mx-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 py-3 bg-[#f5f5f5] rounded-[6px]">
             <div class="flex flex-col gap-1">
               <span class="text-[12px] text-[var(--p-text-muted-color)]">分類</span>
               <span class="text-[14px] text-[var(--p-text-color)]">{{ p.category }}</span>

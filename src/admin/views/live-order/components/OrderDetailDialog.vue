@@ -4,7 +4,7 @@
     modal
     :draggable="false"
     :dismissable-mask="true"
-    :style="{ width: '480px' }"
+    :style="{ width: 'min(480px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 18px 20px' },
       content: { style: 'padding: 0' },

@@ -63,7 +63,6 @@ const editDialogVisible = ref(false)
 const giftDialogVisible = ref(false)
 const winnerDialogVisible = ref(false)
 const activeProduct = ref<LiveProduct | null>(null)
-const pushedSet = ref<Set<number>>(new Set())
 
 function statusMeta(p: LiveProduct): { label: string; bg: string; color: string; icon?: string } {
   const map: Record<string, { label: string; bg: string; color: string; icon?: string }> = {
@@ -105,8 +104,7 @@ function openWinnerList(p: LiveProduct): void {
   winnerDialogVisible.value = true
 }
 
-function onPushClick(p: LiveProduct): void {
-  pushedSet.value = new Set([...pushedSet.value, p.id])
+function onPushClick(_p: LiveProduct): void {
   toast.removeAllGroups()
   toast.add({
     severity: 'success',
@@ -280,8 +278,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
             <button
               v-if="data.status === 'live'"
               v-tooltip.top="t('live_order.tooltip.push')"
-              :class="['w-[28px] h-[28px] rounded-[6px] flex items-center justify-center text-[#ef4444] hover:bg-[#fee2e2]',
-                pushedSet.has(data.id) ? 'border-2 border-[#ef4444]' : 'border border-[#ef4444]']"
+              class="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center text-[#ef4444] hover:bg-[#fee2e2] border border-[#ef4444]"
               @click="onPushClick(data)"
             >
               <FontAwesomeIcon :icon="['far', 'bullhorn']" class="text-[12px]" />

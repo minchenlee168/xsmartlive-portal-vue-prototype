@@ -151,7 +151,8 @@ function handleDelete(_row: KeywordLotteryRow) {
       </template>
 
       <template #actions="{ data }">
-        <div class="flex items-center gap-1">
+        <!-- 操作 icon button：改用線框樣式（rounded + outlined）統一視覺 -->
+        <div class="flex items-center gap-1.5">
           <Button
             v-tooltip.top="$t('keyword_lottery.button.draw')"
             rounded
@@ -161,7 +162,7 @@ function handleDelete(_row: KeywordLotteryRow) {
             @click="handleDraw(data)"
           >
             <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'shuffle']" />
+              <FontAwesomeIcon :icon="['far', 'shuffle']" />
             </template>
           </Button>
 
@@ -173,7 +174,7 @@ function handleDelete(_row: KeywordLotteryRow) {
             @click="handleEdit(data)"
           >
             <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'pen']" />
+              <FontAwesomeIcon :icon="['far', 'pen']" />
             </template>
           </Button>
 
@@ -186,7 +187,7 @@ function handleDelete(_row: KeywordLotteryRow) {
             @click="handleDelete(data)"
           >
             <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'trash']" />
+              <FontAwesomeIcon :icon="['far', 'trash']" />
             </template>
           </Button>
         </div>

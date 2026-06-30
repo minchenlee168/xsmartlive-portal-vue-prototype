@@ -295,7 +295,8 @@ function quickClassifyToIssue(): void {
           <h2 class="text-[16px] font-semibold text-[var(--p-text-color)]">發票查詢</h2>
 
           <!-- Row 1：訂單欄位 / 關鍵字 / 訂單日期欄位 / DatePicker / 載具 -->
-          <div class="grid gap-3" style="grid-template-columns: 140px 1fr 140px 1fr 1fr">
+          <!-- 5 欄篩選：手機 stack 成 1 欄、≥ md 才回到 5 欄 -->
+          <div class="grid gap-3 grid-cols-1 md:[grid-template-columns:140px_1fr_140px_1fr_1fr]">
             <Select v-model="filterOrderField" :options="orderNoTypeOptions" option-label="label" option-value="value" />
             <InputText v-model="filterKeyword" placeholder="請輸入關鍵字搜尋" />
             <Select v-model="filterDateField" :options="orderDateTypeOptions" option-label="label" option-value="value" />
@@ -310,7 +311,8 @@ function quickClassifyToIssue(): void {
           </div>
 
           <!-- Row 2：金物流狀態 / 賣方統編 / 多購物車 -->
-          <div class="grid gap-3" style="grid-template-columns: 1fr 1fr 1fr">
+          <!-- 3 欄篩選：手機 stack、≥ md 才回 3 欄 -->
+          <div class="grid gap-3 grid-cols-1 md:grid-cols-3">
             <Select v-model="filterPaymentLogistic" :options="paymentLogisticOptions" option-label="label" option-value="value" placeholder="不篩選金物流狀態" />
             <div class="flex items-center gap-2">
               <span class="text-[14px] text-[var(--p-text-color)] shrink-0">賣方統編：</span>

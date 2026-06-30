@@ -256,7 +256,7 @@ function groupColumnHeader(g: SpecGroup, index: number): string {
     v-model:visible="innerVisible"
     modal
     :draggable="false"
-    :style="{ width: '1080px' }"
+    :style="{ width: 'min(1080px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 17.5px' },
       content: { style: 'padding: 0 17.5px 17.5px' },

@@ -21,9 +21,10 @@
 
     <!-- ── Step 1：選平台 ─────────────────────────── -->
     <div v-if="step === 'platform'" class="px-[17.5px] pb-[17.5px]">
+      <!-- 手機固定 2 欄；桌機 ≥ md 才依平台數量擴展 -->
       <div
-        class="grid gap-4 items-stretch"
-        :style="{ gridTemplateColumns: `repeat(${platformOptions.length}, minmax(0, 1fr))` }"
+        class="grid gap-4 items-stretch grid-cols-2"
+        :class="platformDesktopColsClass"
       >
         <button
           v-for="opt in platformOptions"
@@ -83,8 +84,8 @@
           </div>
         </div>
 
-        <!-- 直播卡 grid -->
-        <div class="h-[325px] overflow-y-auto overflow-x-hidden grid grid-cols-5 gap-2">
+        <!-- 直播卡 grid：手機 3 欄、md ≥ 5 欄 -->
+        <div class="h-[325px] overflow-y-auto overflow-x-hidden grid grid-cols-3 md:grid-cols-5 gap-2">
           <PostCard
             v-for="post in displayedPosts"
             :key="post.id"
@@ -366,6 +367,19 @@ const platformOptions = computed<PlatformOption[]>(() => {
 const pickedPlatformMeta = computed<PlatformOption>(() =>
   platformOptions.value.find((p) => p.key === pickedPlatform.value) ?? platformOptions.value[0],
 )
+
+/** 平台卡 grid 桌機 ≥ md 的欄數（依當前模式的平台數量），手機固定 2 欄
+ *  字面字串列出來讓 Tailwind JIT 抓得到 */
+const platformDesktopColsClass = computed(() => {
+  switch (platformOptions.value.length) {
+    case 1: return 'md:grid-cols-1'
+    case 2: return 'md:grid-cols-2'
+    case 3: return 'md:grid-cols-3'
+    case 4: return 'md:grid-cols-4'
+    case 5: return 'md:grid-cols-5'
+    default: return 'md:grid-cols-4'
+  }
+})
 
 function onPlatformPick(key: PlatformKey): void {
   pickedPlatform.value = key

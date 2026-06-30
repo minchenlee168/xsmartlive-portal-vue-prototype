@@ -45,70 +45,107 @@
     <template v-else-if="!hasAnySource">
       <div class="flex flex-1 min-h-0 gap-2">
         <div class="flex-1 flex flex-col self-stretch min-w-0 gap-2">
-          <!-- 左區 toolbar -->
+          <!-- 左區 toolbar：手機分兩列（場次獨佔第一列、其他按鈕第二列）、桌機 flex-wrap 自動折行 -->
           <div class="flex items-center gap-2 flex-wrap">
-            <SessionSelector
-              v-if="!isPostMode"
-              :sessions="sessions"
-              :selected="currentSession"
-              :live-elapsed="elapsedDisplay"
-              size="lg"
-              @select="onSessionSelect"
-              @create="createDialogVisible = true" />
+            <!-- 場次 wrap 成自己一列（手機）：用 w-full 強制下一個 item 換行 -->
+            <div class="w-full sm:w-auto sm:inline-flex">
+              <SessionSelector
+                v-if="!isPostMode"
+                :sessions="sessions"
+                :selected="currentSession"
+                :live-elapsed="elapsedDisplay"
+                size="lg"
+                @select="onSessionSelect"
+                @create="createDialogVisible = true" />
+            </div>
 
-            <!-- 「選擇商品」SplitButton -->
-            <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex">
-              <SplitButton
-                :label="t('live_order.button.add_product')"
-                :model="addProductMenuItems"
-                :disabled="!currentSession"
-                icon="pi pi-plus"
+            <!-- 動作群組：超出寬度自動換行（手機 / 桌機皆 wrap，不橫向 scroll） -->
+            <div class="w-full sm:w-auto flex items-center gap-2 flex-wrap">
+              <!-- 「選擇商品」SplitButton -->
+              <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex shrink-0">
+                <SplitButton
+                  :label="t('live_order.button.add_product')"
+                  :model="addProductMenuItems"
+                  :disabled="!currentSession"
+                  icon="pi pi-plus"
+                  outlined
+                  size="small"
+                  @click="addProductDialogVisible = true"
+                />
+              </span>
+
+              <!-- 「批次設定」SplitButton -->
+              <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex shrink-0">
+                <SplitButton
+                  :label="t('live_order.button.batch_edit')"
+                  :model="batchEditMenuItems"
+                  :disabled="!currentSession"
+                  outlined
+                  size="small"
+                  @click="batchEditDialogVisible = true"
+                >
+                  <template #icon>
+                    <FontAwesomeIcon :icon="['far', 'gear']" class="text-[14px] mr-1.5" />
+                  </template>
+                </SplitButton>
+              </span>
+
+              <!-- 收單期間（貼文模式專用） -->
+              <Button
+                v-if="isPostMode"
+                label="收單期間"
+                icon="pi pi-calendar"
                 outlined
                 size="small"
-                @click="addProductDialogVisible = true"
+                class="shrink-0"
+                :disabled="!currentEnteredPost"
+                @click="openPostPeriodDialog"
               />
-            </span>
 
-            <!-- 「批次設定」SplitButton -->
-            <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex">
-              <SplitButton
-                :label="t('live_order.button.batch_edit')"
-                :model="batchEditMenuItems"
+              <!-- 快速新增 button：手機才顯示，點下開 dialog；桌機沿用 inline form -->
+              <Button
+                class="sm:hidden shrink-0"
                 :disabled="!currentSession"
+                label="快速新增"
+                icon="pi pi-bolt"
                 outlined
                 size="small"
-                @click="batchEditDialogVisible = true"
+                @click="quickAddDialogVisible = true"
+              />
+
+              <!-- 卡片 / 列表 檢視切換（手機只顯示 icon，桌機 icon+label） -->
+              <SelectButton
+                v-model="viewMode"
+                :options="viewModeOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+                size="small"
+                class="shrink-0"
               >
-                <template #icon>
-                  <FontAwesomeIcon :icon="['far', 'gear']" class="text-[14px] mr-1.5" />
+                <template #option="{ option }">
+                  <i :class="option.icon" style="font-size: 13px"></i>
+                  <span class="hidden sm:inline ml-1.5">{{ option.label }}</span>
                 </template>
-              </SplitButton>
-            </span>
-
-            <!-- 收單期間（貼文模式專用） -->
-            <Button
-              v-if="isPostMode"
-              label="收單期間"
-              icon="pi pi-calendar"
-              outlined
-              size="small"
-              :disabled="!currentEnteredPost"
-              @click="openPostPeriodDialog"
-            />
-
-            <!-- 卡片 / 列表 檢視切換（所有收單模式皆可用） -->
-            <SelectButton
-              v-model="viewMode"
-              :options="viewModeOptions"
-              option-label="label"
-              option-value="value"
-              :allow-empty="false"
-              size="small"
-            />
+              </SelectButton>
+            </div>
           </div>
 
-          <!-- 快速新增（與右側 panel 同高度起點） -->
-          <QuickAddProductForm v-if="currentSession" ref="quickAddRef" @submit="onQuickAddProducts" />
+          <!-- 手機版「選擇收單來源」入口 button：< md 才顯示（取代右側 340px 空狀態 column） -->
+          <span v-tooltip.bottom="pickSourceTooltip" class="md:hidden inline-flex w-full">
+            <Button
+              class="w-full"
+              :label="t('live_order.button.pick_source')"
+              icon="pi pi-link"
+              :disabled="!canPickSource"
+              @click="onPickSource"
+            />
+          </span>
+
+          <!-- 快速新增 inline form：桌機顯示、手機隱藏（手機改走 dialog） -->
+          <div class="hidden sm:block">
+            <QuickAddProductForm v-if="currentSession" ref="quickAddRef" @submit="onQuickAddProducts" />
+          </div>
 
           <div v-if="selectedProducts.length === 0" class="flex flex-col items-center justify-center gap-3 pt-12">
             <i class="pi pi-inbox text-5xl text-[var(--p-text-muted-color)]"></i>
@@ -126,7 +163,7 @@
               @end-ordering="onCardEndOrdering"
               @adjust-period="openPostPeriodDialog"
             />
-            <div v-else class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(232px, 1fr))">
+            <div v-else class="grid gap-2 grid-cols-2 md:[grid-template-columns:repeat(auto-fill,minmax(232px,1fr))]">
               <LiveProductCard
                 v-for="p in selectedProducts"
                 :key="p.id"
@@ -144,8 +181,8 @@
           </div>
         </div>
 
-        <!-- 空狀態右側選擇收單來源（頂部對齊 QuickAdd） -->
-        <div class="w-[340px] shrink-0 flex flex-col items-center gap-3 self-stretch pt-12">
+        <!-- 空狀態右側選擇收單來源（手機隱藏，改用上方按鈕；桌機顯示完整 340px 空狀態欄） -->
+        <div class="hidden md:flex w-[340px] shrink-0 flex-col items-center gap-3 self-stretch pt-12">
           <i class="pi pi-inbox text-5xl text-[var(--p-text-muted-color)]"></i>
           <p class="font-bold text-[18px] leading-normal text-[var(--p-text-color)]">{{ t('live_order.empty.no_order_content') }}</p>
           <p class="text-[14px] leading-normal text-[var(--p-text-muted-color)]">{{ pickSourceHelperText }}</p>
@@ -181,62 +218,86 @@
         <!-- 左區 toolbar：SessionSelector + 選擇商品 / 批次設定 SplitButton -->
         <template #left-toolbar>
           <div class="flex items-center gap-2 flex-wrap">
-            <SessionSelector
-              v-if="!isPostMode"
-              :sessions="sessions"
-              :selected="currentSession"
-              :live-elapsed="elapsedDisplay"
-              size="lg"
-              @select="onSessionSelect"
-              @create="createDialogVisible = true" />
+            <!-- 場次 wrap 成自己一列（手機）：w-full 強制下一個 item 換行 -->
+            <div class="w-full sm:w-auto sm:inline-flex">
+              <SessionSelector
+                v-if="!isPostMode"
+                :sessions="sessions"
+                :selected="currentSession"
+                :live-elapsed="elapsedDisplay"
+                size="lg"
+                @select="onSessionSelect"
+                @create="createDialogVisible = true" />
+            </div>
 
-            <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex">
-              <SplitButton
-                :label="t('live_order.button.add_product')"
-                :model="addProductMenuItems"
-                :disabled="!currentSession"
-                icon="pi pi-plus"
+            <!-- 動作群組：超出寬度自動換行（手機 / 桌機皆 wrap，不橫向 scroll） -->
+            <div class="w-full sm:w-auto flex items-center gap-2 flex-wrap">
+              <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex shrink-0">
+                <SplitButton
+                  :label="t('live_order.button.add_product')"
+                  :model="addProductMenuItems"
+                  :disabled="!currentSession"
+                  icon="pi pi-plus"
+                  outlined
+                  size="small"
+                  @click="addProductDialogVisible = true"
+                />
+              </span>
+
+              <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex shrink-0">
+                <SplitButton
+                  :label="t('live_order.button.batch_edit')"
+                  :model="batchEditMenuItems"
+                  :disabled="!currentSession"
+                  outlined
+                  size="small"
+                  @click="batchEditDialogVisible = true"
+                >
+                  <template #icon>
+                    <FontAwesomeIcon :icon="['far', 'gear']" class="text-[14px] mr-1.5" />
+                  </template>
+                </SplitButton>
+              </span>
+
+              <!-- 收單期間（貼文模式專用） -->
+              <Button
+                v-if="isPostMode"
+                label="收單期間"
+                icon="pi pi-calendar"
                 outlined
                 size="small"
-                @click="addProductDialogVisible = true"
+                class="shrink-0"
+                :disabled="!currentEnteredPost"
+                @click="openPostPeriodDialog"
               />
-            </span>
 
-            <span v-tooltip.bottom="currentSession ? '' : t('live_order.tooltip.pick_source_first')" class="inline-flex">
-              <SplitButton
-                :label="t('live_order.button.batch_edit')"
-                :model="batchEditMenuItems"
+              <!-- 快速新增 button：手機才顯示，點下開 dialog -->
+              <Button
+                class="sm:hidden shrink-0"
                 :disabled="!currentSession"
+                label="快速新增"
+                icon="pi pi-bolt"
                 outlined
                 size="small"
-                @click="batchEditDialogVisible = true"
+                @click="quickAddDialogVisible = true"
+              />
+
+              <!-- 卡片 / 列表 檢視切換（手機只顯示 icon，桌機 icon+label） -->
+              <SelectButton
+                v-model="viewMode"
+                :options="viewModeOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+                size="small"
+                class="shrink-0"
               >
-                <template #icon>
-                  <FontAwesomeIcon :icon="['far', 'gear']" class="text-[14px] mr-1.5" />
+                <template #option="{ option }">
+                  <i :class="option.icon" style="font-size: 13px"></i>
+                  <span class="hidden sm:inline ml-1.5">{{ option.label }}</span>
                 </template>
-              </SplitButton>
-            </span>
-
-            <!-- 收單期間（貼文模式專用） -->
-            <Button
-              v-if="isPostMode"
-              label="收單期間"
-              icon="pi pi-calendar"
-              outlined
-              size="small"
-              :disabled="!currentEnteredPost"
-              @click="openPostPeriodDialog"
-            />
-
-            <!-- 卡片 / 列表 檢視切換（所有收單模式皆可用） -->
-            <SelectButton
-              v-model="viewMode"
-              :options="viewModeOptions"
-              option-label="label"
-              option-value="value"
-              :allow-empty="false"
-              size="small"
-            />
+              </SelectButton>
+            </div>
           </div>
         </template>
 
@@ -279,10 +340,47 @@
         </template>
 
         <template #products-header>
-          <QuickAddProductForm v-if="currentSession" ref="quickAddRef" @submit="onQuickAddProducts" />
+          <div class="hidden sm:block">
+            <QuickAddProductForm v-if="currentSession" ref="quickAddRef" @submit="onQuickAddProducts" />
+          </div>
         </template>
       </OrderModeView>
     </template>
+
+    <!-- 手機快速新增 dialog：toolbar 那顆 button 開啟 -->
+    <Dialog
+      v-model:visible="quickAddDialogVisible"
+      modal
+      :draggable="false"
+      :style="{ width: 'min(560px, calc(100vw - 32px))' }"
+      :pt="{
+        header: { style: 'padding: 17.5px' },
+        content: { style: 'padding: 0 17.5px 8px' },
+        footer: { style: 'padding: 12px 17.5px 17.5px' },
+      }"
+    >
+      <template #header>
+        <span class="font-semibold text-[var(--p-text-color)]" style="font-size: 17.5px">
+          {{ t('live_order.quick_add.button.add_one') }}
+        </span>
+      </template>
+      <!-- bare=true → 拿掉外框；inline「新增」鈕由 dialog footer 取代 -->
+      <QuickAddProductForm
+        v-if="quickAddDialogVisible && currentSession"
+        ref="quickAddDialogRef"
+        bare
+        @submit="onQuickAddSubmitFromDialog"
+      />
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button label="取消" severity="secondary" variant="outlined" @click="quickAddDialogVisible = false" />
+          <Button
+            :label="t('live_order.quick_add.button.add_one')"
+            @click="quickAddDialogRef?.submit()"
+          />
+        </div>
+      </template>
+    </Dialog>
 
     <LiveOrderSourceDialog v-model:visible="sourceDialogVisible"
       :used-by-platform="usedByPlatform"
@@ -447,6 +545,13 @@ const viewModeOptions: Array<{ value: ViewMode; icon: string; label: string }> =
 ]
 
 const addProductDialogVisible = ref(false)
+/** 手機尺寸快速新增 dialog */
+const quickAddDialogVisible = ref(false)
+const quickAddDialogRef = ref<{ submit: () => void } | null>(null)
+function onQuickAddSubmitFromDialog(payloads: Parameters<typeof onQuickAddProducts>[0]): void {
+  onQuickAddProducts(payloads)
+  quickAddDialogVisible.value = false
+}
 const giftDialogVisible = ref(false)
 
 // SplitButton：主按鈕開選擇商品（dialog 內 Tabs 可切到組合商品）；下拉只剩送禮物

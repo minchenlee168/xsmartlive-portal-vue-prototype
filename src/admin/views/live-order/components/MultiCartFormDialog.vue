@@ -202,7 +202,7 @@ function onSave(): void {
     v-model:visible="innerVisible"
     modal
     :draggable="false"
-    :style="{ width: '900px' }"
+    :style="{ width: 'min(900px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 17.5px' },
       content: { style: 'padding: 0 17.5px' },

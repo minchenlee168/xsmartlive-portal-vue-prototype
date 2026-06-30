@@ -63,7 +63,7 @@ function onCancel(): void { onVisibleChange(false) }
     modal
     :draggable="false"
     :dismissable-mask="true"
-    :style="{ width: '560px' }"
+    :style="{ width: 'min(560px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 18px 22px' },
       content: { style: 'padding: 0 22px 16px' },

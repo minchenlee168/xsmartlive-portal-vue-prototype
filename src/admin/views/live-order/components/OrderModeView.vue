@@ -1,7 +1,8 @@
 <template>
-  <!-- 收單操作頁（多收單來源） -->
-  <!-- 左：(slot products-header) + 商品 grid；右(可隱藏)：Tabs(留言區 / 收單來源) 340px -->
-  <div class="flex gap-2 flex-1 min-h-0">
+  <!-- 收單操作頁（多收單來源）
+       手機（< md）→ 只顯示商品；點頂部「收單來源」按鈕 → aside 改 overlay drawer 從右側滑入
+       桌機（≥ md）→ 左右 split（商品 flex-1 / aside 300px or 220px） -->
+  <div class="flex gap-2 flex-1 min-h-0 relative">
 
     <!-- 左：商品 grid -->
     <div class="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
@@ -9,6 +10,18 @@
       <slot name="left-toolbar" />
       <!-- 頂部 slot：給 LiveOrderPage 放 QuickAddProductForm，與右側 panel 頂部對齊 -->
       <slot name="products-header" />
+
+      <!-- 手機版「收單來源」入口 button：< md 才顯示，點下展開右側 aside drawer -->
+      <Button
+        class="md:hidden self-start"
+        size="small"
+        severity="secondary"
+        variant="outlined"
+        @click="mobilePanelVisible = true"
+      >
+        <i class="pi pi-link mr-1.5" style="font-size: 13px"></i>
+        {{ t('live_order.tab.sources') }}<span v-if="sources.length > 0" class="ml-1">({{ sources.length }})</span>
+      </Button>
 
       <!-- min-w-0 讓內部 LiveProductTable 在 flex 縮放鏈中可以縮到 0，避免表格內容寬度撐爆右側 panel -->
       <div class="flex-1 min-w-0 min-h-0 overflow-y-auto">
@@ -25,7 +38,7 @@
           @end-ordering="(id) => emit('end-ordering-product', id)"
           @adjust-period="emit('adjust-period')"
         />
-        <div v-else class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(232px, 1fr))">
+        <div v-else class="grid gap-2 grid-cols-2 md:[grid-template-columns:repeat(auto-fill,minmax(232px,1fr))]">
           <LiveProductCard
             v-for="p in products"
             :key="p.id"
@@ -43,9 +56,26 @@
       </div>
     </div>
 
-    <!-- 右：來源預覽 + Tabs（showComments=false 時收起留言 tab + 縮窄面板） -->
-    <aside :class="['shrink-0 flex flex-col gap-3 min-h-0 overflow-hidden',
-                     showComments ? 'w-[300px]' : 'w-[220px]']">
+    <!-- 右側 aside：桌機 in-flow（shrink-0 + 固定寬，背景透明）；手機 overlay drawer 從右側滑入（白底） -->
+    <aside
+      :class="[
+        'flex flex-col gap-3 min-h-0 overflow-hidden',
+        // 桌機 in-flow：背景透明
+        'md:relative md:shrink-0 md:translate-x-0 md:shadow-none md:p-0 md:z-auto md:w-auto md:bg-transparent',
+        showComments ? 'md:w-[300px]' : 'md:w-[220px]',
+        // 手機 overlay drawer：白底
+        'fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[340px] p-3 shadow-2xl transition-transform duration-200 bg-[var(--p-content-background)]',
+        mobilePanelVisible ? 'translate-x-0' : 'translate-x-full',
+      ]"
+    >
+      <!-- 手機版關閉按鈕（< md 才顯示） -->
+      <button
+        type="button"
+        class="md:hidden self-end size-[28px] rounded-full hover:bg-[var(--p-content-hover-background)] flex items-center justify-center"
+        @click="mobilePanelVisible = false"
+      >
+        <i class="pi pi-times text-[var(--p-text-color)]" style="font-size: 14px"></i>
+      </button>
 
       <!-- 右區工具列 slot：顯示留言 toggle + 結束收單 -->
       <slot name="right-toolbar" />
@@ -189,6 +219,13 @@
         </TabPanels>
       </Tabs>
     </aside>
+
+    <!-- 手機 overlay drawer 開啟時的背景遮罩，點擊關閉 -->
+    <div
+      v-if="mobilePanelVisible"
+      class="fixed inset-0 bg-black/40 z-40 md:hidden"
+      @click="mobilePanelVisible = false"
+    ></div>
   </div>
 </template>
 
@@ -276,6 +313,8 @@ const { t } = useI18n()
 
 // 預設停在「收單來源」tab；剛挑完來源、希望使用者直接看到加入結果。
 const activeTab = ref('sources')
+/** 手機尺寸下 aside drawer 是否開啟（< md 用，桌機不會看到） */
+const mobilePanelVisible = ref(false)
 
 // 顯示留言關閉時，自動切到「收單來源」tab
 watch(() => props.showComments, (show) => {

@@ -37,7 +37,7 @@ function close(): void {
     v-model:visible="innerVisible"
     modal
     :draggable="false"
-    :style="{ width: '440px' }"
+    :style="{ width: 'min(440px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 17.5px' },
       content: { style: 'padding: 0 17.5px 17.5px' },

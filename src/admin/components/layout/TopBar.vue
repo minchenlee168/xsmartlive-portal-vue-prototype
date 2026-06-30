@@ -68,11 +68,12 @@ const prototypeUpdateTime = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center justify-between shrink-0 w-full h-20 px-6 border-b border-gray-200 dark:border-gray-700">
-    <div class="flex items-center gap-4">
+  <!-- 手機（< 640px）內 padding 縮小 px-3、桌機 px-6；左區允許縮收（min-w-0 + flex-1）讓右區 3 顆 icon 永遠顯示 -->
+  <div class="flex items-center justify-between shrink-0 w-full h-20 px-3 sm:px-6 border-b border-gray-200 dark:border-gray-700 gap-2">
+    <div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
       <RouterLink
         to="/"
-        class="flex items-center gap-4"
+        class="flex items-center gap-4 shrink-0"
       >
         <Logo :width="40" />
 
@@ -90,7 +91,7 @@ const prototypeUpdateTime = computed(() => {
         rounded
         size="small"
         severity="secondary"
-        class="transition-all duration-200"
+        class="transition-all duration-200 shrink-0"
         :class="{
           'rotate-180': !configStore.isSidebarExpanded
         }"
@@ -107,14 +108,15 @@ const prototypeUpdateTime = computed(() => {
         text
         size="small"
         severity="secondary"
-        class="h-9"
+        class="h-9 min-w-0 shrink"
         @click="toggleShopMenu"
       >
-        <span class="text-sm text-color-secondary">{{ t('topbar.current_at') }}</span>
-        <span class="text-primary font-medium text-sm mx-1">{{ currentShop?.name ?? '-' }}</span>
+        <!-- 手機隱藏「目前在：」prefix，只留商家名 + chevron 節省寬度 -->
+        <span class="hidden sm:inline text-sm text-color-secondary">{{ t('topbar.current_at') }}</span>
+        <span class="text-primary font-medium text-sm mx-1 truncate max-w-[120px] sm:max-w-none">{{ currentShop?.name ?? '-' }}</span>
         <FontAwesomeIcon
           :icon="['far', 'chevron-down']"
-          class="text-xs"
+          class="text-xs shrink-0"
         />
       </Button>
 
@@ -139,29 +141,30 @@ const prototypeUpdateTime = computed(() => {
         </template>
       </Menu>
 
+      <!-- 前台檢視：手機只顯示眼睛 icon（無 label），桌機才有文字 -->
       <Button
         size="small"
         severity="secondary"
         variant="outlined"
-        class="h-9"
-        :label="t('topbar.front_view')"
+        class="h-9 shrink-0"
+        v-tooltip.bottom="t('topbar.front_view')"
         @click="handleFrontView"
       >
-        <template #icon>
-          <FontAwesomeIcon :icon="['far', 'eye']" />
-        </template>
+        <FontAwesomeIcon :icon="['far', 'eye']" />
+        <span class="hidden sm:inline ml-2">{{ t('topbar.front_view') }}</span>
       </Button>
 
-      <!-- prototype 更新時間提示：用 vite.config 注入的最後一次 commit 時間 -->
+      <!-- prototype 更新時間提示：手機隱藏，避免擠壓主要 buttons -->
       <span
         v-if="prototypeUpdateTime"
-        class="text-[11px] text-[#ef4444] font-medium whitespace-nowrap"
+        class="hidden lg:inline text-[11px] text-[#ef4444] font-medium whitespace-nowrap"
       >
         此為 prototype 展示，更新時間：{{ prototypeUpdateTime }}
       </span>
     </div>
 
-    <div class="inline-flex items-center h-10 gap-4">
+    <!-- 右區 3 顆 icon 永遠顯示，shrink-0 避免被左區擠掉 -->
+    <div class="inline-flex items-center h-10 gap-2 sm:gap-4 shrink-0">
       <div
         id="topbar-right-slot"
         class="inline-flex gap-4"

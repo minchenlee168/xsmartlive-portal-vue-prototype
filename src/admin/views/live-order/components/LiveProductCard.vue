@@ -277,10 +277,9 @@
 
         <!-- 右側動作 -->
         <template v-if="status === 'live'">
-          <!-- 紅色喇叭（推播，outlined）；按下推播後邊框才加粗強調已發送 -->
+          <!-- 紅色喇叭（推播，outlined） -->
           <button @click="onPushClick"
-            :class="['w-[35px] h-[35px] rounded-full bg-[var(--p-content-background)] border-[#ef4444] hover:bg-[#fee2e2] flex items-center justify-center',
-              hasPushed ? 'border-2' : 'border']"
+            class="w-[35px] h-[35px] rounded-full bg-[var(--p-content-background)] border border-[#ef4444] hover:bg-[#fee2e2] flex items-center justify-center"
             v-tooltip.top="t('live_order.tooltip.push')">
             <FontAwesomeIcon :icon="['far', 'bullhorn']" class="text-[#ef4444] text-[13px]" />
           </button>
@@ -414,12 +413,8 @@ const { t } = useI18n()
 const confirm = useConfirm()
 const toast = useToast()
 
-/** 是否曾發送過推播；發送後喇叭按鈕邊框加粗以視覺強調。 */
-const hasPushed = ref(false)
-
 /** 推播：原型階段直接彈成功 toast，不接後端。 */
 function onPushClick(): void {
-  hasPushed.value = true
   toast.removeAllGroups()
   toast.add({
     severity: 'success',

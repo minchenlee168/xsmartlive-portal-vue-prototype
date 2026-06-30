@@ -161,7 +161,7 @@ function onSave(): void {
     :visible="visible"
     modal
     :draggable="false"
-    :style="{ width: '880px' }"
+    :style="{ width: 'min(880px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 17.5px' },
       content: { style: 'padding: 0 17.5px 17.5px' },

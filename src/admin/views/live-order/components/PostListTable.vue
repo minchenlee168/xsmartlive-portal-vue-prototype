@@ -286,6 +286,81 @@ function statusMeta(status: OrderPost['status']): { label: string; bg: string; c
         </div>
       </div>
 
+      <!-- 手機條列式：每筆 = label：value 配對 + 底線分隔；不用橫滾。桌機隱藏 -->
+      <div class="md:hidden divide-y divide-[var(--p-content-border-color)] border-t border-[var(--p-content-border-color)]">
+        <button
+          v-for="p in filteredPosts"
+          :key="p.id"
+          type="button"
+          class="block w-full text-left px-4 py-4 hover:bg-[var(--p-content-hover-background)] transition-colors"
+          @click="emit('select-post', p.id)"
+        >
+          <!-- 名稱 + 狀態 badge 一列 -->
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <span class="font-bold text-[15px] text-[var(--p-text-color)] flex-1">{{ p.name }}</span>
+            <span
+              class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold leading-none"
+              :style="{ background: statusMeta(p.status).bg, color: statusMeta(p.status).color }"
+            >
+              <span
+                v-if="statusMeta(p.status).dot"
+                class="w-1.5 h-1.5 rounded-full animate-pulse"
+                :style="{ background: statusMeta(p.status).color }"
+              ></span>
+              <i
+                v-else-if="statusMeta(p.status).icon"
+                :class="statusMeta(p.status).icon"
+                :style="{ fontSize: '11px', color: statusMeta(p.status).color }"
+              ></i>
+              {{ statusMeta(p.status).label }}
+            </span>
+          </div>
+
+          <!-- 欄位 label：value 配對 -->
+          <div class="flex flex-col gap-1 text-[13px]">
+            <div><span class="text-color-secondary">收單期間：</span><span class="text-[var(--p-text-color)]">{{ p.orderingPeriod }}</span></div>
+            <div><span class="text-color-secondary">訂單數：</span><span class="text-[var(--p-text-color)] font-bold">{{ p.orderCount }}</span></div>
+            <div><span class="text-color-secondary">銷售金額：</span><span class="text-[#f97316] font-bold">${{ p.salesAmount.toLocaleString() }}</span></div>
+            <div><span class="text-color-secondary">建立人：</span><span class="text-[var(--p-text-color)]">{{ p.createdBy }}</span></div>
+          </div>
+
+          <!-- 操作 buttons -->
+          <div class="mt-3 flex items-center gap-1.5" @click.stop>
+            <Button
+              v-tooltip.top="'得標清單'"
+              icon="pi pi-list"
+              severity="success"
+              variant="outlined"
+              rounded
+              size="small"
+              @click="emit('view-winners', p.id)"
+            />
+            <Button
+              v-tooltip.top="'商品清單'"
+              icon="pi pi-shopping-bag"
+              variant="outlined"
+              rounded
+              size="small"
+              @click="emit('view-products', p.id)"
+            />
+            <Button
+              v-if="p.status !== 'ended'"
+              :label="p.status === 'ongoing' ? '結單' : '開始收單'"
+              :icon="p.status === 'ongoing' ? 'pi pi-stop-circle' : 'pi pi-play'"
+              :severity="p.status === 'ongoing' ? 'danger' : 'primary'"
+              size="small"
+              class="ml-auto"
+              @click="emit('toggle-status', p.id)"
+            />
+          </div>
+        </button>
+        <div v-if="filteredPosts.length === 0" class="py-8 text-center text-[14px] text-[var(--p-text-muted-color)]">
+          目前尚無貼文，請按右上方「選擇貼文」開始。
+        </div>
+      </div>
+
+      <!-- 桌機表格：手機隱藏，改用上方條列式 -->
+      <div class="hidden md:block">
       <DataTable
         v-model:selection="selectedIds"
         :value="filteredPosts"
@@ -411,6 +486,7 @@ function statusMeta(status: OrderPost['status']): { label: string; bg: string; c
           </div>
         </template>
       </DataTable>
+      </div>
 
       <Menu id="post-more-menu" ref="moreMenuRef" :model="moreMenuItems" :popup="true" />
 

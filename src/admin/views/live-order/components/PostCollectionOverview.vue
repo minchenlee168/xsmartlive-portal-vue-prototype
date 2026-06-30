@@ -165,6 +165,93 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
 
       <!-- 列表 table -->
       <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+        <!-- 手機條列式 view：每筆 label : value 直排，筆與筆之間用線分隔 -->
+        <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+          <div
+            v-for="post in filteredPosts"
+            :key="post.id"
+            class="py-3 flex flex-col gap-1.5 cursor-pointer"
+            @click="emit('select', post.id)"
+          >
+            <!-- 頂部：名稱 + 狀態 Tag -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex flex-col gap-0.5 min-w-0 flex-1">
+                <span class="text-[14px] font-medium text-[var(--p-text-color)]">{{ post.name }}</span>
+                <span class="text-[12px] text-[var(--p-text-muted-color)]">{{ post.updateNote }}</span>
+              </div>
+              <Tag
+                :value="statusBadge(post.status).label"
+                :severity="statusBadge(post.status).severity"
+                class="!text-[11px] !px-2 !py-0.5 shrink-0"
+              />
+            </div>
+            <!-- 收單期間 -->
+            <div class="flex items-center gap-1.5 text-[13px]">
+              <span class="text-[var(--p-text-muted-color)] w-[68px] shrink-0">收單期間</span>
+              <span class="text-[var(--p-text-color)]">{{ formatPeriod(post) }}</span>
+            </div>
+            <!-- 留言數 / 已成單（同一列） -->
+            <div class="flex items-center gap-4 text-[13px]">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[var(--p-text-muted-color)]">留言數</span>
+                <span class="text-[var(--p-text-color)]">{{ post.commentCount }}</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[var(--p-text-muted-color)]">已成單</span>
+                <span class="font-bold text-[#f97316]">{{ post.soldCount }}</span>
+              </div>
+            </div>
+            <!-- 結單時間 -->
+            <div class="flex items-center gap-1.5 text-[13px]">
+              <span class="text-[var(--p-text-muted-color)] w-[68px] shrink-0">結單時間</span>
+              <span
+                v-if="post.status === 'closed_today'"
+                class="text-[var(--p-text-muted-color)]"
+              >已結單</span>
+              <span
+                v-else
+                :style="{
+                  color: post.deadlineSeverity === 'danger' ? '#ef4444'
+                    : post.deadlineSeverity === 'warning' ? '#f97316'
+                    : 'var(--p-text-color)'
+                }"
+              >
+                <i v-if="post.deadlineSeverity === 'danger'" class="pi pi-clock mr-1" style="font-size: 11px" />
+                {{ post.deadlineText }}
+              </span>
+            </div>
+            <!-- 操作 -->
+            <div class="flex items-center gap-2 pt-1" @click.stop>
+              <Button
+                label="得標清單"
+                icon="pi pi-list"
+                severity="success"
+                text
+                size="small"
+                @click="emit('view-winners', post.id)"
+              />
+              <Button
+                label="進入"
+                icon="pi pi-arrow-up-right"
+                icon-pos="right"
+                severity="secondary"
+                outlined
+                size="small"
+                class="ml-auto"
+                @click="emit('select', post.id)"
+              />
+            </div>
+          </div>
+          <div
+            v-if="filteredPosts.length === 0"
+            class="py-10 text-center text-[14px] text-[var(--p-text-muted-color)]"
+          >
+            目前沒有符合條件的貼文
+          </div>
+        </div>
+
+        <!-- 桌機 DataTable view -->
+        <div class="hidden md:block">
         <DataTable
           :value="filteredPosts"
           :striped-rows="true"
@@ -257,6 +344,7 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
             </div>
           </template>
         </DataTable>
+        </div>
       </div>
     </template>
   </Card>

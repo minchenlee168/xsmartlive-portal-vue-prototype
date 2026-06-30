@@ -124,7 +124,7 @@ function onSubmit(): void {
     v-model:visible="innerVisible"
     modal
     :draggable="false"
-    :style="{ width: '720px' }"
+    :style="{ width: 'min(720px, calc(100vw - 32px))' }"
     :pt="{
       header: { style: 'padding: 17.5px' },
       content: { style: 'padding: 0 17.5px 17.5px' },

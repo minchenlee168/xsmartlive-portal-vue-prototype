@@ -91,6 +91,10 @@
 .p-select {
   min-height: 44px;
 }
+/* 預設大小的 Button 也對齊 44px 避免跟 InputText 並排時差 2px；size="small"/"large" 不受影響 */
+.p-button:not(.p-button-sm):not(.p-button-lg):not(.p-button-icon-only) {
+  min-height: 44px;
+}
 .qty-stepper .p-inputnumber-input { min-height: 0; }
 
 /* 視窗縮到手機寬時，所有 PrimeVue Dialog 對齊 viewport 寬（保留 PrimeVue 自身的置中 transform，

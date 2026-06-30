@@ -182,7 +182,7 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
     position="right"
     :modal="true"
     :dismissable="true"
-    :style="{ width: '900px' }"
+    :style="{ width: 'min(900px, calc(100vw - 32px))' }"
     :pt="{
       root:    { class: '!max-w-[95vw]' },
       header:  { style: 'padding: 17.5px' },

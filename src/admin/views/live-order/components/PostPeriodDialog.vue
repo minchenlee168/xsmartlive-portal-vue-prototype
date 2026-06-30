@@ -62,7 +62,7 @@ function onSave(): void {
     modal
     :draggable="false"
     :dismissable-mask="true"
-    :style="{ width: '460px' }"
+    :style="{ width: 'min(460px, calc(100vw - 32px))' }"
     :pt="{
       header:  { style: 'padding: 18px' },
       content: { style: 'padding: 0 18px 18px' },

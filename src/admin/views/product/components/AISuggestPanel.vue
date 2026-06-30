@@ -124,7 +124,7 @@ function isSpecAdopted(s: { groupName: string }): boolean { return props.adopted
     position="right"
     :modal="true"
     :dismissable="true"
-    :style="{ width: '480px' }"
+    :style="{ width: 'min(480px, calc(100vw - 32px))' }"
     :pt="{
       root:    { class: '!max-w-[95vw]' },
       header:  { style: 'padding: 17.5px' },
