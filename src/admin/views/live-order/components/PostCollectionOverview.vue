@@ -225,7 +225,7 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
               <Button
                 label="得標清單"
                 icon="pi pi-list"
-                severity="success"
+                severity="secondary"
                 variant="text"
                 size="small"
                 @click="emit('view-winners', post.id)"
@@ -318,7 +318,7 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
                 <Button
                   v-tooltip.top="'得標清單'"
                   icon="pi pi-list"
-                  severity="success"
+                  severity="secondary"
                   variant="text"
                   rounded
                   size="small"
