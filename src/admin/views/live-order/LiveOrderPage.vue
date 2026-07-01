@@ -41,8 +41,8 @@
       />
     </template>
 
-    <!-- 已進入 collection 但還沒選擇收單來源（或直播模式尚未選來源）→ 空狀態 + 「選擇收單來源」按鈕 -->
-    <template v-else-if="!hasAnySource">
+    <!-- 直播模式尚未選來源 → 空狀態 + 「選擇收單來源」按鈕；貼文 / 社團進入 collection 後不走這條，直接進 Card 版 -->
+    <template v-else-if="!isPostMode && !hasAnySource">
       <div class="flex flex-1 min-h-0 gap-2">
         <div class="flex-1 flex flex-col self-stretch min-w-0 gap-2">
           <!-- 左區 toolbar：手機分兩列（場次獨佔第一列、其他按鈕第二列）、桌機 flex-wrap 自動折行 -->
