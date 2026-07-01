@@ -423,11 +423,13 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
               <Column
                 field="stock"
                 style="width: 140px"
-                body-class="text-right"
-                header-class="text-right"
+                :pt="{
+                  headerCell: { class: 'text-right' },
+                  bodyCell: { class: 'text-right' },
+                }"
               >
                 <template #header>
-                  <span class="inline-flex items-center gap-2">
+                  <span class="inline-flex items-center gap-2 w-full justify-end">
                     庫存
                     <Button
                       v-if="p.kind !== 'bundle'"
@@ -441,16 +443,22 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
                     />
                   </span>
                 </template>
-                <template #body="{ data }">{{ data.stock }}</template>
+                <template #body="{ data }">
+                  <div class="text-right">{{ data.stock }}</div>
+                </template>
               </Column>
               <Column
                 field="price"
                 header="價格"
                 style="width: 120px"
-                body-class="text-right"
-                header-class="text-right"
+                :pt="{
+                  headerCell: { class: 'text-right' },
+                  bodyCell: { class: 'text-right' },
+                }"
               >
-                <template #body="{ data }">${{ data.price.toLocaleString() }}</template>
+                <template #body="{ data }">
+                  <div class="text-right">${{ data.price.toLocaleString() }}</div>
+                </template>
               </Column>
               <template #empty>
                 <div class="text-center text-sm text-[var(--p-text-muted-color)] py-3">
