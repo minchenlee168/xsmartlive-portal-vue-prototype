@@ -8,7 +8,7 @@
     :class="[isSelectedLive ? 'is-live' : '', size === 'lg' ? 'is-lg' : 'is-sm']"
     :pt="{
       root: { class: 'rounded-md' },
-      label: { class: 'flex items-center !py-0' },
+      label: { class: 'flex items-center' },
     }"
     @update:model-value="(v) => emit('select', v as LiveSession)"
   >
@@ -110,31 +110,23 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
-/* 與舊版觸發按鈕視覺對齊：收單中 → 紫色主邊框 + 較寬最小寬；未收單 → 一般灰邊 */
+/* 收單中 → 紫色主邊框 + 較寬最小寬；未收單 → 一般灰邊。
+   高度不再強拉 32px，改用 PrimeVue Aura 元件原生高度 (~42px)。 */
 .session-select :deep(.p-select) {
   border-color: var(--p-content-border-color);
   min-width: 220px;
-  /* 對齊旁邊 size="small" 的 Button / SplitButton 高度（PrimeVue v4 ≈ 32px）*/
-  height: 32px;
 }
 .session-select.is-live :deep(.p-select) {
   border-color: var(--p-primary-400);
   min-width: 300px;
 }
-.session-select :deep(.p-select-label) {
-  padding-block: 0;
-  display: flex;
-  align-items: center;
-}
 .session-select :deep(.p-select-dropdown) {
   width: 28px;
 }
 .session-select.is-lg :deep(.p-select-label) {
-  padding-inline: 11.5px;
   font-size: 14px;
 }
 .session-select.is-sm :deep(.p-select-label) {
-  padding-inline: 9.75px;
   font-size: 12.25px;
 }
 </style>
