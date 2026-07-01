@@ -188,7 +188,7 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
             <!-- 收單期間 -->
             <div class="flex items-center gap-2 text-[13px]">
               <span class="text-[var(--p-text-muted-color)] w-[68px] shrink-0">收單期間</span>
-              <span class="text-[var(--p-text-color)]">{{ formatPeriod(post) }}</span>
+              <span class="text-[var(--p-text-color)] whitespace-nowrap">{{ formatPeriod(post) }}</span>
             </div>
             <!-- 留言數 / 已成單（同一列） -->
             <div class="flex items-center gap-4 text-[13px]">
@@ -272,9 +272,9 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
               </div>
             </template>
           </Column>
-          <Column header="收單期間" style="width: 200px">
+          <Column header="收單期間" style="width: 220px">
             <template #body="{ data }">
-              <span class="text-[var(--p-text-color)]">{{ formatPeriod(data) }}</span>
+              <span class="text-[var(--p-text-color)] whitespace-nowrap">{{ formatPeriod(data) }}</span>
             </template>
           </Column>
           <Column field="commentCount" header="留言數" sortable style="width: 90px">
