@@ -178,7 +178,135 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
 <template>
   <!-- min-w-0 讓本容器在 flex 父層內可以縮到 0；overflow-x-auto 讓內部 DataTable 過寬時水平捲動，不再撐爆右側 panel
        依 Design.md 6.5 巢狀容器原則：外層 Card 已在頁面提供視覺容器，這裡不再套 border/rounded 避免雙重外框 -->
-  <div class="overflow-x-auto overflow-y-hidden min-w-0">
+  <div class="min-w-0">
+    <!-- 手機條列式 view：對齊 PostCollectionOverview 的 label : value + divide-y 樣式 -->
+    <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+      <div
+        v-for="p in products"
+        :key="p.id"
+        class="py-3 flex flex-col gap-2"
+      >
+        <!-- 頂部：商品 icon + 名稱 + keyword Tag + 狀態 Tag -->
+        <div class="flex items-start gap-3">
+          <div class="size-10 rounded-md bg-[var(--p-primary-50)] flex items-center justify-center shrink-0">
+            <FontAwesomeIcon
+              :icon="['far', p.isGift ? 'gift' : 'bag-shopping']"
+              :style="{ fontSize: '16px', color: 'var(--p-primary-color)' }"
+            />
+          </div>
+          <div class="flex flex-col gap-1 min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-medium text-[var(--p-text-color)] truncate">{{ p.name }}</span>
+              <Tag v-if="p.keyword" :value="p.keyword" severity="info" class="shrink-0" />
+            </div>
+            <span class="text-xs text-[var(--p-text-muted-color)]">{{ p.sku || `#${p.id}` }}</span>
+          </div>
+          <Tag
+            :value="statusMeta(p).label"
+            :severity="statusMeta(p).severity"
+            class="shrink-0"
+          />
+        </div>
+        <!-- 規格 -->
+        <div class="flex items-center gap-2 text-[13px]">
+          <span class="text-[var(--p-text-muted-color)] w-[68px] shrink-0">{{ t('live_order.label.spec_name') }}</span>
+          <span class="text-[var(--p-text-color)]">{{ specSummary(p) }}</span>
+        </div>
+        <!-- 售價 -->
+        <div class="flex items-center gap-2 text-[13px]">
+          <span class="text-[var(--p-text-muted-color)] w-[68px] shrink-0">{{ t('live_order.label.price') }}</span>
+          <span class="font-bold text-[var(--p-primary-color)]">{{ priceRange(p) }}</span>
+        </div>
+        <!-- 庫存 / 已成單（同一列） -->
+        <div class="flex items-center gap-4 text-[13px]">
+          <div class="flex items-center gap-2">
+            <span class="text-[var(--p-text-muted-color)]">{{ t('live_order.label.stock') }}</span>
+            <span :class="(p.stock ?? 0) <= 10 ? 'text-[#ef4444]' : 'text-[var(--p-text-color)]'">
+              {{ p.stock ?? 0 }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[var(--p-text-muted-color)]">{{ t('live_order.label.sold') }}</span>
+            <span class="font-bold text-[#f97316]">{{ p.sold ?? 0 }}</span>
+          </div>
+        </div>
+        <!-- 銷售額 -->
+        <div class="flex items-center gap-2 text-[13px]">
+          <span class="text-[var(--p-text-muted-color)] w-[68px] shrink-0">{{ t('live_order.label.sales_total') }}</span>
+          <span class="text-[var(--p-text-color)]">${{ salesAmount(p).toLocaleString() }}</span>
+        </div>
+        <!-- 操作 -->
+        <div class="flex items-center gap-1 pt-1 flex-wrap">
+          <Button
+            v-tooltip.top="t('live_order.tooltip.winner_list')"
+            icon="pi pi-list"
+            severity="secondary"
+            variant="text"
+            size="small"
+            rounded
+            @click="openWinnerList(p)"
+          />
+          <Button
+            v-tooltip.top="t('live_order.tab.order_setting')"
+            severity="secondary"
+            variant="text"
+            size="small"
+            rounded
+            @click="openEdit(p)"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'gear']" />
+            </template>
+          </Button>
+          <Button
+            v-if="p.status === 'live'"
+            v-tooltip.top="t('live_order.tooltip.push')"
+            severity="danger"
+            variant="outlined"
+            size="small"
+            rounded
+            @click="onPushClick(p)"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'bullhorn']" />
+            </template>
+          </Button>
+          <Button
+            :disabled="startBtnDisabled && p.status !== 'live'"
+            v-tooltip.top="p.status === 'live'
+              ? (p.isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.stop_ordering'))
+              : (p.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
+            :icon="p.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
+            :severity="p.status === 'live' ? 'danger' : 'primary'"
+            size="small"
+            rounded
+            @click="toggleStatus(p)"
+          />
+          <Button
+            v-tooltip.top="p.status === 'live' ? '請先停止收單再移除' : t('live_order.tooltip.delete')"
+            :disabled="p.status === 'live'"
+            severity="danger"
+            variant="text"
+            size="small"
+            rounded
+            @click="onDeleteClick(p, $event)"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'trash']" />
+            </template>
+          </Button>
+        </div>
+      </div>
+      <div
+        v-if="products.length === 0"
+        class="py-12 text-center text-sm text-[var(--p-text-muted-color)]"
+      >
+        {{ t('live_order.empty.no_product_content') }}
+      </div>
+    </div>
+
+    <!-- 桌機 DataTable view -->
+    <div class="hidden md:block overflow-x-auto overflow-y-hidden">
     <DataTable
       :value="products"
       :striped-rows="true"
@@ -319,6 +447,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
         </div>
       </template>
     </DataTable>
+    </div>
 
     <!-- 共用 dialog -->
     <EditProductDialog
