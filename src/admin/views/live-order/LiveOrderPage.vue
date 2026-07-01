@@ -236,6 +236,7 @@
             icon="pi pi-link"
             outlined
             size="small"
+            class="ml-auto"
             @click="onPickSource"
           />
           <Button
