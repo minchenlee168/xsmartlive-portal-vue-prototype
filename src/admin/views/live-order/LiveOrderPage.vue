@@ -197,6 +197,70 @@
       </div>
     </template>
 
+    <!-- 貼文 / 社團模式：已進入 collection + 已選收單來源 → 簡化版 Card + 工具列 + LiveProductTable -->
+    <template v-else-if="isPostMode">
+      <div class="bg-white rounded-lg shadow-card card-pad flex flex-col gap-4 flex-1 min-h-0">
+        <!-- 工具列：選擇商品 / 批次設定 / 收單期間 / 收單來源 / 留言區 -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <SplitButton
+            :label="t('live_order.button.add_product')"
+            :model="addProductMenuItems"
+            :disabled="!currentSession"
+            icon="pi pi-plus"
+            outlined
+            size="small"
+            @click="addProductDialogVisible = true"
+          />
+          <SplitButton
+            :label="t('live_order.button.batch_edit')"
+            :model="batchEditMenuItems"
+            :disabled="!currentSession"
+            outlined
+            size="small"
+            @click="batchEditDialogVisible = true"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'gear']" class="text-sm mr-2" />
+            </template>
+          </SplitButton>
+          <Button
+            label="收單期間"
+            icon="pi pi-calendar"
+            outlined
+            size="small"
+            :disabled="!currentEnteredPost"
+            @click="openPostPeriodDialog"
+          />
+          <Button
+            label="收單來源"
+            icon="pi pi-link"
+            outlined
+            size="small"
+            @click="onPickSource"
+          />
+          <Button
+            label="留言區"
+            icon="pi pi-comments"
+            outlined
+            size="small"
+            @click="commentDrawerVisible = true"
+          />
+        </div>
+
+        <!-- 商品列表：直接嵌 LiveProductTable（Design.md 6.5 巢狀不另外加外框） -->
+        <div class="flex-1 min-h-0 overflow-y-auto">
+          <LiveProductTable
+            :products="selectedProducts"
+            :ordering-enabled="hasAnySource"
+            :period-start-at="currentEnteredPost?.startAt"
+            @delete="onDeleteProduct"
+            @end-ordering="onCardEndOrdering"
+            @adjust-period="openPostPeriodDialog"
+          />
+        </div>
+      </div>
+    </template>
+
     <template v-else>
 
       <OrderModeView
@@ -409,6 +473,27 @@
     />
     <DuplicateProductDialog v-model:visible="duplicateDialogVisible" :names="duplicateNames" />
 
+    <!-- 貼文 / 社團模式：右側留言 Drawer；卡片用 bare + divide-y 貼齊面板 -->
+    <Drawer
+      v-model:visible="commentDrawerVisible"
+      position="right"
+      header="留言區"
+      :style="{ width: 'min(420px, 100vw)' }"
+    >
+      <div v-if="drawerComments.length" class="divide-y">
+        <LiveCommentCard
+          v-for="c in drawerComments"
+          :key="c.id"
+          :comment="c"
+          bare
+        />
+      </div>
+      <div v-else class="flex flex-col items-center justify-center gap-2 py-12 text-[var(--p-text-muted-color)]">
+        <i class="pi pi-comments text-4xl"></i>
+        <span class="text-sm">尚無留言</span>
+      </div>
+    </Drawer>
+
   </div>
 </template>
 
@@ -430,6 +515,8 @@ import PanelSettingsDialog, { type PanelSettings } from './components/PanelSetti
 import EndOrderingSummaryDialog, { type EndOrderingPayload } from './components/EndOrderingSummaryDialog.vue'
 import QuickAddProductForm from './components/QuickAddProductForm.vue'
 import LiveProductTable from './components/LiveProductTable.vue'
+import LiveCommentCard from './components/LiveCommentCard.vue'
+import { commentTemplates, applyTemplate, type LiveComment, type CommentProductLite } from './utils/liveComments'
 import PostCollectionOverview, { type PostCollection } from './components/PostCollectionOverview.vue'
 import WinnerListDialog from './components/WinnerListDialog.vue'
 import CreatePostCollectionDialog, { type CreatePostCollectionPayload } from './components/CreatePostCollectionDialog.vue'
@@ -1274,6 +1361,34 @@ const sourceDialogVisible = ref(false)
 const sources = computed<LiveSource[]>(() => currentSession.value?.sources ?? [])
 
 const hasAnySource = computed(() => sources.value.length > 0)
+
+// ── 貼文 / 社團收單：留言區 Drawer ─────────────
+/**
+ * 貼文 / 社團模式進入某筆 collection 後，工具列的「留言區」按鈕開這個 Drawer。
+ * 內容用 commentTemplates 30 筆模板 + 當前貼文商品做動態替換，避免直播模式塞 Comment Tab 到 post entered 版面。
+ */
+const commentDrawerVisible = ref(false)
+const drawerCommentProducts = computed<CommentProductLite[]>(() =>
+  selectedProducts.value.map((p) => ({
+    name: p.name ?? '',
+    keyword: p.keyword ?? '',
+    isGift: !!p.isGift,
+    bidding: !!p.bidding,
+    flatPrice: (p.flatPrice as number | undefined) ?? p.price ?? 0,
+    specs: ((p.selectedSpecs?.length ? p.selectedSpecs : p.specs) ?? [])
+      .map((s) => s.name ?? '')
+      .filter(Boolean),
+  })),
+)
+const drawerBidProduct = computed<CommentProductLite | null>(
+  () => drawerCommentProducts.value.find((p) => p.bidding) ?? null,
+)
+const drawerComments = computed<LiveComment[]>(() =>
+  commentTemplates.map((c) => ({
+    ...c,
+    text: applyTemplate(c.text, drawerCommentProducts.value, drawerBidProduct.value),
+  })),
+)
 
 const hasLiveProduct = computed(() => selectedProducts.value.some(p => p.status === 'live'))
 
