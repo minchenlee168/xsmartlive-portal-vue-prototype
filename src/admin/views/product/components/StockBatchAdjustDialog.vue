@@ -174,6 +174,12 @@ const filteredHistory = computed(() => {
 const PREVIEW_LIMIT = 5
 const previewHistory = computed(() => filteredHistory.value.slice(0, PREVIEW_LIMIT))
 const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIMIT)
+
+/** 規格 chip 篩選選項：[全部規格, ...每個規格]。用 PrimeVue SelectButton 呈現。 */
+const specFilterOptions = computed<Array<{ label: string; value: number | 'all' }>>(() => [
+  { label: '全部規格', value: 'all' },
+  ...((props.product?.specs ?? []).map((s) => ({ label: s.name, value: s.id }))),
+])
 </script>
 
 <template>
@@ -183,15 +189,11 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
     :modal="true"
     :dismissable="true"
     :style="{ width: 'min(900px, calc(100vw - 32px))' }"
-    :pt="{
-      root:    { class: '!max-w-[95vw]' },
-      header:  { style: 'padding: 17.5px' },
-      content: { style: 'padding: 0 17.5px 17.5px' },
-    }"
+    :pt="{ root: { class: '!max-w-[95vw]' } }"
     @update:visible="(v) => emit('update:visible', v)"
   >
     <template #header>
-      <span class="font-semibold text-[var(--p-text-color)]" style="font-size: 21px">
+      <span class="text-lg font-semibold text-[var(--p-text-color)]">
         {{ view === 'history' ? '調整紀錄' : `批量調整庫存 - ${product?.name ?? ''}` }}
       </span>
     </template>
@@ -200,17 +202,11 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
     <div v-if="view === 'main'" class="flex flex-col gap-3">
       <span class="text-[13px] text-[var(--p-text-muted-color)]">規格庫存調整</span>
 
-      <!-- 規格庫存調整 table（用 DataTable + Column，比照 PostListTable / OrderListPage 寫法） -->
+      <!-- 規格庫存調整 table（PrimeVue DataTable + Column，cell 字級 / 背景交回 Aura 預設） -->
       <DataTable
         :value="adjustments"
         data-key="specId"
         class="w-full"
-        :pt="{
-          column: {
-            headerCell: { style: 'background:transparent;font-size:14px;font-weight:600' },
-            bodyCell:   { style: 'font-size:14px' },
-          },
-        }"
       >
         <Column field="specName" header="規格名稱" />
         <Column field="currentStock" header="目前庫存" style="width: 100px" />
@@ -220,8 +216,7 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
               v-model="data.delta"
               show-buttons
               button-layout="stacked"
-              :input-style="{ width: '110px' }"
-              :pt="{ root: { class: 'w-[150px]' } }"
+              fluid
             />
           </template>
         </Column>
@@ -232,7 +227,7 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
               :options="ADJUSTMENT_REASONS"
               option-label="label"
               option-value="value"
-              class="w-[180px]"
+              fluid
             />
           </template>
         </Column>
@@ -252,56 +247,34 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
     <!-- 分隔線（只在 main 視圖顯示，避免切到 history 後上面還殘留預覽） -->
     <div v-if="view === 'main'" class="border-t border-[var(--p-content-border-color)] my-4"></div>
 
-    <!-- 近十筆調整紀錄（main 視圖預覽） -->
-    <div v-if="view === 'main'" class="flex flex-col gap-3">
-      <button
-        type="button"
-        class="flex items-center justify-between gap-2 text-left"
-        @click="showHistory = !showHistory"
-      >
-        <span class="text-sm font-semibold text-[var(--p-text-color)]">近十筆調整紀錄</span>
-        <i :class="showHistory ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" style="font-size: 12px"></i>
-      </button>
-
-      <template v-if="showHistory">
+    <!-- 近十筆調整紀錄（main 視圖預覽）：PrimeVue Panel toggleable 替代手刻 chevron button -->
+    <Panel
+      v-if="view === 'main'"
+      header="近十筆調整紀錄"
+      toggleable
+      :collapsed="!showHistory"
+      @update:collapsed="(c) => showHistory = !c"
+    >
+      <div class="flex flex-col gap-3">
         <div class="flex items-center justify-between gap-3 flex-wrap">
-          <div class="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              class="px-3 py-2 rounded-md text-[13px] font-medium border"
-              :class="historyFilter === 'all'
-                ? 'bg-[var(--p-primary-color)] text-white border-[var(--p-primary-color)]'
-                : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)]'"
-              @click="historyFilter = 'all'"
-            >全部規格</button>
-            <button
-              v-for="s in product?.specs ?? []"
-              :key="s.id"
-              type="button"
-              class="px-3 py-2 rounded-md text-[13px] font-medium border"
-              :class="historyFilter === s.id
-                ? 'bg-[var(--p-primary-color)] text-white border-[var(--p-primary-color)]'
-                : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)]'"
-              @click="historyFilter = s.id"
-            >{{ s.name }}</button>
-          </div>
+          <SelectButton
+            v-model="historyFilter"
+            :options="specFilterOptions"
+            option-label="label"
+            option-value="value"
+            :allow-empty="false"
+          />
           <InputGroup class="!w-fit">
             <InputText v-model="historyKeyword" placeholder="搜尋調整原因" class="!w-[260px]" />
             <Button label="搜尋" />
           </InputGroup>
         </div>
 
-        <!-- 預覽 table（DataTable + Column） -->
+        <!-- 預覽 table：cell 字級 / 背景交回 Aura 預設 -->
         <DataTable
           :value="previewHistory"
           data-key="id"
           class="w-full"
-          :pt="{
-            column: {
-              headerCell: { style: 'background:transparent;font-size:14px;font-weight:600' },
-              bodyCell:   { style: 'font-size:14px' },
-            },
-          }"
         >
           <Column field="time" header="時間" style="width: 160px" />
           <Column field="specName" header="規格" style="width: 80px" />
@@ -327,37 +300,24 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
         <div v-if="hasMoreHistory" class="flex justify-center">
           <Button label="查看更多紀錄" severity="primary" outlined size="small" @click="view = 'history'" />
         </div>
-      </template>
-    </div>
+      </div>
+    </Panel>
 
     <!-- ========== History 視圖：調整紀錄全表 + 返回 ========== -->
     <div v-if="view === 'history'" class="flex flex-col gap-3">
-      <!-- 規格 chips + 原因搜尋（與 main 視圖共用 state） -->
+      <!-- 規格 SelectButton + 原因搜尋（與 main 視圖共用 state） -->
       <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div class="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            class="px-3 py-2 rounded-md text-[13px] font-medium border"
-            :class="historyFilter === 'all'
-              ? 'bg-[var(--p-primary-color)] text-white border-[var(--p-primary-color)]'
-              : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)]'"
-            @click="historyFilter = 'all'"
-          >全部規格</button>
-          <button
-            v-for="s in product?.specs ?? []"
-            :key="s.id"
-            type="button"
-            class="px-3 py-2 rounded-md text-[13px] font-medium border"
-            :class="historyFilter === s.id
-              ? 'bg-[var(--p-primary-color)] text-white border-[var(--p-primary-color)]'
-              : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)]'"
-            @click="historyFilter = s.id"
-          >{{ s.name }}</button>
-        </div>
+        <SelectButton
+          v-model="historyFilter"
+          :options="specFilterOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+        />
         <InputText v-model="historyKeyword" placeholder="搜尋調整原因" class="!w-[260px]" />
       </div>
 
-      <!-- 全表（DataTable + striped + pagination） -->
+      <!-- 全表：cell 字級 / 背景交回 Aura 預設 -->
       <DataTable
         :value="filteredHistory"
         data-key="id"
@@ -366,12 +326,6 @@ const hasMoreHistory = computed(() => filteredHistory.value.length > PREVIEW_LIM
         :rows="10"
         :rows-per-page-options="[10, 20, 50]"
         class="w-full"
-        :pt="{
-          column: {
-            headerCell: { style: 'background:transparent;font-size:14px;font-weight:600' },
-            bodyCell:   { style: 'font-size:14px' },
-          },
-        }"
       >
         <Column field="time" header="時間" style="width: 160px" />
         <Column field="specName" header="規格" style="width: 80px" />
