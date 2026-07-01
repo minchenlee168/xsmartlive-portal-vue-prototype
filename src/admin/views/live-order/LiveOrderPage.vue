@@ -1681,6 +1681,33 @@ onMounted(() => {
 })
 onUnmounted(() => { if (scheduleTimerId) clearInterval(scheduleTimerId) })
 
+/**
+ * 收單期間變動時「立即」雙向同步商品狀態（免等 30 秒排程）：
+ *  - 期間已開始（startAt <= now 或未設）→ 所有 ready 商品自動 live
+ *  - 期間被改成未來（startAt > now）→ 所有 live 商品退回 ready（尚未賣任何一件 → 全退；已賣過 → 保留 live 避免破壞交易）
+ * 對應使用情境：使用者從 PostPeriodDialog 更改 startAt，畫面立刻反映。
+ */
+watch(
+  () => [enteredPostId.value, currentEnteredPost.value?.startAt] as const,
+  () => {
+    if (!isPostMode.value || enteredPostId.value == null) return
+    const post = currentEnteredPost.value
+    if (!post || post.status === 'closed_today') return
+    const list = currentSession.value?.products
+    if (!list) return
+    const startAt = post.startAt
+    const periodStarted = !startAt || startAt.getTime() <= Date.now()
+    list.forEach((p) => {
+      if (periodStarted && p.status === 'ready') {
+        p.status = 'live'
+      } else if (!periodStarted && p.status === 'live' && (p.sold ?? 0) === 0) {
+        p.status = 'ready'
+      }
+    })
+  },
+  { immediate: true },
+)
+
 // 直播 / 貼文 / 社群 收單頁進入時自動收合 sidebar，把畫面寬度留給商品 + 留言面板。
 // 離開頁面（unmount）後不自動展開，使用者若要展開靠 TopBar 摺疊鈕。
 const layoutStore = useLayoutStore()
