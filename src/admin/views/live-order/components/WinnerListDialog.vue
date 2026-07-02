@@ -100,7 +100,7 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import OrderDetailDialog from './OrderDetailDialog.vue'
-import { getWinnersByProduct, removeWinnerByOrderNo } from '../utils/liveWinners'
+import { getWinnersByProduct, removeWinnerByOrderNo, genOrderNo } from '../utils/liveWinners'
 import { commentTemplates } from '../utils/liveComments'
 
 const { t } = useI18n()
@@ -198,7 +198,7 @@ const liveWinners = computed(() => {
   return Array.from({ length: sold }, (_, i) => {
     const member = memberPool[i % memberPool.length] ?? `會員${i + 1}`
     return {
-      orderNo: `M-${productId}-${String(i + 1).padStart(3, '0')}`,
+      orderNo: genOrderNo(),
       member,
       spec: productName,
       specName: '',

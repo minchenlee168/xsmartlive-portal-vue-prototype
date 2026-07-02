@@ -280,7 +280,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
               v-if="p.status === 'live'"
               v-tooltip.top="t('live_order.tooltip.push')"
               severity="danger"
-              variant="outlined"
+              variant="text"
               size="small"
               rounded
               @click="onPushClick(p)"
@@ -295,7 +295,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                 v-tooltip.top="t('live_order.tooltip.pause_ordering')"
                 icon="pi pi-pause"
                 severity="secondary"
-                variant="outlined"
+                variant="text"
                 size="small"
                 rounded
                 @click="onPauseOrdering(p)"
@@ -304,6 +304,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                 v-tooltip.top="t('live_order.tooltip.end_ordering')"
                 icon="pi pi-check"
                 severity="danger"
+                variant="text"
                 size="small"
                 rounded
                 @click="onEndOrdering(p)"
@@ -317,6 +318,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                 : (p.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
               :icon="p.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
               :severity="p.status === 'live' ? 'danger' : 'primary'"
+              variant="text"
               size="small"
               rounded
               @click="toggleStatus(p)"
@@ -444,7 +446,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                 v-if="data.status === 'live'"
                 v-tooltip.top="t('live_order.tooltip.push')"
                 severity="danger"
-                variant="outlined"
+                variant="text"
                 size="small"
                 rounded
                 @click="onPushClick(data)"
@@ -459,7 +461,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                   v-tooltip.top="t('live_order.tooltip.pause_ordering')"
                   icon="pi pi-pause"
                   severity="secondary"
-                  variant="outlined"
+                  variant="text"
                   size="small"
                   rounded
                   @click="onPauseOrdering(data)"
@@ -468,6 +470,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                   v-tooltip.top="t('live_order.tooltip.end_ordering')"
                   icon="pi pi-check"
                   severity="danger"
+                  variant="text"
                   size="small"
                   rounded
                   @click="onEndOrdering(data)"
@@ -481,6 +484,7 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
                   : (data.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
                 :icon="data.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
                 :severity="data.status === 'live' ? 'danger' : 'primary'"
+                variant="text"
                 size="small"
                 rounded
                 @click="toggleStatus(data)"

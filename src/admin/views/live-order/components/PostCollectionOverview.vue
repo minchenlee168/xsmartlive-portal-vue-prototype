@@ -233,15 +233,17 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
                 @click="emit('view-winners', post.id)"
               />
               <Button
-                label="進入"
-                icon="pi pi-arrow-up-right"
-                icon-pos="right"
-                severity="secondary"
-                outlined
+                v-tooltip.top="'編輯'"
+                variant="text"
+                rounded
                 size="small"
-                class="ml-auto"
+                class="ml-auto !text-[var(--p-primary-color)]"
                 @click="emit('select', post.id)"
-              />
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', 'pen-to-square']" class="text-sm" />
+                </template>
+              </Button>
             </div>
           </div>
           <div
@@ -314,7 +316,7 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
               <Tag :value="statusBadge(data.status).label" :severity="statusBadge(data.status).severity" />
             </template>
           </Column>
-          <Column header="操作" style="width: 180px">
+          <Column header="操作" style="width: 1%; white-space: nowrap;">
             <template #body="{ data }">
               <div class="flex items-center gap-2" @click.stop>
                 <Button
@@ -327,14 +329,17 @@ function statusBadge(s: PostCollectionStatus): { label: string; severity: 'succe
                   @click="emit('view-winners', data.id)"
                 />
                 <Button
-                  label="進入"
-                  icon="pi pi-arrow-up-right"
-                  icon-pos="right"
-                  severity="secondary"
-                  outlined
+                  v-tooltip.top="'編輯'"
+                  variant="text"
+                  rounded
                   size="small"
+                  class="!text-[var(--p-primary-color)]"
                   @click="emit('select', data.id)"
-                />
+                >
+                  <template #icon>
+                    <FontAwesomeIcon :icon="['far', 'pen-to-square']" class="text-sm" />
+                  </template>
+                </Button>
               </div>
             </template>
           </Column>

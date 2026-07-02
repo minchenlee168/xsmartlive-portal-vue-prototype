@@ -37,15 +37,22 @@ export interface LiveWinner {
 
 const winners = ref<LiveWinner[]>([])
 
+/** 產生標單編號 — 格式:10 位 unix 秒 + 8 碼隨機 hex(共 18 碼),如 `178271794367cfed4b`。 */
+export function genOrderNo(): string {
+  const ts = Math.floor(Date.now() / 1000)
+  const hex = Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0')
+  return `${ts}${hex}`
+}
+
 /** 留言內所有 winner 用 commentId 對應；先清掉舊的再寫入，避免重複。 */
 export function setWinnersForComment(commentId: number | string, items: Omit<LiveWinner, 'commentId' | 'orderNo'>[]): void {
   // 先移除這則留言之前的紀錄
   winners.value = winners.value.filter(w => w.commentId !== commentId)
   // 重新加入
-  const next = items.map((it, i) => ({
+  const next = items.map((it) => ({
     ...it,
     commentId,
-    orderNo: `#${String(commentId).slice(-5)}-${String(i + 1).padStart(3, '0')}`,
+    orderNo: genOrderNo(),
   }))
   winners.value = [...winners.value, ...next]
 }

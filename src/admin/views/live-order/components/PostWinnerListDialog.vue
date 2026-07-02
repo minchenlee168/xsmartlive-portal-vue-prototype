@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { getWinnersByProduct } from '../utils/liveWinners'
+import { commentTemplates } from '../utils/liveComments'
 
 interface ProductLike {
   id: number
@@ -119,17 +120,35 @@ const sortOptions = [
   { label: '購買數量', value: 'qty'    as const },
 ]
 
-/** 把 collection 底下每個商品的 winners 打平合併,補上商品名稱與關鍵字。 */
+/** 用來 fallback mock 得標人的用戶名池 — 與 WinnerListDialog 同源,避免 collection 已結束但 store 內沒 winner。 */
+const memberPool = commentTemplates
+  .filter((c) => c.tagType !== 'official' && c.tagType !== 'blacklist')
+  .map((c) => c.user)
+
+/** 把 collection 底下每個商品的 winners 打平合併,補上商品名稱與關鍵字。
+ *  若某商品 store 內沒 winner 但有 sold > 0(mock 或已結束的 collection),依 sold 生成 mock 得標人。 */
 const allWinners = computed<WinnerRow[]>(() =>
-  props.products.flatMap((p) =>
-    getWinnersByProduct(p.id).value.map((w) => ({
-      member: w.member,
-      productName: p.name ?? w.productName ?? '',
+  props.products.flatMap((p) => {
+    const list = getWinnersByProduct(p.id).value
+    if (list.length > 0) {
+      return list.map((w) => ({
+        member: w.member,
+        productName: p.name ?? w.productName ?? '',
+        keyword: p.keyword ?? '',
+        commentText: w.commentText ?? '',
+        qty: w.qty,
+      }))
+    }
+    const sold = Number((p as { sold?: number }).sold ?? 0)
+    if (sold <= 0) return []
+    return Array.from({ length: sold }, (_, i) => ({
+      member: memberPool[i % memberPool.length] ?? `會員${i + 1}`,
+      productName: p.name ?? '',
       keyword: p.keyword ?? '',
-      commentText: w.commentText ?? '',
-      qty: w.qty,
+      commentText: '',
+      qty: 1,
     }))
-  ),
+  }),
 )
 
 const filteredWinners = computed<WinnerRow[]>(() => {
