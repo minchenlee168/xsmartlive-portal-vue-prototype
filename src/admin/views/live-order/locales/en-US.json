@@ -421,6 +421,7 @@
       "start_sending": "Start sending",
       "end_sending": "End sending",
       "stop_ordering": "Stop ordering",
+      "pause_ordering": "Pause ordering",
       "add_to_blacklist": "Blacklist",
       "remove_from_blacklist": "Unblacklist",
       "order_detail": "Order detail",

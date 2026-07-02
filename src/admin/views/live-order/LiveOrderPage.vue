@@ -33,7 +33,7 @@
     <!-- 貼文 / 社團模式 + 尚未進入任何 collection → 顯示總覽 -->
     <template v-if="isPostMode && !enteredPostId">
       <PostCollectionOverview
-        :posts="postCollections"
+        :posts="visiblePostCollections"
         :kind="collectionKind"
         @select="onSelectPostEntry"
         @create="onCreatePostCollection"
@@ -246,6 +246,26 @@
             size="small"
             @click="commentDrawerVisible = true"
           />
+          <!-- 已結束的貼文/社團:改顯示「查看得標人」,不再讓使用者結束一次 -->
+          <Button
+            v-if="isPostOrderClosed"
+            label="查看得標人"
+            icon="pi pi-users"
+            outlined
+            size="small"
+            @click="postWinnerDialogVisible = true"
+          />
+          <Button
+            v-else
+            :label="t('live_order.button.end_all_live')"
+            icon="pi pi-power-off"
+            severity="danger"
+            outlined
+            size="small"
+            :disabled="isPostOrderNotStarted"
+            v-tooltip.top="isPostOrderNotStarted ? '收單尚未開始,無法結束' : undefined"
+            @click="askEndAllPostOrder"
+          />
         </div>
 
         <!-- 商品列表：直接嵌 LiveProductTable（Design.md 6.5 巢狀不另外加外框） -->
@@ -254,6 +274,8 @@
             :products="selectedProducts"
             :ordering-enabled="hasAnySource"
             :period-start-at="currentEnteredPost?.startAt"
+            :is-post-mode="isPostMode"
+            :readonly="isPostOrderClosed"
             @delete="onDeleteProduct"
             @end-ordering="onCardEndOrdering"
             @adjust-period="openPostPeriodDialog"
@@ -452,6 +474,11 @@
     <CreateSessionDialog v-model:visible="createDialogVisible" @create="onSessionCreate" />
     <CreatePostCollectionDialog v-model:visible="createPostDialogVisible" :kind="collectionKind" @create="onCreatePostSubmit" />
     <WinnerListDialog v-model:visible="winnerDialogVisible" :product="winnerDialogProduct as never" />
+    <!-- 貼文/社團已結束 → 工具列「查看得標人」彈窗:列該 collection 底下所有商品的得標人 -->
+    <PostWinnerListDialog
+      v-model:visible="postWinnerDialogVisible"
+      :products="selectedProducts"
+    />
     <AddProductDialog v-model:visible="addProductDialogVisible"
       :existing-products="selectedProducts"
       @add-products="onAddProducts" />
@@ -522,6 +549,7 @@ import LiveCommentCard from './components/LiveCommentCard.vue'
 import { commentTemplates, applyTemplate, getPlatformMeta, type LiveComment, type CommentProductLite } from './utils/liveComments'
 import PostCollectionOverview, { type PostCollection } from './components/PostCollectionOverview.vue'
 import WinnerListDialog from './components/WinnerListDialog.vue'
+import PostWinnerListDialog from './components/PostWinnerListDialog.vue'
 import CreatePostCollectionDialog, { type CreatePostCollectionPayload } from './components/CreatePostCollectionDialog.vue'
 import PostPeriodDialog from './components/PostPeriodDialog.vue'
 import { addLiveOrderRecord } from './utils/liveOrderRecords'
@@ -614,6 +642,10 @@ const collectionKind = computed<'post' | 'community'>(() =>
 )
 /** 給 UI 標籤用的中文文案：依 collectionKind 決定要顯示「貼文」還是「社團」 */
 const collectionNoun = computed(() => collectionKind.value === 'community' ? '社團' : '貼文')
+/** 貼文 / 社團收單資料不同步:overview 依 collectionKind 篩出各自的 list;未標 kind 的舊資料視為 'post'。 */
+const visiblePostCollections = computed<PostCollection[]>(() =>
+  postCollections.value.filter((p) => (p.kind ?? 'post') === collectionKind.value),
+)
 /** 列表式貼文收單：body 改用 LiveProductTable 而非商品卡 grid。 */
 const isPostListMode = computed(() => route.name === 'live.order.post.list')
 
@@ -704,6 +736,15 @@ const isPostOrderNotStarted = computed(() => {
   if (!isPostMode.value) return false
   return currentEnteredPost.value?.status === 'ready'
 })
+
+/** 進入的貼文/社團已結束 → 工具列改顯示「查看得標人」而非「一鍵結束收單」。 */
+const isPostOrderClosed = computed(() => {
+  if (!isPostMode.value) return false
+  return currentEnteredPost.value?.status === 'closed_today'
+})
+
+/** 貼文/社團「查看得標人」彈窗 visible */
+const postWinnerDialogVisible = ref(false)
 
 // 一鍵結束收單 SplitButton 下拉：一鍵開始 / 一鍵停止 / 移除無收單商品
 const quickActionMenuItems = computed<Array<MenuItem & { tooltip?: string }>>(() => [
@@ -906,7 +947,7 @@ const postCollections = ref<PostCollection[]>([
   {
     id: 8002,
     name: '2/14 日韓零食團',
-
+    kind: 'community',
     pendingCount: 9,
     updateNote: '2 分鐘前更新',
     soldCount: 112,
@@ -946,7 +987,7 @@ const postCollections = ref<PostCollection[]>([
   {
     id: 8004,
     name: '週三蔬菜箱',
-
+    kind: 'community',
     updateNote: '剛剛更新',
     soldCount: 45,
     commentCount: 45,
@@ -1138,7 +1179,7 @@ function onCreatePostSubmit(payload: CreatePostCollectionPayload): void {
   const newPost: PostCollection = {
     id: newId,
     name: payload.name,
-
+    kind: collectionKind.value,
     pendingCount: 0,
     updateNote: '剛建立',
     soldCount: 0,
@@ -1501,7 +1542,8 @@ function onSourceConfirmed(type: string, extras: SourceConfirmExtras = {}): void
 /**
  * 已使用的來源 id：依平台類型分桶（傳入 dialog 用於 disable）。
  * 不同平台之間互不干擾 — 在 IG 選到 id=1 不會讓 FB id=1 變灰。
- * 來源 = 當前 session 的 sources ∪ 其他 collection 已快取的 sources。
+ * 來源 = 當前 session 的 sources ∪ 其他直播場次 sources ∪ 其他 post collection 已快取的 sources。
+ * （場次間 sources 不同步,故同一來源不允許被兩個場次同時挑到,避免資料互不同步造成困擾）
  */
 const usedByPlatform = computed<Record<string, Array<number | string>>>(() => {
   const buckets: Record<string, Set<number | string>> = {}
@@ -1513,6 +1555,14 @@ const usedByPlatform = computed<Record<string, Array<number | string>>>(() => {
   ;(currentSession.value?.sources ?? []).forEach((s) => {
     add(s.type, s.postId)
     add(s.type, s.groupId)
+  })
+  // 其他直播場次的 sources 也要納入 → 避免同一貼文/社團被兩場次同時選走
+  sessions.value.forEach((sess) => {
+    if (sess.id === currentSession.value?.id) return
+    sess.sources.forEach((s) => {
+      add(s.type, s.postId)
+      add(s.type, s.groupId)
+    })
   })
   postSourcesCache.value.forEach((sources, pid) => {
     if (pid === enteredPostId.value) return  // 當前 session 已加入，避免重複
@@ -1572,12 +1622,17 @@ const endingSummaryProducts = computed(() =>
   selectedProducts.value.filter((p) => endingProductIds.value.has(p.id)),
 )
 
+/** 標記本次「結束收單」是否為「一鍵結束」— 一鍵結束才會關閉整個 collection / 移除整場;
+ *  單一商品結束(從商品卡)結束後,collection 內其他商品要保留在列表,不 close collection。 */
+const bulkEndingIntent = ref(false)
+
 function confirmEndAllProducts(): void {
   // 結束收單彙總納入：仍在收單中 OR 已有得標（sold > 0）的商品
   const ids = selectedProducts.value
     .filter((p) => p.status === 'live' || (p.sold ?? 0) > 0)
     .map((p) => p.id)
   endingProductIds.value = new Set(ids)
+  bulkEndingIntent.value = true
   // 立刻凍結 ticker（避免結帳時還在累加）
   selectedProducts.value.forEach((p) => {
     if (endingProductIds.value.has(p.id)) (p as Record<string, unknown>).frozen = true
@@ -1595,6 +1650,31 @@ function askEndAllProducts(): void {
     acceptProps: { label: t('live_order.button.confirm'), severity: 'danger' },
     accept: () => { confirmEndAllProducts() },
   })
+}
+
+/**
+ * 貼文/社團收單「一鍵結束收單」：若當前貼文 endAt 尚未到 → 改問「是否要提前結束收單」;
+ * 已過收單期間則走一般確認流程。
+ */
+function askEndAllPostOrder(): void {
+  const post = currentEnteredPost.value
+  const endAt = post?.endAt
+  const isEarly = endAt instanceof Date && endAt.getTime() > Date.now()
+  if (isEarly) {
+    const d = endAt as Date
+    const pad = (n: number): string => String(n).padStart(2, '0')
+    const display = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    confirm.require({
+      header: '提前結束收單',
+      message: `此${collectionNoun.value}設定的收單結束時間為 ${display},是否要提前結束收單?`,
+      icon: 'pi pi-exclamation-triangle',
+      rejectProps: { label: t('live_order.button.cancel'), severity: 'secondary', outlined: true },
+      acceptProps: { label: '提前結束', severity: 'danger' },
+      accept: () => { confirmEndAllProducts() },
+    })
+    return
+  }
+  askEndAllProducts()
 }
 
 /** 一鍵移除：把當前場次中所有「沒有收單過」（sold 為 0 或 undefined）的商品卡刪掉 */
@@ -1616,6 +1696,7 @@ function removeNoSaleProducts(): void {
 /** 商品卡（或 table 列）emit 的單筆結束收單 → 彙總彈窗只列那一張卡。 */
 function onCardEndOrdering(id: number): void {
   endingProductIds.value = new Set([id])
+  bulkEndingIntent.value = false
   const p = selectedProducts.value.find((x) => x.id === id)
   if (p) (p as Record<string, unknown>).frozen = true
   endSummaryDialogVisible.value = true
@@ -1642,18 +1723,15 @@ function onEndSummarySave(payload: EndOrderingPayload): void {
       specs: p.specs,
     })),
   })
-  // 只把本次摘要的商品歸位：status 回 ready、sold / 規格 sold / 起算時間都重置，
-  // 確保下一輪重新「開始收單」時 ticker 從 0 起算、不會接續累加
+  // 結束的商品一律轉 'done'(已結單),保留 sold 顯示成單量。
+  // 一鍵結束:直播會直接把場次移除、貼文/社團會關 collection,所以「留下 done 商品」的狀態
+  // 只有在單筆結束時看得到;bulk 分支後續會處理場次 / collection。
   let changed = 0
   selectedProducts.value.forEach((p) => {
     if (!endingProductIds.value.has(p.id)) return
-    // 不論商品當下是 live 或 ready，結束收單彙總都歸位：status 回 ready、sold / 規格 sold / startedAt 重置
-    p.status = 'ready'
-    p.sold = 0
+    p.status = 'done'
     ;(p.startedAt as number | undefined) = undefined
     ;(p as Record<string, unknown>).frozen = false
-    const specs = (p.selectedSpecs?.length ? p.selectedSpecs : p.specs) ?? []
-    specs.forEach((s) => { s.sold = 0 })
     changed++
   })
   endingProductIds.value = new Set()
@@ -1665,26 +1743,33 @@ function onEndSummarySave(payload: EndOrderingPayload): void {
     life: 2500,
   })
   // 結束收單儲存後：
-  // - 直播模式：把該場次從 sessions 移除、currentSession = null（回空狀態）
-  // - 貼文模式：清掉 postSession.sources（觸發 !hasAnySource）+ 把該檔狀態改成 closed_today → 回到 overview
-  if (!isPostMode.value && currentSession.value) {
+  // - 直播模式 + 一鍵結束:把該場次從 sessions 移除、currentSession = null(回空狀態);單筆結束不動場次。
+  // - 貼文模式 + 一鍵結束:清掉 postSession.sources + 把該檔狀態改成 closed_today → 回到 overview;
+  //   單筆結束只 syncStats(更新 overview 已成單),商品留在列表。
+  if (!isPostMode.value && bulkEndingIntent.value && currentSession.value) {
     const sid = currentSession.value.id
     sessions.value = sessions.value.filter((s) => s.id !== sid)
     currentSession.value = null
   } else if (isPostMode.value) {
-    // 結束收單前先把當下 sold 同步回 overview 上的「已成單」
+    // 不論一鍵/單筆結束,都先把當下 sold 同步回 overview 上的「已成單」
     syncPostStatsBack()
-    const postId = enteredPostId.value
-    if (postId != null) {
-      const post = postCollections.value.find((p) => p.id === postId)
-      if (post) post.status = 'closed_today'
-      // 該 collection 結單後 → 釋放其所有 source，這些貼文 / 社團可重新被其他 collection 選用
-      postSourcesCache.value.delete(postId)
+    // 一鍵結束 OR 單筆結束後所有商品都已 done → 自動關閉整個 collection
+    const products = postSession.value.products as LiveProduct[]
+    const allDone = products.length > 0 && products.every((p) => p.status === 'done')
+    if (bulkEndingIntent.value || allDone) {
+      const postId = enteredPostId.value
+      if (postId != null) {
+        const post = postCollections.value.find((p) => p.id === postId)
+        if (post) post.status = 'closed_today'
+        // 該 collection 結單後 → 釋放其所有 source,這些貼文/社團可重新被其他 collection 選用
+        postSourcesCache.value.delete(postId)
+      }
+      enteredPostId.value = null
+      postSession.value.sources = []
+      postSession.value.products = []
     }
-    enteredPostId.value = null
-    postSession.value.sources = []
-    postSession.value.products = []
   }
+  bulkEndingIntent.value = false
 }
 
 // ── 計時器：以當前場次最早「開始收單」的商品為起點 ─────

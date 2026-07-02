@@ -41,10 +41,16 @@ interface Props {
   orderingEnabled?: boolean
   /** 貼文/社團模式下該貼文的收單期間起點；按下「開始收單」時若 startAt 尚未到 → 跳提示問是否調整時間 */
   periodStartAt?: Date | null
+  /** 貼文/社團模式：收單中商品操作欄拆成「暫停收單 + 結束收單」；結束收單走 end-ordering 開彙總彈窗 */
+  isPostMode?: boolean
+  /** 已結束的收單：唯讀狀態,操作欄只保留得標清單,不顯示訂單設定 / 開始收單 / 刪除 */
+  readonly?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   orderingEnabled: false,
   periodStartAt: null,
+  isPostMode: false,
+  readonly: false,
 })
 
 const emit = defineEmits<{
@@ -67,6 +73,8 @@ const activeProduct = ref<LiveProduct | null>(null)
 /** 商品狀態 → PrimeVue Tag severity（Design.md 7.0 用元件 + 二 語意色） */
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
 function statusMeta(p: LiveProduct): { label: string; severity: TagSeverity } {
+  // 已結束的 collection(readonly) 或商品已個別結束 → 統一顯示「已結束」
+  if (props.readonly || p.status === 'done') return { label: t('live_order.label.done'), severity: 'secondary' }
   if (p.status === 'live') return { label: t('live_order.label.live'), severity: 'danger' }
   return { label: t('live_order.label.ready'), severity: 'secondary' }
 }
@@ -141,6 +149,15 @@ function toggleStatus(p: LiveProduct): void {
     return
   }
   p.status = 'live'
+}
+
+/** 貼文/社團模式：暫停收單（status → ready,不開彙總彈窗；比照直播模式的「停止收單」）。 */
+function onPauseOrdering(p: LiveProduct): void {
+  p.status = 'ready'
+}
+/** 貼文/社團模式：結束收單 → 走父層 end-ordering 開彙總彈窗,跟直播「結束收單」一致。 */
+function onEndOrdering(p: LiveProduct): void {
+  emit('end-ordering', p.id)
 }
 
 function onDeleteClick(p: LiveProduct, event: Event): void {
@@ -246,55 +263,78 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
             rounded
             @click="openWinnerList(p)"
           />
-          <Button
-            v-tooltip.top="t('live_order.tab.order_setting')"
-            severity="secondary"
-            variant="text"
-            size="small"
-            rounded
-            @click="openEdit(p)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['far', 'gear']" />
+          <template v-if="!readonly && p.status !== 'done'">
+            <Button
+              v-tooltip.top="t('live_order.tab.order_setting')"
+              severity="secondary"
+              variant="text"
+              size="small"
+              rounded
+              @click="openEdit(p)"
+            >
+              <template #icon>
+                <FontAwesomeIcon :icon="['far', 'gear']" />
+              </template>
+            </Button>
+            <Button
+              v-if="p.status === 'live'"
+              v-tooltip.top="t('live_order.tooltip.push')"
+              severity="danger"
+              variant="outlined"
+              size="small"
+              rounded
+              @click="onPushClick(p)"
+            >
+              <template #icon>
+                <FontAwesomeIcon :icon="['far', 'bullhorn']" />
+              </template>
+            </Button>
+            <!-- 貼文/社團模式 + 收單中:暫停收單(secondary) + 結束收單(danger,走彙總彈窗) -->
+            <template v-if="p.status === 'live' && !p.isGift">
+              <Button
+                v-tooltip.top="t('live_order.tooltip.pause_ordering')"
+                icon="pi pi-pause"
+                severity="secondary"
+                variant="outlined"
+                size="small"
+                rounded
+                @click="onPauseOrdering(p)"
+              />
+              <Button
+                v-tooltip.top="t('live_order.tooltip.end_ordering')"
+                icon="pi pi-check"
+                severity="danger"
+                size="small"
+                rounded
+                @click="onEndOrdering(p)"
+              />
             </template>
-          </Button>
-          <Button
-            v-if="p.status === 'live'"
-            v-tooltip.top="t('live_order.tooltip.push')"
-            severity="danger"
-            variant="outlined"
-            size="small"
-            rounded
-            @click="onPushClick(p)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['far', 'bullhorn']" />
-            </template>
-          </Button>
-          <Button
-            :disabled="startBtnDisabled && p.status !== 'live'"
-            v-tooltip.top="p.status === 'live'
-              ? (p.isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.stop_ordering'))
-              : (p.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
-            :icon="p.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
-            :severity="p.status === 'live' ? 'danger' : 'primary'"
-            size="small"
-            rounded
-            @click="toggleStatus(p)"
-          />
-          <Button
-            v-tooltip.top="p.status === 'live' ? '請先停止收單再移除' : t('live_order.tooltip.delete')"
-            :disabled="p.status === 'live'"
-            severity="danger"
-            variant="text"
-            size="small"
-            rounded
-            @click="onDeleteClick(p, $event)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['far', 'trash']" />
-            </template>
-          </Button>
+            <Button
+              v-else
+              :disabled="startBtnDisabled && p.status !== 'live'"
+              v-tooltip.top="p.status === 'live'
+                ? (p.isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.stop_ordering'))
+                : (p.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
+              :icon="p.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
+              :severity="p.status === 'live' ? 'danger' : 'primary'"
+              size="small"
+              rounded
+              @click="toggleStatus(p)"
+            />
+            <Button
+              v-tooltip.top="p.status === 'live' ? '請先停止收單再移除' : t('live_order.tooltip.delete')"
+              :disabled="p.status === 'live'"
+              severity="danger"
+              variant="text"
+              size="small"
+              rounded
+              @click="onDeleteClick(p, $event)"
+            >
+              <template #icon>
+                <FontAwesomeIcon :icon="['far', 'trash']" />
+              </template>
+            </Button>
+          </template>
         </div>
       </div>
       <div
@@ -387,56 +427,79 @@ const startBtnDisabled = computed(() => !props.orderingEnabled)
               rounded
               @click="openWinnerList(data)"
             />
-            <Button
-              v-tooltip.top="t('live_order.tab.order_setting')"
-              severity="secondary"
-              variant="text"
-              size="small"
-              rounded
-              @click="openEdit(data)"
-            >
-              <template #icon>
-                <FontAwesomeIcon :icon="['far', 'gear']" />
+            <template v-if="!readonly && data.status !== 'done'">
+              <Button
+                v-tooltip.top="t('live_order.tab.order_setting')"
+                severity="secondary"
+                variant="text"
+                size="small"
+                rounded
+                @click="openEdit(data)"
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', 'gear']" />
+                </template>
+              </Button>
+              <Button
+                v-if="data.status === 'live'"
+                v-tooltip.top="t('live_order.tooltip.push')"
+                severity="danger"
+                variant="outlined"
+                size="small"
+                rounded
+                @click="onPushClick(data)"
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', 'bullhorn']" />
+                </template>
+              </Button>
+              <!-- 貼文/社團模式 + 收單中:暫停收單(secondary) + 結束收單(danger,走彙總彈窗) -->
+              <template v-if="data.status === 'live' && !data.isGift">
+                <Button
+                  v-tooltip.top="t('live_order.tooltip.pause_ordering')"
+                  icon="pi pi-pause"
+                  severity="secondary"
+                  variant="outlined"
+                  size="small"
+                  rounded
+                  @click="onPauseOrdering(data)"
+                />
+                <Button
+                  v-tooltip.top="t('live_order.tooltip.end_ordering')"
+                  icon="pi pi-check"
+                  severity="danger"
+                  size="small"
+                  rounded
+                  @click="onEndOrdering(data)"
+                />
               </template>
-            </Button>
-            <Button
-              v-if="data.status === 'live'"
-              v-tooltip.top="t('live_order.tooltip.push')"
-              severity="danger"
-              variant="outlined"
-              size="small"
-              rounded
-              @click="onPushClick(data)"
-            >
-              <template #icon>
-                <FontAwesomeIcon :icon="['far', 'bullhorn']" />
-              </template>
-            </Button>
-            <Button
-              :disabled="startBtnDisabled && data.status !== 'live'"
-              v-tooltip.top="data.status === 'live'
-                ? (data.isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.stop_ordering'))
-                : (data.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
-              :icon="data.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
-              :severity="data.status === 'live' ? 'danger' : 'primary'"
-              size="small"
-              rounded
-              @click="toggleStatus(data)"
-            />
-            <!-- 收單中不可移除 → 必須先按「停止收單」回 ready 才開放 -->
-            <Button
-              v-tooltip.top="data.status === 'live' ? '請先停止收單再移除' : t('live_order.tooltip.delete')"
-              :disabled="data.status === 'live'"
-              severity="danger"
-              variant="text"
-              size="small"
-              rounded
-              @click="onDeleteClick(data, $event)"
-            >
-              <template #icon>
-                <FontAwesomeIcon :icon="['far', 'trash']" />
-              </template>
-            </Button>
+              <Button
+                v-else
+                :disabled="startBtnDisabled && data.status !== 'live'"
+                v-tooltip.top="data.status === 'live'
+                  ? (data.isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.stop_ordering'))
+                  : (data.isGift ? t('live_order.tooltip.start_sending') : t('live_order.tooltip.start_ordering'))"
+                :icon="data.status === 'live' ? 'pi pi-check' : 'pi pi-play'"
+                :severity="data.status === 'live' ? 'danger' : 'primary'"
+                size="small"
+                rounded
+                @click="toggleStatus(data)"
+              />
+              <!-- 收單中不可移除 → 必須先按「停止收單」回 ready 才開放 -->
+              <Button
+                v-tooltip.top="data.status === 'live' ? '請先停止收單再移除' : t('live_order.tooltip.delete')"
+                :disabled="data.status === 'live'"
+                severity="danger"
+                variant="text"
+                size="small"
+                rounded
+                @click="onDeleteClick(data, $event)"
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', 'trash']" />
+                </template>
+              </Button>
+            </template>
           </div>
         </template>
       </Column>

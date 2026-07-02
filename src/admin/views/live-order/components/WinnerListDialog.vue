@@ -101,6 +101,7 @@ import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import OrderDetailDialog from './OrderDetailDialog.vue'
 import { getWinnersByProduct, removeWinnerByOrderNo } from '../utils/liveWinners'
+import { commentTemplates } from '../utils/liveComments'
 
 const { t } = useI18n()
 
@@ -163,25 +164,53 @@ watch(() => props.visible, v => {
   if (v) removedOrderNos.value = new Set()
 })
 
-/** 得標清單只列「真實來自留言」的得標紀錄，不再生成 mock orders。 */
+/**
+ * 得標清單優先列真實留言 winners;若該商品有 sold > 0 但 store 內無 winner
+ * (例:mock 進來的 collection 或直接手動加 sold),依 sold 數量從留言範本生成
+ * mock winners,讓有得標紀錄的商品點進來至少能看到對應數量的名單。
+ */
 const liveWinners = computed(() => {
   const productId = props.product.id
   if (typeof productId !== 'number') return []
   const list = getWinnersByProduct(productId).value
   const productName = props.product.name || t('live_order.table.value.unnamed_product')
-  return list.map<WinnerOrder>(w => ({
-    orderNo: w.orderNo,
-    member: w.member,
-    spec: w.specName ? `${productName} / ${w.specName}` : productName,
-    specName: w.specName ?? '',
-    qty: w.qty,
-    paid: w.paid,
-    createdAt: w.createdAt,
-    commentText: w.commentText,
-    unitPrice: w.unitPrice,
-    isGift: w.isGift,
-    productName: w.productName ?? productName,
-  }))
+  if (list.length > 0) {
+    return list.map<WinnerOrder>(w => ({
+      orderNo: w.orderNo,
+      member: w.member,
+      spec: w.specName ? `${productName} / ${w.specName}` : productName,
+      specName: w.specName ?? '',
+      qty: w.qty,
+      paid: w.paid,
+      createdAt: w.createdAt,
+      commentText: w.commentText,
+      unitPrice: w.unitPrice,
+      isGift: w.isGift,
+      productName: w.productName ?? productName,
+    }))
+  }
+  const sold = Number(props.product.sold ?? 0)
+  if (sold <= 0) return []
+  const memberPool = commentTemplates
+    .filter((c) => c.tagType !== 'official' && c.tagType !== 'blacklist')
+    .map((c) => c.user)
+  const price = Number(props.product.price ?? 0)
+  return Array.from({ length: sold }, (_, i) => {
+    const member = memberPool[i % memberPool.length] ?? `會員${i + 1}`
+    return {
+      orderNo: `M-${productId}-${String(i + 1).padStart(3, '0')}`,
+      member,
+      spec: productName,
+      specName: '',
+      qty: 1,
+      paid: i % 3 !== 0,
+      createdAt: '',
+      commentText: '',
+      unitPrice: price,
+      isGift: false,
+      productName,
+    } satisfies WinnerOrder
+  })
 })
 
 const visibleOrders = computed(() =>

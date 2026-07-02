@@ -12,7 +12,7 @@
     "status": {
       "live": "收單中",
       "ready": "準備中",
-      "done": "結束收單"
+      "done": "已結單"
     },
     "label": {
       "discount_amount": "金額",
@@ -41,7 +41,7 @@
       "more_specs": "+{count} 更多",
       "ready": "準備中",
       "live": "收單中",
-      "done": "已結束",
+      "done": "已結單",
       "blacklist": "黑名單",
       "vip": "VIP",
       "bidding_active": "競價模式",
@@ -105,7 +105,7 @@
       "panel_setting": "收單頁設定",
       "end_ordering": "結束收單",
       "quick_action": "快速操作",
-      "end_all_live": "結束收單",
+      "end_all_live": "一鍵結束收單",
       "start_all_live": "一鍵開始收單",
       "stop_all_live": "一鍵停止收單",
       "remove_done": "移除商品",
@@ -348,7 +348,7 @@
     "toast": {
       "session_created": "已建立場次",
       "products_added": "已新增商品",
-      "push_sent": "已成功發送推播訊息",
+      "push_sent": "已成功推送銷售訊息",
       "products_not_added": "未新增商品",
       "products_added_detail": "新增 {added} 筆",
       "products_added_with_skipped": "新增 {added} 筆,{skipped} 筆重複已略過",
@@ -422,11 +422,12 @@
       "remove_source": "移除來源",
       "set_product": "得標設定",
       "edit_product": "編輯商品",
-      "pause_push": "暫停推播",
+      "pause_push": "暫停推送銷售訊息",
       "delete": "移除",
-      "push": "推播",
+      "push": "推送銷售訊息",
       "end_ordering": "結束收單",
       "stop_ordering": "停止收單",
+      "pause_ordering": "暫停收單",
       "restart": "重啟",
       "start_ordering": "開始收單",
       "resume_ordering": "繼續收單",

@@ -279,13 +279,19 @@
             v-tooltip.top="t('live_order.tooltip.push')">
             <FontAwesomeIcon :icon="['far', 'bullhorn']" class="text-[#ef4444] text-[13px]" />
           </button>
-          <!-- 紅色勾：禮物為「結束發送」開彙總彈窗；商品為「停止收單」直接回準備中、ticker 停止 -->
-          <button @click="onStopOrEnd"
-            class="w-[35px] h-[35px] rounded-full bg-[#ef4444] hover:bg-[#dc2626] flex items-center justify-center" v-tooltip.top="isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.stop_ordering')">
+          <!-- 灰色暫停：僅商品有（禮物只結束發送、不暫停）；點按 status→ready,ticker 停 -->
+          <button v-if="!isGift" @click="onPauseOrdering"
+            class="w-[35px] h-[35px] rounded-full bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] hover:bg-[var(--p-content-hover-background)] flex items-center justify-center"
+            v-tooltip.top="t('live_order.tooltip.pause_ordering')">
+            <i class="pi pi-pause text-[var(--p-text-color)]" style="font-size:12px"></i>
+          </button>
+          <!-- 紅色勾：禮物為「結束發送」/ 商品為「結束收單」→ 皆開彙總彈窗 -->
+          <button @click="onEndOrdering"
+            class="w-[35px] h-[35px] rounded-full bg-[#ef4444] hover:bg-[#dc2626] flex items-center justify-center" v-tooltip.top="isGift ? t('live_order.tooltip.end_sending') : t('live_order.tooltip.end_ordering')">
             <i class="pi pi-check text-white" style="font-size:14px"></i>
           </button>
         </template>
-        <template v-else>
+        <template v-else-if="status !== 'done'">
           <!-- 準備中：紫色播放（開始收單／禮物為開始發送，filled） -->
           <button @click="onStartOrdering"
             class="w-[35px] h-[35px] rounded-full bg-[var(--p-primary-color)] hover:bg-[var(--p-primary-hover-color)] flex items-center justify-center" v-tooltip.top="isGift ? t('live_order.tooltip.start_sending') : t((props.product.sold ?? 0) > 0 ? 'live_order.tooltip.resume_ordering' : 'live_order.tooltip.start_ordering')">
@@ -496,15 +502,13 @@ function onStartOrdering(): void {
 }
 
 /**
- * 商品卡的紅色勾：
- * - 禮物（isGift）→ emit end-ordering，由父層開「結束發送」彙總彈窗
- * - 一般商品 → 「停止收單」：status 回 ready；sold / 規格 sold 維持當下數字（不歸零、不開彙總）
+ * 商品卡的紅色勾（結束收單 / 結束發送）：一律走父層彙總彈窗（禮物、商品皆同）。
  */
-function onStopOrEnd(): void {
-  if (isGift.value) {
-    emit('end-ordering', props.product.id)
-    return
-  }
+function onEndOrdering(): void {
+  emit('end-ordering', props.product.id)
+}
+/** 灰色暫停按鈕：一般商品 status → ready,ticker 停,sold 維持不歸零、不開彙總。 */
+function onPauseOrdering(): void {
   status.value = 'ready'
 }
 /**

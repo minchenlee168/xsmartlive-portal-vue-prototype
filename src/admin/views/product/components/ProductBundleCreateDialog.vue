@@ -33,7 +33,10 @@ const emit = defineEmits<{
 
 const innerVisible = computed<boolean>({
   get: () => props.visible,
-  set: (v) => emit('update:visible', v),
+  set: (v) => {
+    if (!v) canSave.value = false
+    emit('update:visible', v)
+  },
 })
 
 const isEditMode = computed(() => !!props.productId)
@@ -59,12 +62,12 @@ function onFooterSave(): void {
   pageRef.value?.onSave?.()
 }
 
-/** 讀 page 暴露的 canSave；< 2 個子商品或無名稱時為 false → disable footer 建立按鈕 */
-const canSave = computed<boolean>(() => {
-  const v = pageRef.value?.canSave
-  // canSave 在 page 是 ComputedRef，這裡是物件型別的 prop；用 .value 取
-  return v?.value ?? false
-})
+/** 由 page emit 同步 canSave;< 2 子商品或無名稱時為 false → disable footer 建立按鈕。
+ *  之前用 pageRef.value?.canSave?.value 讀 template ref 上的 ComputedRef,重開 Dialog 之後追不到內部變化。 */
+const canSave = ref(false)
+function onCanSaveChange(v: boolean): void {
+  canSave.value = v
+}
 </script>
 
 <template>
@@ -96,6 +99,7 @@ const canSave = computed<boolean>(() => {
         :readonly="readonly"
         @saved="onSavedFromPage"
         @cancel="onCancelFromPage"
+        @can-save-change="onCanSaveChange"
       />
     </div>
 

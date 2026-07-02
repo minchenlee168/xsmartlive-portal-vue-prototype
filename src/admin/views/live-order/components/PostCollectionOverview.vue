@@ -24,6 +24,8 @@ export interface PostCollectionProduct {
 export interface PostCollection {
   id: number
   name: string
+  /** collection 類別:貼文 / 社團,同一 postCollections 陣列同時容納兩種,由頁面按 kind 篩出各自列表 */
+  kind?: 'post' | 'community'
   /** 待處理留言（未對應到商品 / 未確認的單）— 排序用 */
   pendingCount?: number
   /** 「X 分鐘前更新」「剛剛更新」… */

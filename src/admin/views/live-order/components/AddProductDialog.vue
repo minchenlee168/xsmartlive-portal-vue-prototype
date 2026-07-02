@@ -515,9 +515,9 @@
               : 'text-[var(--p-text-muted-color)] cursor-not-allowed'"
             v-tooltip.top="canBuildBundleFromSelection
               ? '把已勾選的商品建立成組合商品'
-              : '勾選至少 2 個一般商品後可建立組合商品'"
+              : '勾選至少 2 個項目後可建立組合商品'"
             @click="canBuildBundleFromSelection && openBundleCreateFromSelection()"
-          >建立組合商品<span v-if="selectedProductCount > 0">（{{ selectedProductCount }}）</span></a>
+          >建立組合商品<span v-if="selectedItems.size > 0">（{{ selectedItems.size }}）</span></a>
         </div>
         <div class="flex justify-end gap-2">
           <Button
@@ -886,52 +886,35 @@ const bundleCreateDialogVisible = ref(false)
 /** 開組合商品 dialog 時要預填的子商品列（從 picker 已勾選項目轉換出來） */
 const bundleInitialItems = ref<BundlePickedSeed[]>([])
 
-/** 至少要勾 2 個一般商品才能建立組合商品 */
-const canBuildBundleFromSelection = computed(() => selectedProductCount.value >= 2)
+/** 至少要勾 2 個項目才能建立組合商品(同商品不同規格也算,每個規格會轉一筆子商品) */
+const canBuildBundleFromSelection = computed(() => selectedItems.value.size >= 2)
 
 /**
  * 拿目前 picker 已勾選的項目當「組合子商品」打開組合商品建立彈窗。
- * - 主商品（含全規格）→ 一筆 BundleItem，無 specId
- * - 單一規格勾選 → 一筆 BundleItem，帶 specId
+ * 每個勾選項目直接一對一轉成一筆 BundleItem(非規格商品用 `p-{id}` key、規格用 `s-{pid}-{sid}`);
+ * 不再摺合「整個主商品全部規格都勾」→ 讓實際勾了幾項就進來幾個子商品。
  */
 function openBundleCreateFromSelection(): void {
-  const groups = new Map<number, SelectedItem[]>()
-  selectedItems.value.forEach((it) => {
-    const arr = groups.get(it.productId) ?? []
-    arr.push(it)
-    groups.set(it.productId, arr)
-  })
   const seeds: BundlePickedSeed[] = []
-  groups.forEach((items, productId) => {
-    const parent = allPickerProducts.value.find((p) => p.id === productId)
-    const checkedSpecs = items.filter((it) => it.isSpec)
-    const parentSpecs = parent?.specs ?? []
-    // 整個主商品被勾（含規格全選）→ 一筆 productId 條目（不帶 specId）
-    const wholeProductChecked = parentSpecs.length > 0
-      ? checkedSpecs.length === parentSpecs.length
-      : items.some((it) => !it.isSpec)
-    if (wholeProductChecked) {
+  selectedItems.value.forEach((it) => {
+    if (it.isSpec) {
       seeds.push({
-        key: `p-${productId}`,
-        productId,
-        name: parent?.name ?? items[0].name,
-        stock: parentSpecs.length
-          ? parentSpecs.reduce((sum, s) => sum + (s.stock ?? 0), 0)
-          : (parent?.stock ?? 0),
+        key: `s-${it.productId}-${it.itemId}`,
+        productId: it.productId,
+        specId: it.itemId,
+        name: it.name,
+        stock: it.stock ?? 0,
         quantity: 1,
         maxPerPurchase: null,
       })
     } else {
-      checkedSpecs.forEach((s) => {
-        seeds.push({
-          key: `s-${productId}-${s.itemId}`,
-          productId,
-          specId: s.itemId,
-          name: s.name,
-          stock: s.stock ?? 0,
-          quantity: 1,
-          maxPerPurchase: null,
-        })
+      seeds.push({
+        key: `p-${it.productId}`,
+        productId: it.productId,
+        name: it.name,
+        stock: it.stock ?? 0,
+        quantity: 1,
+        maxPerPurchase: null,
       })
     }
   })

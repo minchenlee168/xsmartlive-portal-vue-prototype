@@ -31,7 +31,7 @@
         </div>
         <LiveProductTable
           v-else-if="useTable"
-          :products="products"
+          :products="filteredProducts"
           :ordering-enabled="sources.length > 0"
           :period-start-at="periodStartAt"
           @delete="(id) => emit('delete-product', id)"
@@ -40,7 +40,7 @@
         />
         <div v-else class="grid gap-2 grid-cols-2 md:[grid-template-columns:repeat(auto-fill,minmax(232px,1fr))]">
           <LiveProductCard
-            v-for="p in products"
+            v-for="p in filteredProducts"
             :key="p.id"
             :product="p"
             :ordering-enabled="sources.length > 0"
@@ -80,7 +80,7 @@
       <!-- 右區工具列 slot：顯示留言 toggle + 結束收單 -->
       <slot name="right-toolbar" />
 
-      <!-- 商品狀態統計：銷售總計（靠左）/ 收單中 / 準備中 — hover 顯示 tooltip -->
+      <!-- 商品狀態統計：銷售總計(靠左) / 收單中 / 準備中 / 已結單 — hover 顯示 tooltip -->
       <div class="flex items-stretch gap-2 px-3 py-[8px] rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] shrink-0">
         <div
           v-tooltip.bottom="t('live_order.tooltip.sales_total')"
@@ -90,21 +90,38 @@
           {{ salesTotalDisplay }}
         </div>
         <span class="w-px self-stretch bg-[var(--p-content-border-color)]" />
-        <div
+        <button
+          type="button"
           v-tooltip.bottom="t('live_order.status.live')"
-          class="w-[56px] flex items-center justify-center gap-2 text-sm font-medium text-[var(--p-primary-color)] cursor-help"
+          class="w-[56px] flex items-center justify-center gap-2 text-sm font-medium text-[var(--p-primary-color)] rounded-md transition-colors"
+          :class="statusFilter === 'live' ? 'bg-[var(--p-primary-50)]' : 'hover:bg-[var(--p-content-hover-background)]'"
+          @click="toggleStatusFilter('live')"
         >
           <FontAwesomeIcon :icon="['far', 'circle-play']" class="text-base" />
           {{ statusCounts.live }}
-        </div>
+        </button>
         <span class="w-px self-stretch bg-[var(--p-content-border-color)]" />
-        <div
+        <button
+          type="button"
           v-tooltip.bottom="t('live_order.status.ready')"
-          class="w-[56px] flex items-center justify-center gap-2 text-sm font-medium text-[var(--p-text-muted-color)] cursor-help"
+          class="w-[56px] flex items-center justify-center gap-2 text-sm font-medium text-[var(--p-text-muted-color)] rounded-md transition-colors"
+          :class="statusFilter === 'ready' ? 'bg-[var(--p-content-hover-background)]' : 'hover:bg-[var(--p-content-hover-background)]'"
+          @click="toggleStatusFilter('ready')"
         >
           <FontAwesomeIcon :icon="['far', 'circle-pause']" class="text-base" />
           {{ statusCounts.ready }}
-        </div>
+        </button>
+        <span class="w-px self-stretch bg-[var(--p-content-border-color)]" />
+        <button
+          type="button"
+          v-tooltip.bottom="t('live_order.status.done')"
+          class="w-[56px] flex items-center justify-center gap-2 text-sm font-medium text-[var(--p-text-muted-color)] rounded-md transition-colors"
+          :class="statusFilter === 'done' ? 'bg-[var(--p-content-hover-background)]' : 'hover:bg-[var(--p-content-hover-background)]'"
+          @click="toggleStatusFilter('done')"
+        >
+          <FontAwesomeIcon :icon="['far', 'circle-check']" class="text-base" />
+          {{ statusCounts.done }}
+        </button>
       </div>
 
       <!-- 預覽區（只在 FB 系列來源時顯示，IG / TikTok 無影片畫面隱藏；貼文收單一律不顯示） -->
@@ -346,7 +363,21 @@ const liveProducts = computed(() => props.products.filter(p => p.status === 'liv
 const statusCounts = computed(() => ({
   live: props.products.filter(p => p.status === 'live').length,
   ready: props.products.filter(p => p.status === 'ready' || !p.status).length,
+  done: props.products.filter(p => p.status === 'done').length,
 }))
+/** 點按商品狀態統計時的篩選狀態;null = 全部,再點一次會清除。 */
+type StatusKey = 'live' | 'ready' | 'done'
+const statusFilter = ref<StatusKey | null>(null)
+function toggleStatusFilter(key: StatusKey): void {
+  statusFilter.value = statusFilter.value === key ? null : key
+}
+const filteredProducts = computed(() => {
+  if (!statusFilter.value) return props.products
+  if (statusFilter.value === 'ready') {
+    return props.products.filter(p => p.status === 'ready' || !p.status)
+  }
+  return props.products.filter(p => p.status === statusFilter.value)
+})
 const salesTotalDisplay = computed(() => {
   const n = props.products.reduce((sum, p) => {
     if ((p as { isGift?: boolean }).isGift) return sum

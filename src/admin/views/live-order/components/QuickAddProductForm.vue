@@ -93,9 +93,7 @@ defineExpose({ collapse, submit: onSubmit, canSubmit })
       option-value="value"
       placeholder="常用分類"
       show-clear
-      size="small"
       class="!w-full sm:!w-[140px]"
-      :pt="{ label: { class: 'flex items-center !py-0' } }"
     />
     <InputText
       v-model="name"

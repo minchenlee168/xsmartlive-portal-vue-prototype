@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -50,6 +50,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   saved: [product: ManagedProduct]
   cancel: []
+  /** 嵌入模式:同步 canSave 給父層 Dialog 的 footer 儲存按鈕使用 */
+  'can-save-change': [value: boolean]
 }>()
 
 const route = useRoute()
@@ -200,6 +202,8 @@ function onCancel(): void {
 const canSave = computed(() =>
   form.value.name.trim() !== '' && form.value.bundleItems.length >= 2,
 )
+// 嵌入 Dialog 時透過 emit 主動同步 canSave,避免透過 template ref 讀 ComputedRef.value 追不到變化
+watch(canSave, (v) => emit('can-save-change', v), { immediate: true })
 
 function onSave(): void {
   if (!form.value.name.trim()) {
