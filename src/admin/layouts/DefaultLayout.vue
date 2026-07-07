@@ -26,8 +26,8 @@ onMounted(() => {
     <div class="overflow-y-hidden flex flex-1">
       <Sidebar />
 
-      <div class="flex flex-1 flex-col bg-gray-100 dark:bg-gray-800">
-        <div class="overflow-y-auto p-4 flex flex-1 flex-col gap-4">
+      <div class="flex flex-1 flex-col min-w-0 bg-gray-100 dark:bg-gray-800">
+        <div class="overflow-auto p-4 flex flex-1 flex-col gap-4">
           <RouterView />
         </div>
       </div>

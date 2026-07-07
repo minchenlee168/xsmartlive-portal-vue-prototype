@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import type { MenuItem } from 'primevue/menuitem'
+import { useLayoutStore } from '@/admin/stores/layout'
+import { useToast } from 'primevue/usetoast'
 import OrderRowDetail from './components/OrderRowDetail.vue'
 import ShippingConfigDialog from './components/ShippingConfigDialog.vue'
 import IssueInvoiceDialog from './components/IssueInvoiceDialog.vue'
@@ -53,6 +56,27 @@ interface OrderRow {
   invoiceIssuedAt?: string
   /** 差額調整（欄位字典 order.diffAdj） */
   diffAdj?: DiffAdj
+  /** 收件地址(合併訂單判斷同址依據;沒填則不參與合併) */
+  receiverAddress?: string
+  /** 交易 ID(合併訂單清單顯示用) */
+  transactionId?: string
+  /** 商品摘要文字(合併訂單清單顯示用,如「純棉素色短T(黑) × 2」) */
+  productSummary?: string
+  /** 付款方式顯示文字(合併訂單清單顯示用) */
+  paymentMethodLabel?: string
+  /** 溫層,合併判斷同溫層依據(常溫/冷藏/冷凍…);沒填則以 shippingMethod 當代表 */
+  temperature?: string
+}
+
+/** 合併訂單彈窗使用的訂單分組:同一買家 + 同址 + 同配送 + 同溫層 + 未取號才可合併 */
+export interface MergeOrderGroup {
+  key: string
+  buyer: string
+  address: string
+  shippingMethod: string
+  temperature: string
+  orders: OrderRow[]
+  total: number
 }
 
 /** 差額調整（欄位字典第 4 節） */
@@ -199,7 +223,7 @@ const appliedAdvancedCount = computed<number>(() => {
     filterPrecisionValue.value.trim(),
   ].filter(Boolean).length
 })
-/** 一鍵清除所有進階篩選 Select 的值（不影響 keyword / 日期 / quick filter） */
+/** 一鍵清除所有進階篩選 Select 的值 + 立即從 applied 移除 → 表格重新顯示未過濾結果。 */
 function clearAdvancedFilters(): void {
   filterShipping.value = ''
   filterPayment.value = ''
@@ -213,6 +237,7 @@ function clearAdvancedFilters(): void {
   filterMultiCart.value = ''
   filterSessionName.value = ''
   filterPrecisionValue.value = ''
+  onApplyFilters()
 }
 
 type QuickFilter = 'all' | 'pending' | 'preparing' | 'shipping' | 'arrived' | 'paid' | 'unpaid'
@@ -230,6 +255,7 @@ const quickFilters: Array<{ value: QuickFilter; label: string }> = [
 // 篩選「已套用」狀態：computed 過濾依此計算。按下「搜尋」才會把草稿值寫進來。
 interface AppliedFilter {
   keyword: string
+  dateRange: Date[] | null
   payment: string
   shippingStatus: string
   quickFilter: QuickFilter
@@ -242,6 +268,7 @@ interface AppliedFilter {
 }
 const applied = ref<AppliedFilter>({
   keyword: '',
+  dateRange: null,
   payment: '',
   shippingStatus: '',
   quickFilter: 'all',
@@ -255,6 +282,7 @@ const applied = ref<AppliedFilter>({
 function onApplyFilters(): void {
   applied.value = {
     keyword: keyword.value,
+    dateRange: dateRange.value,
     payment: filterPayment.value,
     shippingStatus: filterShippingStatus.value,
     quickFilter: quickFilter.value,
@@ -267,6 +295,9 @@ function onApplyFilters(): void {
   }
 }
 
+// 快速篩選 chip 點按 → 只更新 applied.quickFilter 即時過濾表格,不需按套用
+watch(quickFilter, (v) => { applied.value.quickFilter = v })
+
 const CART_TAGS: Record<string, { bg: string; color: string }> = {
   '服飾專區': { bg: '#f2ebff', color: '#7008e7' },
   '生活雜貨': { bg: '#dcfce7', color: '#16a34a' },
@@ -277,16 +308,42 @@ function tagFor(name: string) {
 }
 
 const orders = ref<OrderRow[]>([
-  { id: '1', createdAt: '2026-05-10 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'live', socialPlatform: 'facebook',  multiCart: 'default',     sessionName: 'session_0620', channel: 'Facebook',  couponActivity: '母親節限定 8 折', couponDiscount: 200, pointsDiscount: 50, dispatchBatchCount: 0 },
-  { id: '2', createdAt: '2026-05-10 15:45', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop',                              multiCart: 'ice_grocery',                              channel: '商城',                                                                                                                                        invoiceNumber: 'AB12345678', invoiceIssuedAt: '2026-05-10 16:00' },
-  { id: '3', createdAt: '2026-05-10 11:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260510103', buyerName: '蔡明宏', buyerPhone: '0936-333-444', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'live', socialPlatform: 'line',      multiCart: 'main',        sessionName: 'session_0622', channel: 'LINE',                                          pointsDiscount: 100, dispatchBatchCount: 2 },
-  { id: '4', createdAt: '2026-05-11 09:00', cartTag: tagFor('服飾專區'), orderNo: 'A20260511101', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'live', socialPlatform: 'instagram', multiCart: 'default',     sessionName: 'session_0624', channel: 'Instagram',                                                                                                          },
-  { id: '5', createdAt: '2026-05-11 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260511102', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop',                              multiCart: 'main',                                     channel: '商城',      couponActivity: '春季新品優惠', couponDiscount: 100,                                                                                          invoiceNumber: 'CD98765432', invoiceIssuedAt: '2026-05-11 11:15' },
-  { id: '6', createdAt: '2026-05-11 13:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260511103', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'live', socialPlatform: 'tiktok',    multiCart: 'ice',         sessionName: 'session_0625', channel: 'TikTok',                                                             dispatchBatchCount: 1 },
+  { id: '1', createdAt: '2026-05-10 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'shipping', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260510-A099', orderSource: 'live', socialPlatform: 'facebook',  multiCart: 'default',     sessionName: 'session_0620', channel: 'Facebook',  couponActivity: '母親節限定 8 折', couponDiscount: 200, pointsDiscount: 50, dispatchBatchCount: 0 },
+  { id: '2', createdAt: '2026-05-10 15:45', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'shop',                              multiCart: 'ice_grocery',                              channel: '商城',                                                                                                                                        invoiceNumber: 'AB12345678', invoiceIssuedAt: '2026-05-10 16:00' },
+  { id: '3', createdAt: '2026-05-10 11:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260510103', buyerName: '蔡明宏', buyerPhone: '0936-333-444', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'configured', carrierName: '新竹物流',   trackingStatus: null, orderSource: 'live', socialPlatform: 'line',      multiCart: 'main',        sessionName: 'session_0622', channel: 'LINE',                                          pointsDiscount: 100, dispatchBatchCount: 2 },
+  { id: '4', createdAt: '2026-05-11 09:00', cartTag: tagFor('服飾專區'), orderNo: 'A20260511101', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'instagram', multiCart: 'default',     sessionName: 'session_0624', channel: 'Instagram',                                                                                                          },
+  { id: '5', createdAt: '2026-05-11 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260511102', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260511-A101', orderSource: 'shop',                              multiCart: 'main',                                     channel: '商城',      couponActivity: '春季新品優惠', couponDiscount: 100,                                                                                          invoiceNumber: 'CD98765432', invoiceIssuedAt: '2026-05-11 11:15' },
+  { id: '6', createdAt: '2026-05-11 13:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260511103', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'tiktok',    multiCart: 'ice',         sessionName: 'session_0625', channel: 'TikTok',                                                             dispatchBatchCount: 1 },
+
+  // 合併訂單 demo:三組同買家 + 同址 + 同溫層 + 未取號 → 可合併
+  // 周庭安 x 3 - 台北市大安區敦化南路二段100號 · 常溫宅配 · 信用卡一次付清
+  { id: 'm1', createdAt: '2026-06-25 14:02', cartTag: tagFor('服飾專區'), orderNo: 'A20260625301', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625301', productSummary: '純棉素色短T(黑) × 2', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm2', createdAt: '2026-06-26 09:41', cartTag: tagFor('服飾專區'), orderNo: 'A20260625302', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625302', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm3', createdAt: '2026-06-27 18:15', cartTag: tagFor('生活雜貨'), orderNo: 'A20260625303', buyerName: '周庭安', buyerPhone: '0910-246-810', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625303', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  // 楊雅雯 x 3 - 台北市中山區南京東路二段50號 · 常溫宅配 · 信用卡一次付清
+  { id: 'm4', createdAt: '2026-06-16 10:13', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510101', productSummary: '韓版寬鬆連帽外套(米白) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm5', createdAt: '2026-06-17 11:26', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510102', productSummary: '燕麥奶 × 3',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm6', createdAt: '2026-06-20 12:49', cartTag: tagFor('服飾專區'), orderNo: 'A20260415001',  buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  710, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-415001', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  // 林大華 x 4 - 高雄市三民區建工路300號 · 常溫宅配 · 貨到付款
+  { id: 'm7', createdAt: '2026-06-16 18:57', cartTag: tagFor('服飾專區'), orderNo: 'A20260512101', buyerName: '林大華', buyerPhone: '0938-777-999', amount: 1200, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '純棉素色短T(黑) × 2',   paymentMethodLabel: '貨到付款', temperature: '常溫' },
+  { id: 'm8', createdAt: '2026-06-17 09:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260512102', buyerName: '林大華', buyerPhone: '0938-777-999', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '燕麥奶 × 4',              paymentMethodLabel: '貨到付款', temperature: '常溫' },
+  { id: 'm9', createdAt: '2026-06-18 10:23', cartTag: tagFor('服飾專區'), orderNo: 'A20260512103', buyerName: '林大華', buyerPhone: '0938-777-999', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '貨到付款', temperature: '常溫' },
+  { id: 'm10', createdAt: '2026-06-19 11:36', cartTag: tagFor('服飾專區'), orderNo: 'A20260512104', buyerName: '林大華', buyerPhone: '0938-777-999', amount: 1890, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '純棉素色短T(白) × 3',   paymentMethodLabel: '貨到付款', temperature: '常溫' },
 ])
 
 /** 全站合計 85 筆（圖中右上的總數）— 顯示用，篩選後仍顯示原始總數。 */
 const TOTAL_ORDERS = 85
+
+/** 把 createdAt 字串(YYYY-MM-DD HH:mm)取出當日 00:00 的 timestamp,用來與 dateRange 起訖比對。 */
+function orderDayTs(o: OrderRow): number {
+  const d = new Date(o.createdAt.slice(0, 10))
+  return d.getTime()
+}
+function startOfDay(d: Date): number {
+  const c = new Date(d)
+  c.setHours(0, 0, 0, 0)
+  return c.getTime()
+}
 
 const filtered = computed<OrderRow[]>(() => {
   let list = orders.value
@@ -294,6 +351,15 @@ const filtered = computed<OrderRow[]>(() => {
   if (a.keyword.trim()) {
     const k = a.keyword.trim().toLowerCase()
     list = list.filter(o => o.orderNo.toLowerCase().includes(k) || o.buyerName.toLowerCase().includes(k))
+  }
+  // 日期區間:PrimeVue DatePicker range mode → [startDate, endDate?];只有起日視為單日區間
+  if (a.dateRange && a.dateRange[0]) {
+    const start = startOfDay(a.dateRange[0])
+    const end = a.dateRange[1] ? startOfDay(a.dateRange[1]) : start
+    list = list.filter(o => {
+      const t = orderDayTs(o)
+      return t >= start && t <= end
+    })
   }
   if (a.payment) list = list.filter(o => o.paymentStatus === a.payment)
   if (a.shippingStatus) list = list.filter(o => o.shippingStatus === a.shippingStatus)
@@ -316,21 +382,6 @@ const filtered = computed<OrderRow[]>(() => {
   else if (a.quickFilter !== 'all') list = list.filter(o => o.shippingStatus === a.quickFilter)
   return list
 })
-
-/** 狀態 → PrimeVue Tag severity（Design.md 7.0 用元件 + 二 走語意色） */
-type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
-function statusBadgeForShipping(s: OrderRow['shippingStatus']): { label: string; severity: TagSeverity } {
-  const map: Record<OrderRow['shippingStatus'], { label: string; severity: TagSeverity }> = {
-    pending:          { label: '待出貨', severity: 'secondary' },
-    preparing:        { label: '備貨中', severity: 'info' },
-    shipping:         { label: '出貨中', severity: 'warn' },
-    awaiting_receipt: { label: '待收貨', severity: 'secondary' },
-    arrived:          { label: '已送達', severity: 'success' },
-    completed:        { label: '已完成', severity: 'secondary' },
-    cancelled:        { label: '已取消', severity: 'danger' },
-  }
-  return map[s]
-}
 
 function setDateRangePreset(preset: 'today' | 'last7' | 'thisMonth' | 'lastMonth'): void {
   const now = new Date()
@@ -436,7 +487,11 @@ function openPrintDialog(o: OrderRow, event: Event): void {
 }
 // ── Loading 狀態：初始載入 + 手動刷新都會顯示 LoaderSpinner 蓋在表格上 ──
 const isLoading = ref(true)
+// 進入訂單列表時自動收合 sidebar,把寬度留給欄位多的表格;離開頁面不自動展開
+const layoutStore = useLayoutStore()
+const toast = useToast()
 onMounted(() => {
+  layoutStore.isSidebarCollapsed = true
   // 模擬初始載入 1.2 秒
   setTimeout(() => { isLoading.value = false }, 1200)
 })
@@ -445,17 +500,254 @@ function onRefresh(): void {
   setTimeout(() => { isLoading.value = false }, 1500)
 }
 
-// ── 顯示欄位設定（出貨狀態 badge / 進度條） ─────────
-type ShippingDisplayMode = 'badge' | 'progress'
-const shippingDisplayMode = ref<ShippingDisplayMode>('badge')
-const shippingDisplayOptions: Array<{ label: string; value: ShippingDisplayMode }> = [
-  { label: '單一標籤',   value: 'badge' },
-  { label: '進度條樣式', value: 'progress' },
-]
 interface PopoverApi { toggle: (event: Event) => void }
-const columnSettingPopoverRef = ref<PopoverApi | null>(null)
-function openColumnSetting(event: Event): void {
-  columnSettingPopoverRef.value?.toggle(event)
+
+// 「批次作業」下拉:批次取號 / 批次印標 / 批次印出貨單
+const batchMenuRef = ref<PopoverApi | null>(null)
+const batchMenuItems: MenuItem[] = [
+  { label: '批次取號',    icon: 'pi pi-hashtag', command: () => enterBatchMode('tracking') },
+  { label: '批次印標',    icon: 'pi pi-tag',     command: () => enterBatchMode('label') },
+  { label: '批次印出貨單', icon: 'pi pi-print',   command: () => enterBatchMode('shipping_list') },
+]
+function openBatchMenu(event: Event): void {
+  batchMenuRef.value?.toggle(event)
+}
+
+// ── 批次作業模式(取號 / 印標 / 印出貨單) ─────────────────────────
+type BatchMode = null | 'tracking' | 'label' | 'shipping_list'
+const batchMode = ref<BatchMode>(null)
+const selectedForBatch = ref<Set<string>>(new Set())
+const batchConfirmDialogVisible = ref(false)
+
+/** 三種批次作業的規則設定:banner / dialog 文案、勾選條件、確認動作、Dialog 內每列副標 */
+interface BatchConfig {
+  bannerTitle: string
+  confirmTitle: string
+  confirmDescription: (count: number) => string
+  nextStepLabel: string
+  footerCountLabel: (count: number) => string
+  confirmActionLabel: string
+  isSelectable: (o: OrderRow) => boolean
+  performAction: (orders: OrderRow[]) => void
+  toastSummary: string
+  /** Dialog 每列訂單編號下方灰字副標(取號 / 印標 / 印出貨單各自需要不同資訊) */
+  rowSecondaryText: (o: OrderRow) => string
+}
+const BATCH_CONFIGS: Record<Exclude<BatchMode, null>, BatchConfig> = {
+  tracking: {
+    bannerTitle: '批次取號模式',
+    confirmTitle: '批次取號確認',
+    confirmDescription: (count) => `將為下列 ${count} 筆訂單「待出貨且未取號」向物流商批次產號。`,
+    nextStepLabel: '下一步:確認取號',
+    footerCountLabel: (count) => `將取號 ${count} 筆訂單`,
+    confirmActionLabel: '確認取號',
+    toastSummary: '批次取號完成',
+    isSelectable: (o) => o.shippingStatus === 'pending' && o.carrierStatus === 'configured' && !o.trackingStatus,
+    performAction: (list) => {
+      const now = Date.now()
+      list.forEach((o, i) => { o.trackingStatus = `${now}${String(i).padStart(4, '0')}` })
+    },
+    rowSecondaryText: (o) => `${o.buyerName} · ${o.carrierName ?? '未設定物流'}`,
+  },
+  label: {
+    bannerTitle: '批次印標模式',
+    confirmTitle: '批次印標確認',
+    confirmDescription: (count) => `將為下列 ${count} 筆訂單已取號批次列印物流標籤。`,
+    nextStepLabel: '下一步:確認列印標籤',
+    footerCountLabel: (count) => `將列印標籤 ${count} 筆訂單`,
+    confirmActionLabel: '確認列印標籤',
+    toastSummary: '批次印標完成',
+    // 已取號才能印標;不管出貨階段(備貨中/已出貨…)
+    isSelectable: (o) => !!o.trackingStatus,
+    performAction: () => {
+      // 列印動作交給實際列印邏輯,mock 只跳 toast
+    },
+    rowSecondaryText: (o) => `${o.buyerName} · ${o.carrierName ?? '未設定物流'} · 取號 ${o.trackingStatus ?? '—'}`,
+  },
+  shipping_list: {
+    bannerTitle: '批次印出貨單模式',
+    confirmTitle: '批次印出貨單確認',
+    confirmDescription: (count) => `將為下列 ${count} 筆訂單批次列印出貨單(含商品明細)。`,
+    nextStepLabel: '下一步:確認列印出貨單',
+    footerCountLabel: (count) => `將列印出貨單 ${count} 筆訂單`,
+    confirmActionLabel: '確認列印出貨單',
+    toastSummary: '批次印出貨單完成',
+    // 尚未結束的訂單(排除已完成 / 已取消)都可列印出貨單
+    isSelectable: (o) => o.shippingStatus !== 'completed' && o.shippingStatus !== 'cancelled',
+    performAction: () => {
+      // 列印動作交給實際列印邏輯,mock 只跳 toast
+    },
+    rowSecondaryText: (o) => `${o.buyerName} · ${o.itemCount} 件 · NT$ ${o.amount.toLocaleString()}`,
+  },
+}
+const activeBatchConfig = computed<BatchConfig | null>(() =>
+  batchMode.value ? BATCH_CONFIGS[batchMode.value] : null,
+)
+
+function isBatchSelectable(o: OrderRow): boolean {
+  return activeBatchConfig.value?.isSelectable(o) ?? false
+}
+const batchSelectableOrders = computed<OrderRow[]>(() =>
+  activeBatchConfig.value ? filtered.value.filter(activeBatchConfig.value.isSelectable) : [],
+)
+const batchSelectableCount = computed(() => batchSelectableOrders.value.length)
+const allSelectableSelected = computed(() =>
+  batchSelectableCount.value > 0 && batchSelectableOrders.value.every((o) => selectedForBatch.value.has(o.id)),
+)
+
+function enterBatchMode(mode: Exclude<BatchMode, null>): void {
+  batchMode.value = mode
+  selectedForBatch.value = new Set()
+}
+function exitBatchMode(): void {
+  batchMode.value = null
+  selectedForBatch.value = new Set()
+}
+function toggleSelectAllSelectable(): void {
+  if (allSelectableSelected.value) {
+    selectedForBatch.value = new Set()
+  } else {
+    selectedForBatch.value = new Set(batchSelectableOrders.value.map((o) => o.id))
+  }
+}
+function toggleRowSelection(id: string): void {
+  const next = new Set(selectedForBatch.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedForBatch.value = next
+}
+/** 選中的訂單完整物件(給確認 Dialog 用) */
+const selectedForBatchOrders = computed<OrderRow[]>(() =>
+  orders.value.filter((o) => selectedForBatch.value.has(o.id)),
+)
+
+function openBatchConfirmDialog(): void {
+  if (selectedForBatch.value.size === 0) return
+  batchConfirmDialogVisible.value = true
+}
+function confirmBatchAction(): void {
+  const cfg = activeBatchConfig.value
+  if (!cfg) return
+  cfg.performAction(selectedForBatchOrders.value)
+  batchConfirmDialogVisible.value = false
+  toast.add({
+    severity: 'success',
+    summary: cfg.toastSummary,
+    detail: `${selectedForBatchOrders.value.length} 筆訂單已完成`,
+    life: 2500,
+  })
+  exitBatchMode()
+}
+
+/** 出貨狀態 → dialog 內顯示的 tag 文字/severity */
+function shippingStatusTagMeta(s: OrderRow['shippingStatus']): { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' } {
+  const map: Record<OrderRow['shippingStatus'], { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' }> = {
+    pending:          { label: '待出貨', severity: 'secondary' },
+    preparing:        { label: '備貨中', severity: 'secondary' },
+    shipping:         { label: '已出貨', severity: 'secondary' },
+    awaiting_receipt: { label: '待收貨', severity: 'secondary' },
+    arrived:          { label: '已送達', severity: 'success' },
+    completed:        { label: '已完成', severity: 'secondary' },
+    cancelled:        { label: '已取消', severity: 'danger' },
+  }
+  return map[s]
+}
+
+// ── 合併訂單 ─────────────────────────
+// 條件:同買家 + 同址 + 同配送方式 + 同溫層 + 尚未取號 → 可合併(至少 2 筆才算一組)
+const mergeGroups = computed<MergeOrderGroup[]>(() => {
+  const map = new Map<string, OrderRow[]>()
+  orders.value.forEach((o) => {
+    if (o.trackingStatus) return
+    if (!o.receiverAddress) return
+    const temp = o.temperature ?? o.shippingMethod
+    const key = `${o.buyerName}|${o.receiverAddress}|${o.shippingMethod}|${temp}`
+    const arr = map.get(key) ?? []
+    arr.push(o)
+    map.set(key, arr)
+  })
+  const groups: MergeOrderGroup[] = []
+  map.forEach((arr, key) => {
+    if (arr.length < 2) return
+    const [buyer, address, shippingMethod, temperature] = key.split('|')
+    groups.push({
+      key,
+      buyer,
+      address,
+      shippingMethod,
+      temperature,
+      orders: arr,
+      total: arr.reduce((s, o) => s + o.amount, 0),
+    })
+  })
+  return groups
+})
+/** 可合併訂單總數(給 header badge 顯示;image 15 示意 badge 為 4;此處算所有 group 的 order 總和) */
+const mergeableOrderCount = computed(() =>
+  mergeGroups.value.reduce((s, g) => s + g.orders.length, 0),
+)
+const mergeDialogVisible = ref(false)
+function openMergeDialog(): void {
+  if (mergeGroups.value.length === 0) return
+  mergeSelectedIds.value = new Set()
+  mergeDialogVisible.value = true
+}
+/** 合併訂單彈窗內已勾選的訂單 id 集合(跨 group) */
+const mergeSelectedIds = ref<Set<string>>(new Set())
+const mergeSelectedOrders = computed<OrderRow[]>(() =>
+  mergeGroups.value.flatMap((g) => g.orders).filter((o) => mergeSelectedIds.value.has(o.id)),
+)
+const mergeSelectedTotal = computed(() =>
+  mergeSelectedOrders.value.reduce((s, o) => s + o.amount, 0),
+)
+function toggleMergeRow(id: string): void {
+  const next = new Set(mergeSelectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  mergeSelectedIds.value = next
+}
+function isGroupAllSelected(g: MergeOrderGroup): boolean {
+  return g.orders.length > 0 && g.orders.every((o) => mergeSelectedIds.value.has(o.id))
+}
+function toggleGroupAll(g: MergeOrderGroup): void {
+  const all = isGroupAllSelected(g)
+  const next = new Set(mergeSelectedIds.value)
+  g.orders.forEach((o) => {
+    if (all) next.delete(o.id)
+    else next.add(o.id)
+  })
+  mergeSelectedIds.value = next
+}
+function clearMergeSelection(): void {
+  mergeSelectedIds.value = new Set()
+}
+function confirmMerge(): void {
+  toast.add({
+    severity: 'success',
+    summary: '合併訂單',
+    detail: `${mergeSelectedOrders.value.length} 筆訂單已進入合併編輯`,
+    life: 2500,
+  })
+  mergeDialogVisible.value = false
+}
+/** 買家姓名頭像:取名字第一個中文字 */
+function buyerAvatarChar(name: string): string {
+  return name.slice(0, 1)
+}
+
+/** 手動檢查合併條件:多行訂單號輸入 */
+const manualCheckInput = ref('')
+function manualCheck(): void {
+  const nos = manualCheckInput.value
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  toast.add({
+    severity: 'info',
+    summary: '手動檢查',
+    detail: `已檢查 ${nos.length} 筆訂單號,結果請見下方分組`,
+    life: 2500,
+  })
 }
 
 /** 出貨狀態進度條 5 階段（待出貨 → 備貨中 → 已出貨 → 已送達 → 已完成）。 */
@@ -524,32 +816,38 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             </p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <Button label="批次設定" />
-            <Button label="預設配送設定"  severity="warn"      variant="outlined" />
             <Button
-              label="顯示欄位"
-              icon="pi pi-table"
-              severity="secondary"
+              label="批次作業"
+              icon="pi pi-chevron-down"
+              icon-pos="right"
               variant="outlined"
               aria-haspopup="true"
-              aria-controls="column-setting-popover"
-              @click="openColumnSetting"
+              aria-controls="batch-menu"
+              @click="openBatchMenu"
             />
+            <Menu ref="batchMenuRef" id="batch-menu" :model="batchMenuItems" :popup="true">
+              <template #start>
+                <div class="px-3 py-2 text-xs text-[var(--p-text-muted-color)]">選擇批次動作</div>
+              </template>
+            </Menu>
+            <!-- 合併訂單:可合併訂單筆數以 Badge 內嵌在 label 後面(button+badge 組合);無可合併時 disabled -->
+            <Button
+              severity="secondary"
+              variant="outlined"
+              :disabled="mergeableOrderCount === 0"
+              @click="openMergeDialog"
+            >
+              <i class="pi pi-link mr-2" style="font-size: 13px"></i>
+              <span>合併訂單</span>
+              <Badge
+                v-if="mergeableOrderCount > 0"
+                :value="mergeableOrderCount"
+                severity="danger"
+                class="ml-2"
+              />
+            </Button>
+            <Button label="預設配送設定" variant="outlined" />
             <Button label="匯出 CSV"      icon="pi pi-upload"  severity="secondary" variant="outlined" />
-
-            <!-- 顯示欄位設定 popover：SelectButton 切換出貨狀態呈現方式 -->
-            <Popover ref="columnSettingPopoverRef" id="column-setting-popover">
-              <div class="flex flex-col gap-2 w-[220px]">
-                <p class="text-[13px] font-semibold text-[var(--p-text-color)]">出貨狀態欄位</p>
-                <SelectButton
-                  v-model="shippingDisplayMode"
-                  :options="shippingDisplayOptions"
-                  option-label="label"
-                  option-value="value"
-                  :allow-empty="false"
-                />
-              </div>
-            </Popover>
           </div>
         </div>
 
@@ -573,9 +871,11 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             <Button label="本月"     severity="secondary" variant="outlined" size="small" @click="setDateRangePreset('thisMonth')" />
             <Button label="上月"     severity="secondary" variant="outlined" size="small" @click="setDateRangePreset('lastMonth')" />
           </div>
+          <!-- 搜尋按鈕:依目前搜尋 Card 內所有篩選條件 commit 到 applied 觸發過濾 -->
+          <Button label="搜尋" @click="onApplyFilters" />
         </div>
 
-        <!-- 進階篩選 toggle：預設收摺，點開展開所有 Select；右側「清除」一鍵歸零 -->
+        <!-- 進階篩選 toggle：預設收摺，點開展開所有 Select -->
         <div class="px-5 py-2 flex items-center gap-3">
           <button
             type="button"
@@ -589,15 +889,6 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             >{{ appliedAdvancedCount }}</span>
             <i :class="advancedFilterExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" style="font-size: 11px"></i>
           </button>
-          <Button
-            v-if="appliedAdvancedCount > 0"
-            label="清除"
-            icon="pi pi-times"
-            severity="secondary"
-            variant="text"
-            size="small"
-            @click="clearAdvancedFilters"
-          />
         </div>
 
         <!-- 進階篩選展開區：11 個 Select + 精準欄位篩選（最後一列） -->
@@ -633,6 +924,11 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               @keyup.enter="onApplyFilters"
             />
           </div>
+          <!-- 進階篩選操作:套用把當下值 commit 到 applied、清除還原成空並立即套用 -->
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <Button label="清除" severity="secondary" variant="outlined" @click="clearAdvancedFilters" />
+            <Button label="套用" @click="onApplyFilters" />
+          </div>
         </div>
 
         <!-- 快速篩選 chips + 搜尋按鈕 + 總筆數 -->
@@ -648,8 +944,6 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 : 'background: var(--p-content-background); color: var(--p-text-muted-color); border-color: var(--p-content-border-color)'"
               @click="quickFilter = q.value"
             >{{ q.label }}</button>
-            <!-- 搜尋按鈕：依目前搜尋 Card 內所有篩選條件 commit 到 applied 觸發過濾 -->
-            <Button label="搜尋" @click="onApplyFilters" />
           </div>
           <span class="text-[13px] text-[var(--p-text-muted-color)]">
             共 <span class="text-[var(--p-text-color)] font-bold">{{ TOTAL_ORDERS }}</span> 筆訂單
@@ -659,7 +953,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       </template>
     </Card>
 
-    <!-- ── 表格 Card：shrink-0 鎖內容高度（依 paginator 每頁筆數自然高），不隨 viewport 縮放 ── -->
+    <!-- ── 表格 Card:高度依內容自然撐開,不鎖 flex 高度 ── -->
     <Card
       :pt="{
         root: { class: 'w-full shrink-0 overflow-hidden' },
@@ -678,12 +972,46 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             <span class="text-[13px] text-[var(--p-text-muted-color)]">載入中…</span>
           </div>
 
+          <!-- 批次作業模式 banner(取號/印標共用):提示已選/可選數 + 全選/下一步/取消 -->
+          <div
+            v-if="batchMode && activeBatchConfig"
+            class="mb-3 rounded-md border border-[var(--p-primary-color)] bg-[var(--p-primary-50)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+          >
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="font-medium text-[var(--p-primary-color)]">{{ activeBatchConfig.bannerTitle }}</span>
+              <span class="text-sm text-[var(--p-text-color)]">
+                已選 <span class="font-bold">{{ selectedForBatch.size }}</span> 筆 ·
+                可選 <span class="font-bold">{{ batchSelectableCount }}</span> 筆(依目前篩選)
+              </span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <Button
+                :label="allSelectableSelected ? '取消全選' : '全選可選'"
+                severity="secondary"
+                variant="outlined"
+                :disabled="batchSelectableCount === 0"
+                @click="toggleSelectAllSelectable"
+              />
+              <Button
+                :label="activeBatchConfig.nextStepLabel"
+                :disabled="selectedForBatch.size === 0"
+                @click="openBatchConfirmDialog"
+              />
+              <Button
+                label="取消"
+                severity="secondary"
+                variant="text"
+                @click="exitBatchMode"
+              />
+            </div>
+          </div>
+
           <DataTable
             :value="filtered"
             :striped-rows="true"
             scrollable
             data-key="id"
-            class="w-full"
+            class="w-full order-main-table"
             paginator
             :rows="20"
             :rows-per-page-options="[10, 20, 50, 100]"
@@ -696,7 +1024,28 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               },
             }"
           >
-          <Column header="建立時間" field="createdAt">
+          <!-- 批次作業模式勾選欄:只有符合當下作業條件的訂單可勾;不可勾者顯示 dash;header 為全選 -->
+          <Column v-if="batchMode" style="width: 48px" frozen>
+            <template #header>
+              <Checkbox
+                :model-value="allSelectableSelected"
+                binary
+                :disabled="batchSelectableCount === 0"
+                @update:model-value="toggleSelectAllSelectable"
+              />
+            </template>
+            <template #body="{ data }">
+              <Checkbox
+                v-if="isBatchSelectable(data)"
+                :model-value="selectedForBatch.has(data.id)"
+                binary
+                @update:model-value="toggleRowSelection(data.id)"
+              />
+              <span v-else class="text-[var(--p-text-muted-color)]">—</span>
+            </template>
+          </Column>
+
+          <Column header="建立時間" field="createdAt" sortable>
             <template #body="{ data }">
               <span class="text-[var(--p-text-color)]">{{ data.createdAt }}</span>
             </template>
@@ -742,13 +1091,13 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             </template>
           </Column>
 
-          <Column header="金額" field="amount" body-class="text-right" header-class="text-right">
+          <Column header="金額" field="amount" sortable body-class="text-right" header-class="text-right">
             <template #body="{ data }">
               <span class="text-[var(--p-primary-color)]">${{ data.amount.toLocaleString() }}</span>
             </template>
           </Column>
 
-          <Column header="商品數量" field="itemCount" body-class="text-right" header-class="text-right">
+          <Column header="商品數量" field="itemCount" sortable body-class="text-right" header-class="text-right">
             <template #body="{ data }">
               <span class="text-[var(--p-text-color)]">{{ data.itemCount }}</span>
             </template>
@@ -797,15 +1146,8 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 
           <Column header="出貨狀態">
             <template #body="{ data }">
-              <!-- 模式 A：單一標籤（PrimeVue Tag + severity） -->
-              <Tag
-                v-if="shippingDisplayMode === 'badge'"
-                :value="statusBadgeForShipping(data.shippingStatus).label"
-                :severity="statusBadgeForShipping(data.shippingStatus).severity"
-              />
-              <!-- 模式 B：PrimeVue Timeline 顯示 5 階段，水平排列，目前階段主色加粗 -->
+              <!-- PrimeVue Timeline 顯示 5 階段,水平排列,目前階段主色加粗 -->
               <Timeline
-                v-else
                 :value="progressItemsFor(data.shippingStatus)"
                 layout="horizontal"
                 align="top"
@@ -849,8 +1191,9 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 
           <Column header="取號狀態">
             <template #body="{ data }">
-              <!-- 有取號 → 綠色「已取號」Tag；沒取號 → dash -->
+              <!-- 有取號 → 綠色「已取號」;已啟用物流商但沒取號 → 黃色「未取號」;未啟用 → dash -->
               <Tag v-if="data.trackingStatus" value="已取號" severity="success" />
+              <Tag v-else-if="data.carrierStatus === 'configured'" value="未取號" severity="warn" />
               <span v-else class="text-[var(--p-text-muted-color)]">—</span>
             </template>
           </Column>
@@ -897,7 +1240,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           </Column>
 
           <template #empty>
-            <div class="py-8 text-center text-sm text-[var(--p-text-muted-color)]">
+            <div class="py-12 text-center text-sm text-[var(--p-text-muted-color)]">
               目前無訂單。
             </div>
           </template>
@@ -944,7 +1287,230 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       @confirm="onIssueInvoiceConfirm"
     />
 
-    <!-- 表格「出貨單列印」共用彈窗 -->
+<!-- 表格「出貨單列印」共用彈窗 -->
     <ShippingListPrintDialog v-model:visible="printDialogVisible" :order="printOrder" />
+
+    <!-- 合併訂單彈窗:分組列出可合併訂單,勾選後可清除或合併編輯 -->
+    <Dialog
+      v-model:visible="mergeDialogVisible"
+      modal
+      :draggable="false"
+      :style="{ width: 'calc(100vw - 32px)' }"
+      :pt="{ content: { style: 'padding: 0' } }"
+    >
+      <template #header>
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <span class="text-lg font-bold text-[var(--p-text-color)]">合併訂單</span>
+            <i
+              class="pi pi-question-circle text-[var(--p-text-muted-color)] cursor-help"
+              style="font-size: 14px"
+              v-tooltip.top="'系統自動篩選出可合併的訂單(同買家、同址、同配送、同溫層、未取號)'"
+            ></i>
+          </div>
+          <span class="text-xs text-[var(--p-text-muted-color)]">
+            此頁面將自動篩選出同一購買人、同地址、同配送方式、同溫層,尚未取號之可合併訂單。
+          </span>
+        </div>
+      </template>
+
+      <div class="flex flex-col gap-4 p-5">
+        <!-- 手動檢查合併條件 accordion -->
+        <Accordion>
+          <AccordionPanel value="manual">
+            <AccordionHeader>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-file-edit text-[var(--p-primary-color)]" style="font-size: 14px"></i>
+                <span class="font-medium text-[var(--p-text-color)]">手動檢查合併條件</span>
+                <span class="text-xs text-[var(--p-text-muted-color)]">貼上訂單號 — 系統自動逐項判斷</span>
+              </div>
+            </AccordionHeader>
+            <AccordionContent>
+              <div class="flex items-start gap-3">
+                <!-- 左側:Step 標籤 + label + textarea -->
+                <div class="flex-1 flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
+                    <Tag value="Step 1" severity="secondary" />
+                    <span class="font-medium text-[var(--p-text-color)]">貼上訂單號</span>
+                    <span class="text-xs text-[var(--p-text-muted-color)]">一行一筆或用逗號分隔</span>
+                  </div>
+                  <Textarea
+                    v-model="manualCheckInput"
+                    :rows="4"
+                    class="w-full font-mono"
+                    placeholder="020260628007&#10;020260628012&#10;020260628015"
+                  />
+                </div>
+                <!-- 右側:檢查(主色) + 清除(secondary outlined) 垂直排 -->
+                <div class="flex flex-col gap-2 shrink-0">
+                  <Button label="檢查" @click="manualCheck" />
+                  <Button label="清除" severity="secondary" variant="outlined" @click="manualCheckInput = ''" />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionPanel>
+        </Accordion>
+
+        <!-- Groups:每組買家用 PrimeVue Panel;header 顯示名稱 · 筆數,icons slot 顯示合計 -->
+        <!-- header 有淺灰底、header/content 左右 padding 一致;overflow-hidden 讓 DataTable 貼齊 Panel 圓角 -->
+        <Panel
+          v-for="g in mergeGroups"
+          :key="g.key"
+          :pt="{
+            root: { class: 'overflow-hidden' },
+            header: { style: 'padding: 12px 16px; background: var(--p-content-hover-background)' },
+            content: { style: 'padding: 0 16px 16px' },
+          }"
+        >
+          <template #header>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--p-text-color)]">{{ g.buyer }}</span>
+              <span class="text-sm text-[var(--p-text-muted-color)]">· {{ g.orders.length }} 筆訂單</span>
+            </div>
+          </template>
+          <template #icons>
+            <span class="text-sm text-[var(--p-text-color)]">
+              合計 <span class="font-bold text-[var(--p-primary-color)]">${{ g.total.toLocaleString() }}</span>
+            </span>
+          </template>
+
+          <!-- Group table:走 PrimeVue Aura 預設樣式 -->
+          <DataTable :value="g.orders" data-key="id" :striped-rows="true">
+            <Column style="width: 40px">
+              <template #header>
+                <Checkbox :model-value="isGroupAllSelected(g)" binary @update:model-value="toggleGroupAll(g)" />
+              </template>
+              <template #body="{ data }">
+                <Checkbox :model-value="mergeSelectedIds.has(data.id)" binary @update:model-value="toggleMergeRow(data.id)" />
+              </template>
+            </Column>
+            <Column header="訂單編號" field="orderNo">
+              <template #body="{ data }"><span class="font-medium text-[var(--p-text-color)]">{{ data.orderNo }}</span></template>
+            </Column>
+            <Column header="建立時間" field="createdAt" />
+            <Column header="商品摘要">
+              <template #body="{ data }">{{ data.productSummary }}</template>
+            </Column>
+            <Column header="付款方式">
+              <template #body="{ data }">{{ data.paymentMethodLabel ?? '—' }}</template>
+            </Column>
+            <Column header="付款狀態">
+              <template #body="{ data }">
+                <Tag
+                  :value="data.paymentStatus === 'paid' ? '已付款' : '待付款'"
+                  :severity="data.paymentStatus === 'paid' ? 'success' : 'warn'"
+                />
+              </template>
+            </Column>
+            <Column header="交易 ID">
+              <template #body="{ data }">
+                <span v-if="data.transactionId" class="text-[var(--p-text-color)]">{{ data.transactionId }}</span>
+                <span v-else class="text-[var(--p-text-muted-color)]">—</span>
+              </template>
+            </Column>
+            <Column header="出貨方式">
+              <template #body="{ data }">
+                <Tag :value="data.shippingMethod" severity="secondary" />
+              </template>
+            </Column>
+            <Column header="收件地址">
+              <template #body="{ data }"><span class="text-[var(--p-text-color)]">{{ data.receiverAddress }}</span></template>
+            </Column>
+            <Column header="金額" header-class="text-right" body-class="text-right">
+              <template #body="{ data }"><span class="font-medium text-[var(--p-text-color)]">${{ data.amount.toLocaleString() }}</span></template>
+            </Column>
+          </DataTable>
+        </Panel>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center justify-between gap-3 w-full">
+          <span class="text-sm text-[var(--p-text-color)]">
+            <i class="pi pi-check-circle text-[var(--p-primary-color)] mr-2" style="font-size: 14px"></i>
+            已選 <span class="font-bold">{{ mergeSelectedOrders.length }}</span> 筆訂單 ·
+            合計 <span class="font-bold text-[var(--p-primary-color)]">${{ mergeSelectedTotal.toLocaleString() }}</span>
+          </span>
+          <div class="flex items-center gap-2">
+            <Button label="清除" severity="secondary" variant="outlined" :disabled="mergeSelectedOrders.length === 0" @click="clearMergeSelection" />
+            <Button label="合併編輯" icon="pi pi-link" :disabled="mergeSelectedOrders.length < 2" @click="confirmMerge" />
+          </div>
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- 批次作業確認彈窗(取號 / 印標共用):列出所有勾選訂單,依 activeBatchConfig 切換文案 -->
+    <Dialog
+      v-if="activeBatchConfig"
+      v-model:visible="batchConfirmDialogVisible"
+      modal
+      :draggable="false"
+      :header="activeBatchConfig.confirmTitle"
+      :style="{ width: 'min(560px, calc(100vw - 32px))' }"
+      :pt="{ content: { style: 'padding: 0' } }"
+    >
+      <div class="flex flex-col">
+        <!-- 說明 banner(綠色成功語意) -->
+        <div class="px-5 py-3 border-b border-[var(--p-content-border-color)] bg-[#DCFCE7] flex items-center gap-2">
+          <i class="pi pi-info-circle text-[#16A34A]" style="font-size: 14px"></i>
+          <span class="text-sm text-[var(--p-text-color)]">
+            {{ activeBatchConfig.confirmDescription(selectedForBatchOrders.length) }}
+          </span>
+        </div>
+        <!-- 訂單清單:副標由 activeBatchConfig.rowSecondaryText 決定;右側 tag 依 shippingStatus -->
+        <div class="max-h-[440px] overflow-y-auto divide-y divide-[var(--p-content-border-color)]">
+          <div
+            v-for="o in selectedForBatchOrders"
+            :key="o.id"
+            class="px-5 py-3 flex items-center justify-between gap-3"
+          >
+            <div class="flex flex-col gap-1 min-w-0">
+              <span class="font-medium text-[var(--p-text-color)]">{{ o.orderNo }}</span>
+              <span class="text-xs text-[var(--p-text-muted-color)] truncate">
+                {{ activeBatchConfig.rowSecondaryText(o) }}
+              </span>
+            </div>
+            <Tag :value="shippingStatusTagMeta(o.shippingStatus).label" :severity="shippingStatusTagMeta(o.shippingStatus).severity" />
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center justify-between gap-2 w-full">
+          <span class="text-sm text-[var(--p-text-muted-color)]">
+            {{ activeBatchConfig.footerCountLabel(selectedForBatchOrders.length) }}
+          </span>
+          <div class="flex items-center gap-2">
+            <Button label="取消" severity="secondary" variant="outlined" @click="batchConfirmDialogVisible = false" />
+            <Button :label="activeBatchConfig.confirmActionLabel" icon="pi pi-check" @click="confirmBatchAction" />
+          </div>
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
+
+<style scoped>
+/* 訂單表格橫向捲軸強制永遠顯示,提示使用者右側還有欄位可看 */
+:deep(.order-main-table .p-datatable-table-container) {
+  overflow-x: scroll !important;
+  scrollbar-gutter: stable;
+}
+:deep(.p-datatable-table-container::-webkit-scrollbar) {
+  height: 12px !important;
+  width: 12px !important;
+  -webkit-appearance: none !important;
+  background: #f1f5f9 !important;
+}
+:deep(.p-datatable-table-container::-webkit-scrollbar-track) {
+  background: #f1f5f9 !important;
+  border-radius: 6px !important;
+}
+:deep(.p-datatable-table-container::-webkit-scrollbar-thumb) {
+  background: #94a3b8 !important;
+  border-radius: 6px !important;
+  border: 2px solid #f1f5f9 !important;
+}
+:deep(.p-datatable-table-container::-webkit-scrollbar-thumb:hover) {
+  background: #64748b !important;
+}
+</style>

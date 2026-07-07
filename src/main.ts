@@ -18,6 +18,7 @@ import App from './App.vue'
 // 全域常用元件（避免各檔重複 import）
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
 import InputNumber from 'primevue/inputnumber'
 import Password from 'primevue/password'
 import Select from 'primevue/select'
@@ -46,6 +47,11 @@ import Paginator from 'primevue/paginator'
 import Timeline from 'primevue/timeline'
 import ProgressSpinner from 'primevue/progressspinner'
 import Divider from 'primevue/divider'
+import Accordion from 'primevue/accordion'
+import Panel from 'primevue/panel'
+import AccordionPanel from 'primevue/accordionpanel'
+import AccordionHeader from 'primevue/accordionheader'
+import AccordionContent from 'primevue/accordioncontent'
 
 // 橋接：把 Aura 的 primary semantic token 對應到既有 CSS 變數，
 // 讓執行時的 8 套主題切換器（theme.ts 寫 documentElement.style）也能
@@ -111,6 +117,7 @@ app.directive('permission', vPermission)
 // 全域註冊元件
 app.component('Button', Button)
 app.component('InputText', InputText)
+app.component('Textarea', Textarea)
 app.component('InputNumber', InputNumber)
 app.component('Password', Password)
 app.component('Select', Select)
@@ -139,5 +146,10 @@ app.component('Paginator', Paginator)
 app.component('Timeline', Timeline)
 app.component('ProgressSpinner', ProgressSpinner)
 app.component('Divider', Divider)
+app.component('Accordion', Accordion)
+app.component('Panel', Panel)
+app.component('AccordionPanel', AccordionPanel)
+app.component('AccordionHeader', AccordionHeader)
+app.component('AccordionContent', AccordionContent)
 
 app.mount('#app')
