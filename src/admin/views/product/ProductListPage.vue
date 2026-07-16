@@ -8,6 +8,7 @@ import {
   managedProducts,
   removeManagedProducts,
   totalStockOf,
+  avgCostOf,
   priceRangeOf,
   type ManagedProduct,
   type ProductStatus,
@@ -388,9 +389,13 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
             </div>
           </div>
 
-          <!-- 摘要列（淺灰底）：分類 / 價格 / 總庫存 / 總銷量；卡片左右留白 → 灰塊不貼齊邊 -->
-          <!-- 摘要 4 欄 grid：手機（< 640px）→ 2 欄；≥ sm → 4 欄 -->
-          <div class="mx-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 py-3 bg-[#f5f5f5] rounded-md">
+          <!-- 摘要列（淺灰底）：分類 / 價格 / 平均成本 / 總庫存 / 總銷量；卡片左右留白 → 灰塊不貼齊邊 -->
+          <!-- 摘要 5 欄 grid：手機（< 640px）→ 2 欄；≥ sm → 5 欄 -->
+          <!-- 底部間距：展開時 mb-1（貼近下方規格表）；收合時 mb-4，與左右 mx-4 一致，四邊留白對稱 -->
+          <div
+            class="mx-4 grid grid-cols-2 sm:grid-cols-5 gap-4 px-4 py-3 bg-[#f5f5f5] rounded-md"
+            :class="isExpanded(p.id) ? 'mb-1' : 'mb-4'"
+          >
             <div class="flex flex-col gap-1">
               <span class="text-xs text-[var(--p-text-muted-color)]">分類</span>
               <span class="text-sm text-[var(--p-text-color)]">{{ p.category }}</span>
@@ -398,6 +403,10 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
             <div class="flex flex-col gap-1">
               <span class="text-xs text-[var(--p-text-muted-color)]">價格</span>
               <span class="text-sm text-[var(--p-text-color)]">{{ priceRangeOf(p) }}</span>
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-xs text-[var(--p-text-muted-color)]">平均成本</span>
+              <span class="text-sm text-[var(--p-text-color)]">${{ avgCostOf(p).toLocaleString() }}</span>
             </div>
             <div class="flex flex-col gap-1">
               <span class="text-xs text-[var(--p-text-muted-color)]">總庫存</span>

@@ -15,22 +15,39 @@ import type { ManagedProduct, ManagedProductSpec } from '../utils/productMock'
 interface AdjustmentReason {
   label: string
   value: string
+  /** 此原因適用的調整方向；隨第一步「增加 / 減少」過濾可選項 */
+  modes: AdjustMode[]
 }
 const ADJUSTMENT_REASONS: AdjustmentReason[] = [
-  { label: '進貨', value: 'restock' },
-  { label: '退貨', value: 'return' },
-  { label: '盤點', value: 'inventory' },
-  { label: '內部使用', value: 'internal' },
-  { label: '報廢', value: 'discard' },
-  { label: '其他', value: 'other' },
+  // 增加庫存
+  { label: '進貨', value: 'restock', modes: ['increase'] },
+  { label: '退貨', value: 'return', modes: ['increase'] },
+  { label: '庫存回補', value: 'replenish', modes: ['increase'] },
+  // 減少庫存
+  { label: '銷售', value: 'sale', modes: ['decrease'] },
+  { label: '內部使用', value: 'internal', modes: ['decrease'] },
+  { label: '報廢', value: 'discard', modes: ['decrease'] },
+  // 兩者皆可
+  { label: '盤點', value: 'inventory', modes: ['increase', 'decrease'] },
+  { label: '其他', value: 'other', modes: ['increase', 'decrease'] },
+]
+
+/** 第一步：先選調整方向。增加 → 可填進貨成本；減少 → 成本鎖定為平均成本（disabled） */
+type AdjustMode = 'increase' | 'decrease'
+const ADJUST_MODES: { label: string; value: AdjustMode }[] = [
+  { label: '增加庫存', value: 'increase' },
+  { label: '減少庫存', value: 'decrease' },
 ]
 
 interface AdjustmentRow {
   specId: number
   specName: string
   currentStock: number
+  /** 調整數量（正數）；實際增減方向由 adjustMode 決定 */
   delta: number
   reason: string
+  /** 成本單價；僅「增加庫存」的進貨原因可編輯 */
+  price: number
 }
 
 export interface StockAdjustmentPayload {
@@ -53,6 +70,26 @@ const emit = defineEmits<{
 }>()
 
 const adjustments = ref<AdjustmentRow[]>([])
+/** 第一步選的調整方向；預設增加庫存 */
+const adjustMode = ref<AdjustMode>('increase')
+/** 依方向把「調整數量」換成帶正負號的實際增減值 */
+function effectiveDelta(row: AdjustmentRow): number {
+  return adjustMode.value === 'increase' ? (row.delta ?? 0) : -(row.delta ?? 0)
+}
+/** 調整原因選項：依目前調整方向過濾 */
+const reasonOptions = computed(() => ADJUSTMENT_REASONS.filter((r) => r.modes.includes(adjustMode.value)))
+/** 成本單價欄：只在「增加庫存」且至少一列為進貨時顯示；其餘情況隱藏並把空間讓給調整原因 */
+const showCostColumn = computed(
+  () => adjustMode.value === 'increase' && adjustments.value.some((r) => r.reason === 'restock'),
+)
+/** 切換方向時，把各列已選但不適用新方向的原因重置為該方向的預設原因 */
+watch(adjustMode, (mode) => {
+  const validValues = reasonOptions.value.map((r) => r.value)
+  const fallback = mode === 'increase' ? 'restock' : 'sale'
+  adjustments.value.forEach((row) => {
+    if (!validValues.includes(row.reason)) row.reason = fallback
+  })
+})
 const showHistory = ref(true)
 const historyFilter = ref<number | 'all'>('all')
 const historyKeyword = ref('')
@@ -67,12 +104,14 @@ watch(
   ([v, p]) => {
     if (!v || !p) return
     view.value = 'main'
+    adjustMode.value = 'increase'
     adjustments.value = (p as ManagedProduct).specs.map((s) => ({
       specId: s.id,
       specName: s.name,
       currentStock: s.stock,
       delta: 0,
       reason: 'restock',
+      price: s.cost,
     }))
     historyFilter.value = 'all'
     historyKeyword.value = ''
@@ -84,8 +123,10 @@ watch(
 function close(): void { emit('update:visible', false) }
 function onSave(): void {
   if (!props.product) return
-  // 只送有實際增減的列（delta != 0）
-  const changes = adjustments.value.filter((a) => a.delta !== 0)
+  // 只送有實際數量的列（delta != 0），並把調整數量依方向換成帶正負號的實際增減值
+  const changes = adjustments.value
+    .filter((a) => a.delta !== 0)
+    .map((a) => ({ ...a, delta: effectiveDelta(a) }))
   // 把這次調整也寫進下方「近十筆調整紀錄」最前面
   if (changes.length > 0) {
     const now = new Date()
@@ -127,13 +168,21 @@ interface HistoryEntry {
  */
 function buildMockHistory(p: ManagedProduct | null): HistoryEntry[] {
   if (!p) return []
-  const reasons = ['進貨', '進貨', '盤點', '退貨', '作廢', '內部使用']
+  const reasons = ['進貨', '銷售', '盤點', '退貨', '庫存回補', '內部使用']
   const operators = ['Test Name', '阿明', '小芳', '王太太']
+  // 原因 label → 適用方向，用來讓異動符號與原因一致
+  const labelModes = Object.fromEntries(ADJUSTMENT_REASONS.map((r) => [r.label, r.modes]))
   const list: HistoryEntry[] = []
   let id = 1
   p.specs.forEach((s, si) => {
     for (let i = 0; i < 4; i++) {
-      const delta = i % 2 === 0 ? 100 : -100
+      const reason = reasons[(si + i) % reasons.length]
+      const modes = labelModes[reason] ?? (['increase', 'decrease'] as AdjustMode[])
+      // 增加類原因 → 正；減少類 → 負；兩者皆可（盤點 / 其他）→ 依序交替
+      const magnitude = 100
+      const delta = modes.length === 1
+        ? (modes[0] === 'increase' ? magnitude : -magnitude)
+        : (i % 2 === 0 ? magnitude : -magnitude)
       const before = s.stock + (4 - i) * 100
       list.push({
         id: id++,
@@ -143,7 +192,7 @@ function buildMockHistory(p: ManagedProduct | null): HistoryEntry[] {
         before,
         delta,
         after: before + delta,
-        reason: reasons[(si + i) % reasons.length],
+        reason,
         operator: operators[(si + i) % operators.length],
       })
     }
@@ -200,7 +249,18 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
 
     <!-- ========== Main 視圖：規格調整 + 近十筆預覽 ========== -->
     <div v-if="view === 'main'" class="flex flex-col gap-3">
-      <span class="text-[13px] text-[var(--p-text-muted-color)]">規格庫存調整</span>
+      <!-- 第一步：先選調整方向；減少庫存時成本欄鎖定為平均成本 -->
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-[var(--p-text-color)]">調整方式</span>
+        <SelectButton
+          v-model="adjustMode"
+          :options="ADJUST_MODES"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+        />
+      </div>
+      <span class="text-xs text-[var(--p-text-muted-color)]">規格庫存調整</span>
 
       <!-- 規格庫存調整 table（PrimeVue DataTable + Column，cell 字級 / 背景交回 Aura 預設） -->
       <DataTable
@@ -210,30 +270,45 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
       >
         <Column field="specName" header="規格名稱" />
         <Column field="currentStock" header="目前庫存" style="width: 100px" />
-        <Column header="庫存調整" style="width: 180px">
+        <Column header="調整數量" style="width: 180px">
           <template #body="{ data }">
             <InputNumber
               v-model="data.delta"
               show-buttons
               button-layout="stacked"
+              :min="0"
               fluid
             />
           </template>
         </Column>
-        <Column header="調整原因" style="width: 200px">
+        <!-- 成本單價欄隱藏時（減少庫存，或增加但無進貨列），讓出的空間給調整原因（200 → 350），其餘欄寬不變 -->
+        <Column header="調整原因" :style="showCostColumn ? 'width: 200px' : 'width: 350px'">
           <template #body="{ data }">
             <Select
               v-model="data.reason"
-              :options="ADJUSTMENT_REASONS"
+              :options="reasonOptions"
               option-label="label"
               option-value="value"
               fluid
             />
           </template>
         </Column>
+        <!-- 成本單價：僅「增加庫存」且有進貨列時顯示；進貨原因可編輯進貨成本，其餘原因顯示「—」 -->
+        <Column v-if="showCostColumn" header="成本單價" style="width: 150px">
+          <template #body="{ data }">
+            <InputNumber
+              v-if="data.reason === 'restock'"
+              v-model="data.price"
+              prefix="$"
+              :min="0"
+              fluid
+            />
+            <span v-else class="text-[var(--p-text-muted-color)]">—</span>
+          </template>
+        </Column>
         <Column header="調整後" style="width: 100px">
           <template #body="{ data }">
-            {{ data.currentStock + (data.delta ?? 0) }}
+            {{ Math.max(0, data.currentStock + effectiveDelta(data)) }}
           </template>
         </Column>
       </DataTable>

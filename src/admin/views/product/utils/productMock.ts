@@ -26,6 +26,8 @@ export interface ManagedProductSpec {
   stock: number
   /** 規格獨立售價 */
   price: number
+  /** 規格獨立進貨成本；用於計算商品的加權平均成本 */
+  cost: number
 }
 
 export interface ProductPromote {
@@ -129,10 +131,10 @@ export const managedProducts: ManagedProduct[] = reactive([
       { quantity: 5, discountType: 'amount',  discountValue: 100 },
     ],
     specs: [
-      { id: 100101, name: 'S',  stock: 60, price: 30 },
-      { id: 100102, name: 'M',  stock: 60, price: 30 },
-      { id: 100103, name: 'L',  stock: 60, price: 30 },
-      { id: 100104, name: 'XL', stock: 60, price: 60 },
+      { id: 100101, name: 'S',  stock: 60, price: 30, cost: 18 },
+      { id: 100102, name: 'M',  stock: 60, price: 30, cost: 18 },
+      { id: 100103, name: 'L',  stock: 60, price: 30, cost: 18 },
+      { id: 100104, name: 'XL', stock: 60, price: 60, cost: 35 },
     ],
   },
   {
@@ -143,7 +145,7 @@ export const managedProducts: ManagedProduct[] = reactive([
     kind: 'normal',
     totalSold: 500,
     specs: [
-      { id: 100201, name: '單一規格', stock: 60, price: 500 },
+      { id: 100201, name: '單一規格', stock: 60, price: 500, cost: 320 },
     ],
   },
   {
@@ -157,7 +159,7 @@ export const managedProducts: ManagedProduct[] = reactive([
     bundlePrice: 980,
     bundleStock: 30,
     specs: [
-      { id: 100301, name: '單一規格', stock: 30, price: 980 },
+      { id: 100301, name: '單一規格', stock: 30, price: 980, cost: 640 },
     ],
     bundleItems: [
       { productId: 1002, qty: 1, maxPerPurchase: null },
@@ -172,8 +174,8 @@ export const managedProducts: ManagedProduct[] = reactive([
     kind: 'normal',
     totalSold: 132,
     specs: [
-      { id: 100401, name: '薰衣草', stock: 0, price: 280 },
-      { id: 100402, name: '茶樹',  stock: 12, price: 280 },
+      { id: 100401, name: '薰衣草', stock: 0, price: 280, cost: 150 },
+      { id: 100402, name: '茶樹',  stock: 12, price: 280, cost: 160 },
     ],
   },
   {
@@ -184,8 +186,8 @@ export const managedProducts: ManagedProduct[] = reactive([
     kind: 'normal',
     totalSold: 45,
     specs: [
-      { id: 100501, name: '60 片', stock: 25, price: 590 },
-      { id: 100502, name: '120 片', stock: 8, price: 990 },
+      { id: 100501, name: '60 片', stock: 25, price: 590, cost: 380 },
+      { id: 100502, name: '120 片', stock: 8, price: 990, cost: 620 },
     ],
   },
 ])
@@ -193,6 +195,21 @@ export const managedProducts: ManagedProduct[] = reactive([
 /** 計算總庫存：規格 stock 加總。 */
 export function totalStockOf(p: ManagedProduct): number {
   return p.specs.reduce((sum, s) => sum + (s.stock ?? 0), 0)
+}
+
+/**
+ * 平均成本：按庫存加權（Σ 成本×庫存 ÷ 總庫存），四捨五入到整數。
+ * 總庫存為 0 時無法加權，退回各規格成本的簡單平均。
+ */
+export function avgCostOf(p: ManagedProduct): number {
+  if (p.specs.length === 0) return 0
+  const totalStock = totalStockOf(p)
+  if (totalStock === 0) {
+    const sum = p.specs.reduce((s, sp) => s + (sp.cost ?? 0), 0)
+    return Math.round(sum / p.specs.length)
+  }
+  const weighted = p.specs.reduce((s, sp) => s + (sp.cost ?? 0) * (sp.stock ?? 0), 0)
+  return Math.round(weighted / totalStock)
 }
 
 /** 顯示價格：單一規格 → 「$xxx」；多規格 → 「$min ~ $max」；同值收合成單一。 */
@@ -317,7 +334,8 @@ productCatalog.forEach((c) => {
     kind: 'normal',
     totalSold: 0,
     keyword: c.keyword ?? '',
-    specs: [{ id: c.id * 100, name: '單一規格', stock: c.stock, price: c.price }],
+    // catalog 未帶成本，估為售價六成（與 managedProducts 手設成本的比例一致）
+    specs: [{ id: c.id * 100, name: '單一規格', stock: c.stock, price: c.price, cost: Math.round(c.price * 0.6) }],
   })
 })
 
@@ -337,6 +355,7 @@ bundleCatalog.forEach((b) => {
       productId: it.catalogProductId,
       qty: it.qty,
     })),
-    specs: [{ id: b.id * 100, name: '單一規格', stock: b.stock, price: b.price }],
+    // catalog 未帶成本，估為售價六成（與 managedProducts 手設成本的比例一致）
+    specs: [{ id: b.id * 100, name: '單一規格', stock: b.stock, price: b.price, cost: Math.round(b.price * 0.6) }],
   })
 })

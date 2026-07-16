@@ -341,9 +341,10 @@ function onSave(): void {
             name: names.filter(Boolean).join(' / ') || `規格 ${i + 1}`,
             stock: v.stock,
             price: v.salePrice,
+            cost: v.cost,
           }
         })
-      : [{ id: newId + 1, name: '單一規格', stock: form.value.noSpecVariant.stock, price: form.value.noSpecVariant.salePrice }]
+      : [{ id: newId + 1, name: '單一規格', stock: form.value.noSpecVariant.stock, price: form.value.noSpecVariant.salePrice, cost: form.value.noSpecVariant.cost }]
     const newProduct: ManagedProduct = {
       id: newId,
       name: form.value.name.trim(),
@@ -394,11 +395,12 @@ function onSave(): void {
         name: names.filter(Boolean).join(' / ') || `規格 ${i + 1}`,
         stock: v.stock,
         price: v.salePrice,
+        cost: v.cost,
       }
     })
     p.specGroupNames = form.value.specs.map((g) => g.name)
   } else {
-    p.specs = [{ id: Date.now(), name: '單一規格', stock: 0, price: 0 }]
+    p.specs = [{ id: Date.now(), name: '單一規格', stock: 0, price: 0, cost: 0 }]
     p.specGroupNames = undefined
   }
   // 編輯完成 → 同步收單那邊的 productCatalog 對應條目

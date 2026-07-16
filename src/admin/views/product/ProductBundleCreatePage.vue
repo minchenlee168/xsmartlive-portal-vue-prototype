@@ -243,7 +243,7 @@ function onSave(): void {
     p.bundleTotalPick = form.value.bundleMode === 'pick' ? form.value.bundleTotalPick : undefined
     // 保留既有 bundlePrice；如未設過則沿用 0
     p.bundlePrice = p.bundlePrice ?? 0
-    p.specs = [{ id: p.specs[0]?.id ?? Date.now(), name: '單一規格', stock: bundleStock, price: p.bundlePrice ?? 0 }]
+    p.specs = [{ id: p.specs[0]?.id ?? Date.now(), name: '單一規格', stock: bundleStock, price: p.bundlePrice ?? 0, cost: 0 }]
     syncManagedProduct(p.id)
     toast.add({ severity: 'success', summary: '已儲存組合商品變更', detail: p.name, life: 2000 })
     if (props.embedded) {
@@ -269,7 +269,7 @@ function onSave(): void {
     description: form.value.description,
     remark: form.value.bundleRemark,
     images: form.value.images.map((img) => ({ ...img })),
-    specs: [{ id: newId + 1, name: '單一規格', stock: bundleStock, price: 0 }],
+    specs: [{ id: newId + 1, name: '單一規格', stock: bundleStock, price: 0, cost: 0 }],
     bundleItems,
     bundlePrice: 0,
     bundleStock,
