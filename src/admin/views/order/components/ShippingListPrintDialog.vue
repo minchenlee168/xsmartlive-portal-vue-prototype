@@ -234,7 +234,7 @@ function doPrint(): void {
 
     <template #footer>
       <div class="print:hidden flex items-center justify-end">
-        <Button label="列印" icon="pi pi-print" @click="doPrint" />
+        <Button label="列印" @click="doPrint" />
       </div>
     </template>
   </Dialog>

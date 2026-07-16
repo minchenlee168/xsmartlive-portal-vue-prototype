@@ -96,7 +96,7 @@ function onFooterSave(): void {
       </div>
       <div v-else class="flex items-center justify-end gap-2">
         <Button label="取消" severity="secondary" outlined @click="onFooterCancel" />
-        <Button :label="saveLabel" icon="pi pi-save" @click="onFooterSave" />
+        <Button :label="saveLabel" @click="onFooterSave" />
       </div>
     </template>
   </Dialog>

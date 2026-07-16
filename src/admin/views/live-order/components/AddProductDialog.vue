@@ -545,7 +545,6 @@
         />
         <Button
           :label="`${t('live_order.button.save')} (${selectedCount})`"
-          icon="pi pi-save"
           :disabled="selectedCount === 0"
           @click="onSaveForm"
         />

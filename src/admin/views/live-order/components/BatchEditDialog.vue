@@ -189,7 +189,7 @@
           <span></span>
           <div class="flex gap-2">
             <Button :label="t('live_order.button.prev_step')" icon="pi pi-arrow-left" severity="secondary" outlined @click="currentStep = 1" />
-            <Button :label="t('live_order.button.save')" icon="pi pi-save" :disabled="!canSave"
+            <Button :label="t('live_order.button.save')" :disabled="!canSave"
               v-tooltip.top="saveTooltip" @click="onSave" />
           </div>
         </template>

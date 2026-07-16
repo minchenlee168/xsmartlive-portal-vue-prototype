@@ -528,7 +528,7 @@ function groupColumnHeader(g: SpecGroup, index: number): string {
           variant="outlined"
           @click="close"
         />
-        <Button :label="t('common.button.confirm')" icon="pi pi-check" @click="onSave" />
+        <Button :label="t('common.button.confirm')" @click="onSave" />
       </div>
     </template>
   </Dialog>

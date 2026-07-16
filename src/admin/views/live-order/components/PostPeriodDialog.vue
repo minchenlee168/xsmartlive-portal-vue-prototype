@@ -91,7 +91,7 @@ function onSave(): void {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button label="取消" severity="secondary" outlined @click="close" />
-        <Button label="儲存" icon="pi pi-save" @click="onSave" />
+        <Button label="儲存" @click="onSave" />
       </div>
     </template>
   </Dialog>

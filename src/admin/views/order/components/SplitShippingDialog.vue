@@ -451,7 +451,7 @@ function cancel(): void { emit('update:visible', false) }
         <span v-else></span>
         <div class="flex items-center gap-2">
           <Button label="取消" severity="secondary" variant="outlined" @click="cancel" />
-          <Button label="儲存並返回" icon="pi pi-save" @click="saveAndClose" />
+          <Button label="儲存並返回" @click="saveAndClose" />
         </div>
       </div>
     </template>

@@ -301,7 +301,7 @@ function onSave(): void {
     <template #footer>
       <div class="flex justify-end gap-2 w-full">
         <Button :label="t('live_order.button.cancel')" severity="secondary" outlined @click="close" />
-        <Button :label="t('live_order.button.save')" icon="pi pi-save" @click="onSave" />
+        <Button :label="t('live_order.button.save')" @click="onSave" />
       </div>
     </template>
   </Dialog>
