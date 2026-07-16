@@ -37,7 +37,7 @@ const recentCommits = (() => {
 })()
 
 export default defineConfig({
-  base: '/xsmartlive-admin/',
+  base: '/xsmartlive-portal-vue-prototype/',
   define: {
     __LAST_COMMIT_TIME__: JSON.stringify(lastCommitTime),
     __RECENT_COMMITS__: JSON.stringify(recentCommits),
