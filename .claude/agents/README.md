@@ -6,10 +6,10 @@
 
 | 檔案 | 職責 | 工具 |
 |------|------|------|
-| `layout-designer.md` | 版面結構、格線、區塊安排、響應式 | 唯讀 |
-| `visual-style.md` | 配色、字體、間距、design token | 唯讀 |
-| `content-writer.md` | 介面文案、按鈕字、空狀態與錯誤訊息 | 唯讀 |
-| `design-reviewer.md` | 交付前的一致性／無障礙／跑版審查 | 唯讀 |
+| `ui-layout-designer.md` | 版面結構、格線、區塊安排、響應式 | 唯讀 |
+| `ui-visual-style.md` | 配色、字體、間距、design token | 唯讀 |
+| `ui-content-writer.md` | 介面文案、按鈕字、空狀態與錯誤訊息 | 唯讀 |
+| `ui-design-reviewer.md` | 交付前的一致性／無障礙／跑版審查 | 唯讀 |
 
 四個都設為唯讀（`Read, Grep, Glob`），因為它們的工作是分析與建議。若你要讓某個 agent 直接產出／修改程式碼，再把 `Write`、`Edit`、`Bash` 加進該檔的 `tools` 欄位。
 
@@ -35,13 +35,13 @@ cp agents/*.md ~/.claude/agents/
 
 裝好後不用特別呼叫，主 Agent 會依每個 agent 的 `description` 自動分派。你也可以在提示裡指名，例如：
 
-> 幫我設計一個 SaaS 定價頁。先用 layout-designer 規劃版面，
-> 再用 visual-style 定調配色與字體，接著 content-writer 填文案，
-> 最後用 design-reviewer 檢查一遍。
+> 幫我設計一個 SaaS 定價頁。先用 ui-layout-designer 規劃版面，
+> 再用 ui-visual-style 定調配色與字體，接著 ui-content-writer 填文案，
+> 最後用 ui-design-reviewer 檢查一遍。
 
 ## 搭配 Figma
 
-若你已連接 Figma MCP，可以把 Figma 工具掛給需要它的 agent（例如讓 layout-designer 直接讀取現有設計稿）。最穩妥的做法是用 `/agents` 互動介面編輯該 agent、在工具清單中勾選 Figma 相關工具，讓 Claude Code 自動填入正確的工具名稱，而非手動猜測字串。
+若你已連接 Figma MCP，可以把 Figma 工具掛給需要它的 agent（例如讓 ui-layout-designer 直接讀取現有設計稿）。最穩妥的做法是用 `/agents` 互動介面編輯該 agent、在工具清單中勾選 Figma 相關工具，讓 Claude Code 自動填入正確的工具名稱，而非手動猜測字串。
 
 ## 兩個提醒
 

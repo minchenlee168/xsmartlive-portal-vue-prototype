@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Design.md lint — 抓最容易違反的 pattern
+# document/design.md lint — 抓最容易違反的 pattern
 #
 # 使用：
 #   scripts/design-md-lint.sh --files <file>...       # 直接 lint 檔案（pre-commit / CI 用）
@@ -25,28 +25,27 @@ SOFT_HITS=0
 
 # ── Hard 違反：一律 block ────────────────────
 HARD_RULES=(
-  'text-\[(9|10|10\.5|11|11\.5|15|17|17\.5|22)px\]@@Design.md 三：字級不在階梯（用 text-xs / sm / base / lg / xl / 2xl）'
-  'rounded-\[[0-9]+px\]@@Design.md 7.3：圓角不用硬值（用 rounded-sm / md / lg / xl / full）'
-  'label="查詢"@@Design.md 7.6：搜尋按鈕文字統一「搜尋」，禁用「查詢」'
-  'gap-[0-9]+\.5@@Design.md 四：間距用階梯 4/8/12/16/24/32（避免 gap-N.5）'
-  '(py|px|pt|pb|pl|pr|mt|mb|ml|mr)-[0-9]+\.5"@@Design.md 四：間距用階梯（避免 py/px/mt 等半格；py-0.5 給 Tag 除外請透過 :pt）'
+  'text-\[(9|10|10\.5|11|11\.5|15|17|17\.5|22)px\]@@document/design.md 三：字級不在階梯（用 text-xs / sm / base / lg / xl / 2xl）'
+  'rounded-\[[0-9]+px\]@@document/design.md 7.3：圓角不用硬值（用 rounded-sm / md / lg / xl / full）'
+  'label="查詢"@@document/design.md 7.6：搜尋按鈕文字統一「搜尋」，禁用「查詢」'
+  'gap-[0-9]+\.5@@document/design.md 四：間距用階梯 4/8/12/16/24/32（避免 gap-N.5）'
+  '(py|px|pt|pb|pl|pr|mt|mb|ml|mr)-[0-9]+\.5"@@document/design.md 四：間距用階梯（避免 py/px/mt 等半格；py-0.5 給 Tag 除外請透過 :pt）'
 )
 
 # ── Soft 警告：印出但 exit 0 ────────────────────
 SOFT_RULES=(
-  'label="搜尋".*icon=@@Design.md 7.6：搜尋按鈕不加 icon'
-  'icon=[^ ]* label="搜尋"@@Design.md 7.6：搜尋按鈕不加 icon'
-  'inline-flex.*rounded-full.*font-(bold|semibold)@@Design.md 7.0：手刻 badge 改用 <Tag :severity>'
-  'inline-flex.*rounded-md.*font-(bold|semibold)@@Design.md 7.0：手刻 badge 改用 <Tag :severity>'
-  '#f97316@@Design.md 二：警告色用 #CA8A04 非 #f97316（若是 accent 用途可忽略）'
-  '#fef3c7@@Design.md 二：警告底色用 #FEF9C3 非 #fef3c7'
-  'class="!text-@@Design.md 7.5：不用 !text-* 覆蓋 PrimeVue Tag / Button 內建樣式'
-  'py-(8|10)"@@Design.md 7.5：空狀態 padding ≥ py-12'
-  'text-sm font-(medium|bold|semibold) text-\[var\(--p-text-color\)\][^<]*}}</span>@@Design.md 7.5：DataTable cell 主資訊用預設 14px / 400（不加 text-sm font-medium 覆蓋）'
-  'gap-1[^0-9]@@Design.md 7.8：表單相鄰 input 最小 gap 8px（gap-1 = 4px 過窄，改 gap-2 / gap-3）'
-  'flex[^"]*items-(end|center)[^"]*gap-1"@@Design.md 7.8：form 元件間距 ≥ 8px，避免 InputNumber stepper / Select chevron 撞到旁邊欄位'
-  'grid-template-columns:[^]]*1(4|5|6)0px[^]]*1(4|5|6)0px@@Design.md 7.8：InputNumber show-buttons 或 currency 需 ≥ 180px 欄寬，避免 stepper 撞旁邊'
-  'InputNumber[^/]*show-buttons[^/]*button-layout="stacked"[^<]*</div>[^<]*<div[^<]*<InputNumber@@Design.md 7.8：兩個 InputNumber 併排需 gap-6 (24px)，見 Row 1 建議寬度'
+  'label="搜尋".*icon=@@document/design.md 7.6：搜尋按鈕不加 icon'
+  'icon=[^ ]* label="搜尋"@@document/design.md 7.6：搜尋按鈕不加 icon'
+  'inline-flex.*rounded-full.*font-(bold|semibold)@@document/design.md 7.0：手刻 badge 改用 <Tag :severity>'
+  'inline-flex.*rounded-md.*font-(bold|semibold)@@document/design.md 7.0：手刻 badge 改用 <Tag :severity>'
+  '#f97316@@document/design.md 二：警告色用 #CA8A04 非 #f97316（若是 accent 用途可忽略）'
+  '#fef3c7@@document/design.md 二：警告底色用 #FEF9C3 非 #fef3c7'
+  'class="!text-@@document/design.md 7.5：不用 !text-* 覆蓋 PrimeVue Tag / Button 內建樣式'
+  'py-(8|10)"@@document/design.md 7.5：空狀態 padding ≥ py-12'
+  'text-sm font-(medium|bold|semibold) text-\[var\(--p-text-color\)\][^<]*}}</span>@@document/design.md 7.5：DataTable cell 主資訊用預設 14px / 400（不加 text-sm font-medium 覆蓋）'
+  'gap-1[^0-9]@@document/design.md 7.8：表單相鄰 input 一律 gap-2（8px）；gap-1 = 4px 過窄'
+  'flex[^"]*items-(end|center)[^"]*gap-1"@@document/design.md 7.8：form 元件間距 ≥ 8px，避免 InputNumber stepper / Select chevron 撞到旁邊欄位'
+  'grid-template-columns:[^]]*1(4|5|6)0px[^]]*1(4|5|6)0px@@document/design.md 7.8：欄寬留餘裕 — InputNumber show-buttons stacked / currency ≥ 200px、horizontal ≥ 220px（Select / DatePicker 160px 可）'
 )
 
 # 掃描一段內容
@@ -129,13 +128,13 @@ esac
 
 if [[ $HARD_HITS -gt 0 ]]; then
   echo ""
-  echo "${RED}✗ Design.md lint 失敗：${HARD_HITS} 個 hard 違反、${SOFT_HITS} 個 soft 警告${NC}"
-  echo "  hard 違反必須修正才能繼續。查閱專案根目錄 Design.md 對照規則。"
+  echo "${RED}✗ document/design.md lint 失敗：${HARD_HITS} 個 hard 違反、${SOFT_HITS} 個 soft 警告${NC}"
+  echo "  hard 違反必須修正才能繼續。查閱 document/design.md 對照規則。"
   exit 1
 fi
 
 if [[ $SOFT_HITS -gt 0 ]]; then
   echo ""
-  echo "${YELLOW}⚠ Design.md lint：${SOFT_HITS} 個 soft 警告（不 block，請確認是否為正當使用）${NC}"
+  echo "${YELLOW}⚠ document/design.md lint：${SOFT_HITS} 個 soft 警告（不 block，請確認是否為正當使用）${NC}"
 fi
 exit 0

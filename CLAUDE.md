@@ -2,7 +2,16 @@
 
 ## 設計規範（強制遵守）
 
-所有 UI 改動一律以專案根目錄的 [`Design.md`](./Design.md) 為準（涵蓋色票、字級、間距、layout、元件規格、Do's/Don'ts）。動手前先讀對應章節,不要憑通用設計常識自由發揮。
+所有 UI 改動一律以 [`document/design.md`](./document/design.md) 為準（涵蓋色票、字級、間距、layout、深色模式、元件規格、Do's/Don'ts）。動手前先讀對應章節,不要憑通用設計常識自由發揮。
+
+## 設計工作流（Sub-agent）
+
+`.claude/agents/` 定義 4 個唯讀設計 sub-agent:`ui-layout-designer` / `ui-visual-style` / `ui-content-writer` / `ui-design-reviewer`。
+
+- **新頁面 / 大幅改動**（新增 dialog / 重寫 UI 區塊 / 表單多欄位…）**一律先過 `ui-design-reviewer`** — 這不是選配
+- **標準工作流**:`ui-layout-designer → ui-visual-style → ui-content-writer → ui-design-reviewer`
+- Sub-agent 唯讀,只回報問題不改檔;修正由主 session 或對應 agent 執行
+- 小改動（改文案、Tag 顏色、rename label 等）不必動用 sub-agent
 
 ## Prototype changelog 慣例
 本 repo 是 `xsmartlive-portal-vue-prototype`。TopBar 有 info icon 點開的 Dialog,自動讀最近 10 筆 commit 顯示給用戶。

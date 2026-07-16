@@ -1,5 +1,5 @@
 ---
-name: content-writer
+name: ui-content-writer
 description: >
   介面文案專員：撰寫標題、副標、按鈕文字、說明文字、
   空狀態與錯誤訊息等 UI 文案。當版面需要填入實際文字內容、
