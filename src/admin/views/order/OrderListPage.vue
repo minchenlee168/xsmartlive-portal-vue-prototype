@@ -3,11 +3,13 @@ import { computed, onMounted, ref, watch } from 'vue'
 import type { MenuItem } from 'primevue/menuitem'
 import { useLayoutStore } from '@/admin/stores/layout'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import OrderRowDetail from './components/OrderRowDetail.vue'
 import ShippingConfigDialog from './components/ShippingConfigDialog.vue'
 import IssueInvoiceDialog from './components/IssueInvoiceDialog.vue'
 import SplitShippingPage from './components/SplitShippingPage.vue'
 import ShippingListPrintDialog from './components/ShippingListPrintDialog.vue'
+import DefaultShippingConfigDialog from './components/DefaultShippingConfigDialog.vue'
 
 /**
  * 訂單管理 → 訂單列表頁。
@@ -325,10 +327,10 @@ const orders = ref<OrderRow[]>([
   { id: 'm5', createdAt: '2026-06-17 11:26', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510102', productSummary: '燕麥奶 × 3',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   { id: 'm6', createdAt: '2026-06-20 12:49', cartTag: tagFor('服飾專區'), orderNo: 'A20260415001',  buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  710, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-415001', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   // 林大華 x 4 - 高雄市三民區建工路300號 · 常溫宅配 · 貨到付款
-  { id: 'm7', createdAt: '2026-06-16 18:57', cartTag: tagFor('服飾專區'), orderNo: 'A20260512101', buyerName: '林大華', buyerPhone: '0938-777-999', amount: 1200, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '純棉素色短T(黑) × 2',   paymentMethodLabel: '貨到付款', temperature: '常溫' },
-  { id: 'm8', createdAt: '2026-06-17 09:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260512102', buyerName: '林大華', buyerPhone: '0938-777-999', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '燕麥奶 × 4',              paymentMethodLabel: '貨到付款', temperature: '常溫' },
-  { id: 'm9', createdAt: '2026-06-18 10:23', cartTag: tagFor('服飾專區'), orderNo: 'A20260512103', buyerName: '林大華', buyerPhone: '0938-777-999', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '貨到付款', temperature: '常溫' },
-  { id: 'm10', createdAt: '2026-06-19 11:36', cartTag: tagFor('服飾專區'), orderNo: 'A20260512104', buyerName: '林大華', buyerPhone: '0938-777-999', amount: 1890, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號',      productSummary: '純棉素色短T(白) × 3',   paymentMethodLabel: '貨到付款', temperature: '常溫' },
+  { id: 'm7',  createdAt: '2026-06-16 18:57', cartTag: tagFor('服飾專區'), orderNo: 'A20260512101', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1180, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款', temperature: '常溫', couponActivity: '貨到付款折抵', couponDiscount: 100, pointsDiscount: 0 },
+  { id: 'm8',  createdAt: '2026-06-17 09:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260512102', buyerName: '林大華', buyerPhone: '0987-543-210', amount:  380, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '貨到付款', temperature: '常溫' },
+  { id: 'm9',  createdAt: '2026-06-18 10:23', cartTag: tagFor('服飾專區'), orderNo: 'A20260512103', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1280, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '貨到付款', temperature: '常溫', couponActivity: '滿額折', couponDiscount: 150 },
+  { id: 'm10', createdAt: '2026-06-19 11:36', cartTag: tagFor('服飾專區'), orderNo: 'A20260512104', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1770, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '純棉素色短T(白) × 3',    paymentMethodLabel: '貨到付款', temperature: '常溫' },
 ])
 
 /** 全站合計 85 筆（圖中右上的總數）— 顯示用，篩選後仍顯示原始總數。 */
@@ -477,6 +479,9 @@ function closeSplitPage(): void {
   splitPageOrderId.value = null
 }
 
+/** 頁首「預設配送設定」按鈕:開 DefaultShippingConfigDialog */
+const defaultShippingConfigDialogVisible = ref(false)
+
 /** 表格「列印出貨單」按鈕：點下開啟 ShippingListPrintDialog */
 const printDialogVisible = ref(false)
 const printOrder = ref<OrderRow | null>(null)
@@ -490,6 +495,7 @@ const isLoading = ref(true)
 // 進入訂單列表時自動收合 sidebar,把寬度留給欄位多的表格;離開頁面不自動展開
 const layoutStore = useLayoutStore()
 const toast = useToast()
+const confirm = useConfirm()
 onMounted(() => {
   layoutStore.isSidebarCollapsed = true
   // 模擬初始載入 1.2 秒
@@ -687,12 +693,15 @@ const mergeableOrderCount = computed(() =>
   mergeGroups.value.reduce((s, g) => s + g.orders.length, 0),
 )
 const mergeDialogVisible = ref(false)
+/** 合併彈窗分兩步:'list' 選擇要合併的訂單、'editor' 進入合併編輯表單 */
+const mergeStep = ref<'list' | 'editor'>('list')
 function openMergeDialog(): void {
   if (mergeGroups.value.length === 0) return
   mergeSelectedIds.value = new Set()
+  mergeStep.value = 'list'
   mergeDialogVisible.value = true
 }
-/** 合併訂單彈窗內已勾選的訂單 id 集合(跨 group) */
+/** 合併訂單彈窗內已勾選的訂單 id 集合(限單一 group / 單一買家) */
 const mergeSelectedIds = ref<Set<string>>(new Set())
 const mergeSelectedOrders = computed<OrderRow[]>(() =>
   mergeGroups.value.flatMap((g) => g.orders).filter((o) => mergeSelectedIds.value.has(o.id)),
@@ -700,6 +709,17 @@ const mergeSelectedOrders = computed<OrderRow[]>(() =>
 const mergeSelectedTotal = computed(() =>
   mergeSelectedOrders.value.reduce((s, o) => s + o.amount, 0),
 )
+/** 當下已勾選訂單所屬的 group;第一筆勾選後鎖定,其他 group 不能再勾 */
+const mergeLockedGroupKey = computed<string | null>(() => {
+  if (mergeSelectedIds.value.size === 0) return null
+  const first = mergeSelectedOrders.value[0]
+  if (!first) return null
+  const g = mergeGroups.value.find((g) => g.orders.some((o) => o.id === first.id))
+  return g?.key ?? null
+})
+function isGroupSelectable(g: MergeOrderGroup): boolean {
+  return mergeLockedGroupKey.value === null || mergeLockedGroupKey.value === g.key
+}
 function toggleMergeRow(id: string): void {
   const next = new Set(mergeSelectedIds.value)
   if (next.has(id)) next.delete(id)
@@ -710,6 +730,7 @@ function isGroupAllSelected(g: MergeOrderGroup): boolean {
   return g.orders.length > 0 && g.orders.every((o) => mergeSelectedIds.value.has(o.id))
 }
 function toggleGroupAll(g: MergeOrderGroup): void {
+  if (!isGroupSelectable(g)) return
   const all = isGroupAllSelected(g)
   const next = new Set(mergeSelectedIds.value)
   g.orders.forEach((o) => {
@@ -721,14 +742,75 @@ function toggleGroupAll(g: MergeOrderGroup): void {
 function clearMergeSelection(): void {
   mergeSelectedIds.value = new Set()
 }
+/** 點按「合併編輯」→ 進第二步表單 */
+function goToMergeEditor(): void {
+  if (mergeSelectedOrders.value.length < 2) return
+  // 初始化編輯表單 state(收件人 / 電話 / 地址、運費、勾選的優惠券)
+  const first = mergeSelectedOrders.value[0]
+  mergeForm.value = {
+    receiverName: first.buyerName,
+    phone: first.buyerPhone,
+    address: first.receiverAddress ?? '',
+    shippingFee: 120,
+  }
+  // 預設全部優惠券都套用
+  mergeCouponSelected.value = new Set(
+    mergeSelectedOrders.value.filter((o) => (o.couponDiscount ?? 0) > 0).map((o) => o.id),
+  )
+  mergeStep.value = 'editor'
+}
+function backToMergeList(): void {
+  mergeStep.value = 'list'
+}
+/** 編輯表單可調欄位 */
+const mergeForm = ref({
+  receiverName: '',
+  phone: '',
+  address: '',
+  shippingFee: 120,
+})
+/** 已勾選要套用的優惠券 → 對應到訂單 id */
+const mergeCouponSelected = ref<Set<string>>(new Set())
+function toggleMergeCoupon(id: string): void {
+  const next = new Set(mergeCouponSelected.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  mergeCouponSelected.value = next
+}
+/** 合併後試算:商品 / 運費 / 點數折抵 / 優惠券折抵 / 總計 */
+const mergeSummary = computed(() => {
+  const subtotal = mergeSelectedOrders.value.reduce((s, o) => s + o.amount, 0)
+  const shippingFee = mergeForm.value.shippingFee
+  const pointsDiscount = 0
+  const couponDiscount = mergeSelectedOrders.value
+    .filter((o) => mergeCouponSelected.value.has(o.id))
+    .reduce((s, o) => s + (o.couponDiscount ?? 0), 0)
+  const total = subtotal + shippingFee - pointsDiscount - couponDiscount
+  return { subtotal, shippingFee, pointsDiscount, couponDiscount, total }
+})
+/** 合併後可得紅利點數合計 */
+const mergePointsEarnedTotal = computed(() =>
+  mergeSelectedOrders.value.reduce((s, o) => s + Math.floor(o.amount / 100), 0),
+)
 function confirmMerge(): void {
-  toast.add({
-    severity: 'success',
-    summary: '合併訂單',
-    detail: `${mergeSelectedOrders.value.length} 筆訂單已進入合併編輯`,
-    life: 2500,
+  // 破壞性動作:原訂單會被作廢、未勾選的優惠券自動退回;需二次確認,預設焦點在「取消」
+  confirm.require({
+    header: '確認合併訂單?',
+    message: `即將把 ${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆,原訂單會作廢,未勾選的優惠券會退回客人帳號。此動作無法復原,確定執行?`,
+    icon: 'pi pi-exclamation-triangle',
+    defaultFocus: 'reject',
+    rejectProps: { label: '取消', severity: 'secondary', outlined: true },
+    acceptProps: { label: '確認合併', severity: 'danger' },
+    accept: () => {
+      toast.add({
+        severity: 'success',
+        summary: '合併訂單完成',
+        detail: `${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆,總計 $${mergeSummary.value.total.toLocaleString()}`,
+        life: 2500,
+      })
+      mergeDialogVisible.value = false
+    },
   })
-  mergeDialogVisible.value = false
 }
 /** 買家姓名頭像:取名字第一個中文字 */
 function buyerAvatarChar(name: string): string {
@@ -846,7 +928,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 class="ml-2"
               />
             </Button>
-            <Button label="預設配送設定" variant="outlined" />
+            <Button label="預設配送設定" variant="outlined" @click="defaultShippingConfigDialogVisible = true" />
             <Button label="匯出 CSV"      icon="pi pi-upload"  severity="secondary" variant="outlined" />
           </div>
         </div>
@@ -1290,7 +1372,10 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 <!-- 表格「出貨單列印」共用彈窗 -->
     <ShippingListPrintDialog v-model:visible="printDialogVisible" :order="printOrder" />
 
-    <!-- 合併訂單彈窗:分組列出可合併訂單,勾選後可清除或合併編輯 -->
+    <!-- 頁首「預設配送設定」彈窗 -->
+    <DefaultShippingConfigDialog v-model:visible="defaultShippingConfigDialogVisible" />
+
+    <!-- 合併訂單彈窗:分兩步 - list(選訂單) → editor(編輯合併資料) -->
     <Dialog
       v-model:visible="mergeDialogVisible"
       modal
@@ -1300,21 +1385,33 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
     >
       <template #header>
         <div class="flex flex-col gap-1">
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-bold text-[var(--p-text-color)]">合併訂單</span>
-            <i
-              class="pi pi-question-circle text-[var(--p-text-muted-color)] cursor-help"
-              style="font-size: 14px"
-              v-tooltip.top="'系統自動篩選出可合併的訂單(同買家、同址、同配送、同溫層、未取號)'"
-            ></i>
-          </div>
-          <span class="text-xs text-[var(--p-text-muted-color)]">
-            此頁面將自動篩選出同一購買人、同地址、同配送方式、同溫層,尚未取號之可合併訂單。
-          </span>
+          <!-- 第一步:標題「合併訂單」+ 副標;第二步:← 返回 + 「合併 N 筆訂單」+ 來源訂單編號列 -->
+          <template v-if="mergeStep === 'list'">
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-bold text-[var(--p-text-color)]">合併訂單</span>
+              <i
+                class="pi pi-question-circle text-[var(--p-text-muted-color)] cursor-help"
+                style="font-size: 14px"
+                v-tooltip.top="'系統自動篩選出可合併的訂單(同買家、同址、同配送、同溫層、未取號)'"
+              ></i>
+            </div>
+            <span class="text-xs text-[var(--p-text-muted-color)]">
+              此頁面將自動篩選出同一購買人、同地址、同配送方式、同溫層,尚未取號之可合併訂單。
+            </span>
+          </template>
+          <template v-else>
+            <div class="flex items-center gap-2">
+              <Button icon="pi pi-arrow-left" severity="secondary" variant="text" rounded @click="backToMergeList" />
+              <span class="text-lg font-bold text-[var(--p-text-color)]">合併 {{ mergeSelectedOrders.length }} 筆訂單</span>
+            </div>
+            <span class="text-xs text-[var(--p-text-muted-color)] pl-11">
+              來源:{{ mergeSelectedOrders.map(o => o.orderNo).join('、') }} · {{ mergeSelectedOrders[0]?.buyerName }}
+            </span>
+          </template>
         </div>
       </template>
 
-      <div class="flex flex-col gap-4 p-5">
+      <div v-if="mergeStep === 'list'" class="flex flex-col gap-4 p-5">
         <!-- 手動檢查合併條件 accordion -->
         <Accordion>
           <AccordionPanel value="manual">
@@ -1351,13 +1448,12 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           </AccordionPanel>
         </Accordion>
 
-        <!-- Groups:每組買家用 PrimeVue Panel;header 顯示名稱 · 筆數,icons slot 顯示合計 -->
-        <!-- header 有淺灰底、header/content 左右 padding 一致;overflow-hidden 讓 DataTable 貼齊 Panel 圓角 -->
+        <!-- Groups:每組買家用 PrimeVue Panel;有其他 group 已選時,本 group 整組 disabled(合併限單一買家) -->
         <Panel
           v-for="g in mergeGroups"
           :key="g.key"
           :pt="{
-            root: { class: 'overflow-hidden' },
+            root: { class: isGroupSelectable(g) ? 'overflow-hidden' : 'overflow-hidden opacity-50' },
             header: { style: 'padding: 12px 16px; background: var(--p-content-hover-background)' },
             content: { style: 'padding: 0 16px 16px' },
           }"
@@ -1366,6 +1462,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             <div class="flex items-center gap-2">
               <span class="font-bold text-[var(--p-text-color)]">{{ g.buyer }}</span>
               <span class="text-sm text-[var(--p-text-muted-color)]">· {{ g.orders.length }} 筆訂單</span>
+              <Tag v-if="!isGroupSelectable(g)" value="不同買家,無法一起合併" severity="secondary" class="ml-2" />
             </div>
           </template>
           <template #icons>
@@ -1378,10 +1475,20 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           <DataTable :value="g.orders" data-key="id" :striped-rows="true">
             <Column style="width: 40px">
               <template #header>
-                <Checkbox :model-value="isGroupAllSelected(g)" binary @update:model-value="toggleGroupAll(g)" />
+                <Checkbox
+                  :model-value="isGroupAllSelected(g)"
+                  binary
+                  :disabled="!isGroupSelectable(g)"
+                  @update:model-value="toggleGroupAll(g)"
+                />
               </template>
               <template #body="{ data }">
-                <Checkbox :model-value="mergeSelectedIds.has(data.id)" binary @update:model-value="toggleMergeRow(data.id)" />
+                <Checkbox
+                  :model-value="mergeSelectedIds.has(data.id)"
+                  binary
+                  :disabled="!isGroupSelectable(g)"
+                  @update:model-value="toggleMergeRow(data.id)"
+                />
               </template>
             </Column>
             <Column header="訂單編號" field="orderNo">
@@ -1423,8 +1530,171 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
         </Panel>
       </div>
 
+      <!-- 第二步:合併編輯表單(對照 Design.md 7.8:label 上方、editor 下方 flex-col;max-width 960px 避免全滿版留白) -->
+      <div v-else class="flex flex-col gap-4 p-5 mx-auto w-full max-w-[960px]">
+        <div class="divide-y divide-[var(--p-content-border-color)] border border-[var(--p-content-border-color)] rounded-md">
+          <!-- 付款方式(唯讀) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">付款方式</label>
+            <div class="text-sm text-[var(--p-text-color)]">{{ mergeSelectedOrders[0]?.paymentMethodLabel ?? '—' }}</div>
+          </div>
+          <!-- 配送方式(唯讀) + 未指派物流商 warning tag + 指派連結 -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">配送方式</label>
+            <div class="flex items-center gap-2 flex-wrap text-sm text-[var(--p-text-color)]">
+              <span>{{ mergeSelectedOrders[0]?.shippingMethod === '常溫宅配' ? '宅配' : mergeSelectedOrders[0]?.shippingMethod }}</span>
+              <Tag value="未指派物流商" severity="warn" />
+              <a class="text-xs text-[#2563EB] hover:underline cursor-pointer">指派物流商</a>
+            </div>
+          </div>
+          <!-- 訂購人(鎖 + tooltip) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
+              訂購人 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可調整'" aria-label="合併後不可調整"></i>
+            </label>
+            <div class="text-sm text-[var(--p-text-color)]">{{ mergeSelectedOrders[0]?.buyerName }}</div>
+          </div>
+          <!-- 收件人 -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">收件人</label>
+            <InputText v-model="mergeForm.receiverName" class="!w-full sm:!w-[320px]" />
+          </div>
+          <!-- 電話 -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">電話</label>
+            <InputText v-model="mergeForm.phone" class="!w-full sm:!w-[320px]" />
+          </div>
+          <!-- 收件地址 -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">收件地址</label>
+            <InputText v-model="mergeForm.address" class="!w-full" />
+          </div>
+          <!-- 商品金額(鎖 + 各訂單列出) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
+              商品金額 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可調整'" aria-label="合併後不可調整"></i>
+            </label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>${{ o.amount.toLocaleString() }}</span>
+              </div>
+              <div class="pt-1 text-[var(--p-text-color)]">
+                合計 <span class="text-[var(--p-primary-color)] font-medium">${{ mergeSummary.subtotal.toLocaleString() }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- 運費(各訂單列出 + 一個可編輯的合併後運費) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">運費</label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>$120</span>
+              </div>
+              <div class="pt-2">
+                <InputNumber v-model="mergeForm.shippingFee" :min="0" mode="decimal" show-buttons class="!w-[200px]" fluid />
+              </div>
+            </div>
+          </div>
+          <!-- 使用點數(鎖) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
+              使用點數 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可調整'" aria-label="合併後不可調整"></i>
+            </label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>0</span>
+              </div>
+              <div class="pt-1 text-[var(--p-text-color)]">0 點(折抵 $0)</div>
+            </div>
+          </div>
+          <!-- 優惠券(每張券可勾選是否套用) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">優惠券</label>
+            <div class="flex flex-col gap-2 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <template v-if="(o.couponDiscount ?? 0) > 0">
+                  <span>${{ o.couponDiscount }}({{ o.couponActivity }})</span>
+                </template>
+                <template v-else>
+                  <span class="text-[var(--p-text-muted-color)]">無</span>
+                </template>
+              </div>
+              <!-- 可套用的優惠券卡:主色 Soft #F2EBFF 底 -->
+              <div
+                v-for="o in mergeSelectedOrders.filter(o => (o.couponDiscount ?? 0) > 0)"
+                :key="`c-${o.id}`"
+                class="flex items-center gap-2 px-3 py-2 border border-[var(--p-primary-200)] rounded-md bg-[#F2EBFF]"
+              >
+                <Checkbox :model-value="mergeCouponSelected.has(o.id)" binary @update:model-value="toggleMergeCoupon(o.id)" />
+                <span class="text-[var(--p-text-color)]">{{ o.couponActivity }}({{ o.orderNo }})</span>
+                <span class="ml-auto text-[var(--p-primary-color)] font-medium">−${{ o.couponDiscount }}</span>
+              </div>
+              <div class="text-[var(--p-text-color)]">
+                套用 <span class="font-medium">{{ mergeCouponSelected.size }}</span> 張,共折抵 <span class="text-[var(--p-primary-color)] font-medium">−${{ mergeSummary.couponDiscount.toLocaleString() }}</span>
+              </div>
+              <div class="text-xs text-[var(--p-text-muted-color)]">未勾選的券會隨原訂單作廢自動退回客人帳號</div>
+            </div>
+          </div>
+          <!-- 可得紅利點數(鎖) -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
+              可得紅利點數 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可調整'" aria-label="合併後不可調整"></i>
+            </label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>{{ Math.floor(o.amount / 100) }}</span>
+              </div>
+              <div class="pt-1 text-[var(--p-text-color)]">{{ mergePointsEarnedTotal }} 點</div>
+            </div>
+          </div>
+          <!-- 發票載具 -->
+          <div class="flex flex-col gap-2 px-4 py-3">
+            <label class="text-sm text-[var(--p-text-muted-color)]">發票載具</label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>二聯式收據</span>
+              </div>
+              <div class="pt-1 text-[var(--p-text-color)]">二聯式收據</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 合併後試算總計 card:主色 Soft #F2EBFF 底 -->
+        <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-md bg-[#F2EBFF] border border-[var(--p-primary-200)]">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
+              <i class="pi pi-calculator" style="font-size: 14px"></i>
+              合併後試算總計
+            </div>
+            <div class="flex items-center gap-4 text-sm text-[var(--p-text-muted-color)]">
+              <span>商品 <span class="text-[var(--p-text-color)]">${{ mergeSummary.subtotal.toLocaleString() }}</span></span>
+              <span>運費 <span class="text-[var(--p-text-color)]">+${{ mergeSummary.shippingFee.toLocaleString() }}</span></span>
+              <span>點數 <span class="text-[var(--p-primary-color)]">−${{ mergeSummary.pointsDiscount }}</span></span>
+              <span>優惠券 <span class="text-[var(--p-primary-color)]">−${{ mergeSummary.couponDiscount.toLocaleString() }}</span></span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-[var(--p-text-muted-color)]">總計</div>
+            <div class="text-2xl font-bold text-[var(--p-primary-color)]">${{ mergeSummary.total.toLocaleString() }}</div>
+          </div>
+        </div>
+      </div>
+
       <template #footer>
-        <div class="flex items-center justify-between gap-3 w-full">
+        <!-- List step footer:已選數 + 清除 + 合併編輯 -->
+        <div v-if="mergeStep === 'list'" class="flex items-center justify-between gap-3 w-full">
           <span class="text-sm text-[var(--p-text-color)]">
             <i class="pi pi-check-circle text-[var(--p-primary-color)] mr-2" style="font-size: 14px"></i>
             已選 <span class="font-bold">{{ mergeSelectedOrders.length }}</span> 筆訂單 ·
@@ -1432,8 +1702,13 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           </span>
           <div class="flex items-center gap-2">
             <Button label="清除" severity="secondary" variant="outlined" :disabled="mergeSelectedOrders.length === 0" @click="clearMergeSelection" />
-            <Button label="合併編輯" icon="pi pi-link" :disabled="mergeSelectedOrders.length < 2" @click="confirmMerge" />
+            <Button label="合併編輯" :disabled="mergeSelectedOrders.length < 2" @click="goToMergeEditor" />
           </div>
+        </div>
+        <!-- Editor step footer:取消(次要) + 確認合併(主色);與 List step「清除+合併編輯」操作模型對稱 -->
+        <div v-else class="flex items-center justify-end gap-2 w-full">
+          <Button label="取消" severity="secondary" variant="outlined" @click="backToMergeList" />
+          <Button label="確認合併" @click="confirmMerge" />
         </div>
       </template>
     </Dialog>
@@ -1481,7 +1756,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           </span>
           <div class="flex items-center gap-2">
             <Button label="取消" severity="secondary" variant="outlined" @click="batchConfirmDialogVisible = false" />
-            <Button :label="activeBatchConfig.confirmActionLabel" icon="pi pi-check" @click="confirmBatchAction" />
+            <Button :label="activeBatchConfig.confirmActionLabel" @click="confirmBatchAction" />
           </div>
         </div>
       </template>
