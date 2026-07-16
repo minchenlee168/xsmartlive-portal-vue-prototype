@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { ManagedProduct, ManagedProductSpec } from '../utils/productMock'
 
 /**
- * 批量調整庫存 dialog（從商品列表 → 庫存欄旁筆 icon 開啟）。
+ * 批次調整庫存 dialog（從商品列表 → 庫存欄旁筆 icon 開啟）。
  *
  * 結構：
  * - 上半部：規格庫存調整 table — 每個 spec 一列，可輸入庫存增減 + 選原因，
@@ -243,7 +243,7 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
   >
     <template #header>
       <span class="text-lg font-semibold text-[var(--p-text-color)]">
-        {{ view === 'history' ? '調整紀錄' : `批量調整庫存 - ${product?.name ?? ''}` }}
+        {{ view === 'history' ? '調整紀錄' : `批次調整庫存 - ${product?.name ?? ''}` }}
       </span>
     </template>
 

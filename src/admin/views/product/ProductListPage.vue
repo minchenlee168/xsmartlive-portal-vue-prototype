@@ -249,7 +249,7 @@ function bundleRowsOf(p: ManagedProduct): BundleRow[] {
   })
 }
 
-// 批量調整庫存 dialog（庫存欄旁 pencil icon 開啟）
+// 批次調整庫存 dialog（庫存欄旁 pencil icon 開啟）
 const stockDialogVisible = ref(false)
 const stockDialogProduct = ref<ManagedProduct | null>(null)
 function openStockAdjust(p: ManagedProduct): void {
@@ -438,7 +438,7 @@ function onStockAdjustSave(payload: StockAdjustmentPayload): void {
                     庫存
                     <Button
                       v-if="p.kind !== 'bundle'"
-                      v-tooltip.top="'批量調整庫存'"
+                      v-tooltip.top="'批次調整庫存'"
                       icon="pi pi-pencil"
                       severity="secondary"
                       variant="text"
