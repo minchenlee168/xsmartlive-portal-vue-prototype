@@ -82,17 +82,46 @@ const reasonOptions = computed(() => ADJUSTMENT_REASONS.filter((r) => r.modes.in
 const showCostColumn = computed(
   () => adjustMode.value === 'increase' && adjustments.value.some((r) => r.reason === 'restock'),
 )
-/** 切換方向時，把各列已選但不適用新方向的原因重置為該方向的預設原因 */
+
+/** 頂列批次快捷：填數量 / 原因 / 成本後按「套用」帶入下方所有規格；未填時顯示 placeholder */
+const batchDelta = ref<number | null>(null)
+const batchReason = ref<string | null>(null)
+const batchCost = ref<number | null>(null)
+/** 頂列成本欄：僅「增加庫存 + 進貨」時顯示，與表格成本欄邏輯一致 */
+const showBatchCost = computed(() => adjustMode.value === 'increase' && batchReason.value === 'restock')
+/** 按「套用」把頂列設定一次帶入所有規格列（原因 / 成本未填則不覆蓋該欄） */
+function applyBatch(): void {
+  const d = batchDelta.value ?? 0
+  adjustments.value.forEach((r) => {
+    r.delta = d
+    if (batchReason.value) r.reason = batchReason.value
+  })
+  if (showBatchCost.value && batchCost.value != null) {
+    const c = batchCost.value
+    adjustments.value.forEach((r) => { r.price = c })
+  }
+}
+
+/** 切換方向時，把各列已選但不適用新方向的原因重置為預設；頂列原因若不適用則清回 placeholder */
 watch(adjustMode, (mode) => {
   const validValues = reasonOptions.value.map((r) => r.value)
   const fallback = mode === 'increase' ? 'restock' : 'sale'
   adjustments.value.forEach((row) => {
     if (!validValues.includes(row.reason)) row.reason = fallback
   })
+  if (batchReason.value !== null && !validValues.includes(batchReason.value)) batchReason.value = null
 })
 const showHistory = ref(true)
 const historyFilter = ref<number | 'all'>('all')
-const historyKeyword = ref('')
+// 調整紀錄搜尋：人員 / 原因下拉先存 pending，按「搜尋」才套用到 applied（規格 SelectButton 仍即時篩選）
+const pendingOperator = ref<string | null>(null)
+const pendingReason = ref<string | null>(null)
+const appliedOperator = ref<string | null>(null)
+const appliedReason = ref<string | null>(null)
+function applyHistorySearch(): void {
+  appliedOperator.value = pendingOperator.value
+  appliedReason.value = pendingReason.value
+}
 
 /** 抽屜內視圖切換：main = 庫存調整 + 近十筆預覽；history = 調整紀錄全表 + 返回 */
 type DrawerView = 'main' | 'history'
@@ -105,6 +134,9 @@ watch(
     if (!v || !p) return
     view.value = 'main'
     adjustMode.value = 'increase'
+    batchDelta.value = null
+    batchReason.value = null
+    batchCost.value = null
     adjustments.value = (p as ManagedProduct).specs.map((s) => ({
       specId: s.id,
       specName: s.name,
@@ -114,7 +146,10 @@ watch(
       price: s.cost,
     }))
     historyFilter.value = 'all'
-    historyKeyword.value = ''
+    pendingOperator.value = null
+    pendingReason.value = null
+    appliedOperator.value = null
+    appliedReason.value = null
     showHistory.value = true
   },
   { immediate: true },
@@ -169,7 +204,7 @@ interface HistoryEntry {
 function buildMockHistory(p: ManagedProduct | null): HistoryEntry[] {
   if (!p) return []
   const reasons = ['進貨', '銷售', '盤點', '退貨', '庫存回補', '內部使用']
-  const operators = ['Test Name', '阿明', '小芳', '王太太']
+  const operators = ['Test Name', '阿明', '小芳', '工讀生']
   // 原因 label → 適用方向，用來讓異動符號與原因一致
   const labelModes = Object.fromEntries(ADJUSTMENT_REASONS.map((r) => [r.label, r.modes]))
   const list: HistoryEntry[] = []
@@ -214,8 +249,8 @@ const filteredHistory = computed(() => {
   if (historyFilter.value !== 'all') {
     list = list.filter((h) => h.specId === historyFilter.value)
   }
-  const k = historyKeyword.value.trim()
-  if (k) list = list.filter((h) => h.reason.includes(k))
+  if (appliedOperator.value) list = list.filter((h) => h.operator === appliedOperator.value)
+  if (appliedReason.value) list = list.filter((h) => h.reason === appliedReason.value)
   return list
 })
 
@@ -229,6 +264,14 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
   { label: '全部規格', value: 'all' },
   ...((props.product?.specs ?? []).map((s) => ({ label: s.name, value: s.id }))),
 ])
+
+/** 調整人員 / 調整原因下拉選項：直接抓現有調整紀錄裡出現過的值去重 */
+const operatorOptions = computed(() =>
+  [...new Set(allHistory.value.map((h) => h.operator))].map((v) => ({ label: v, value: v })),
+)
+const historyReasonOptions = computed(() =>
+  [...new Set(allHistory.value.map((h) => h.reason))].map((v) => ({ label: v, value: v })),
+)
 </script>
 
 <template>
@@ -249,18 +292,51 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
 
     <!-- ========== Main 視圖：規格調整 + 近十筆預覽 ========== -->
     <div v-if="view === 'main'" class="flex flex-col gap-3">
-      <!-- 第一步：先選調整方向；減少庫存時成本欄鎖定為平均成本 -->
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-[var(--p-text-color)]">調整方式</span>
-        <SelectButton
-          v-model="adjustMode"
-          :options="ADJUST_MODES"
+      <!-- 第一步：先選調整方向，填數量 / 原因 / 成本後按「套用」帶入下方所有規格 -->
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-sm whitespace-nowrap text-[var(--p-text-color)]">調整方式</span>
+          <SelectButton
+            v-model="adjustMode"
+            :options="ADJUST_MODES"
+            option-label="label"
+            option-value="value"
+            :allow-empty="false"
+          />
+        </div>
+        <InputNumber
+          v-model="batchDelta"
+          placeholder="調整數量"
+          show-buttons
+          button-layout="stacked"
+          :min="0"
+          fluid
+          style="width: 140px"
+          class="shrink-0"
+        />
+        <Select
+          v-model="batchReason"
+          :options="reasonOptions"
           option-label="label"
           option-value="value"
-          :allow-empty="false"
+          placeholder="調整原因"
+          show-clear
+          style="width: 150px"
+          class="shrink-0"
         />
+        <InputNumber
+          v-if="showBatchCost"
+          v-model="batchCost"
+          prefix="$"
+          placeholder="成本單價"
+          :min="0"
+          style="width: 130px"
+          class="shrink-0"
+        />
+        <!-- 有成本單價欄時把套用推到最右，避免壓到成本欄；沒有時緊接調整原因旁 -->
+        <Button label="套用" severity="secondary" outlined class="shrink-0" :class="{ 'ml-auto': showBatchCost }" @click="applyBatch" />
       </div>
-      <span class="text-xs text-[var(--p-text-muted-color)]">規格庫存調整</span>
+      <span class="text-xs text-[var(--p-text-muted-color)]">規格庫存調整（按「套用」會帶入下方所有規格，可再逐列微調）</span>
 
       <!-- 規格庫存調整 table（PrimeVue DataTable + Column，cell 字級 / 背景交回 Aura 預設） -->
       <DataTable
@@ -331,7 +407,8 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
       @update:collapsed="(c) => showHistory = !c"
     >
       <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- 規格切換靠左 -->
           <SelectButton
             v-model="historyFilter"
             :options="specFilterOptions"
@@ -339,10 +416,28 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
             option-value="value"
             :allow-empty="false"
           />
-          <InputGroup class="!w-fit">
-            <InputText v-model="historyKeyword" placeholder="搜尋調整原因" class="!w-[260px]" />
-            <Button label="搜尋" />
-          </InputGroup>
+          <!-- 搜尋接續在右：調整人員 / 調整原因下拉 + 搜尋鈕（選項抓自紀錄） -->
+          <div class="flex items-center gap-2">
+            <Select
+              v-model="pendingOperator"
+              :options="operatorOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="調整人員"
+              show-clear
+              style="width: 160px"
+            />
+            <Select
+              v-model="pendingReason"
+              :options="historyReasonOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="調整原因"
+              show-clear
+              style="width: 160px"
+            />
+            <Button label="搜尋" @click="applyHistorySearch" />
+          </div>
         </div>
 
         <!-- 預覽 table：cell 字級 / 背景交回 Aura 預設 -->
@@ -364,7 +459,7 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
           </Column>
           <Column field="after" header="調整後" style="width: 80px" />
           <Column field="reason" header="調整原因" style="width: 120px" />
-          <Column field="operator" header="操作人員" />
+          <Column field="operator" header="調整人員" />
           <template #empty>
             <div class="py-6 text-center text-sm text-[var(--p-text-muted-color)]">
               沒有符合條件的調整紀錄
@@ -380,8 +475,8 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
 
     <!-- ========== History 視圖：調整紀錄全表 + 返回 ========== -->
     <div v-if="view === 'history'" class="flex flex-col gap-3">
-      <!-- 規格 SelectButton + 原因搜尋（與 main 視圖共用 state） -->
-      <div class="flex items-center justify-between gap-3 flex-wrap">
+      <!-- 規格切換靠左、搜尋（調整人員 / 調整原因下拉 + 搜尋鈕）接續在右（與 main 視圖共用 state） -->
+      <div class="flex items-center gap-3 flex-wrap">
         <SelectButton
           v-model="historyFilter"
           :options="specFilterOptions"
@@ -389,7 +484,27 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
           option-value="value"
           :allow-empty="false"
         />
-        <InputText v-model="historyKeyword" placeholder="搜尋調整原因" class="!w-[260px]" />
+        <div class="flex items-center gap-2">
+          <Select
+            v-model="pendingOperator"
+            :options="operatorOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="調整人員"
+            show-clear
+            style="width: 160px"
+          />
+          <Select
+            v-model="pendingReason"
+            :options="historyReasonOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="調整原因"
+            show-clear
+            style="width: 160px"
+          />
+          <Button label="搜尋" @click="applyHistorySearch" />
+        </div>
       </div>
 
       <!-- 全表：cell 字級 / 背景交回 Aura 預設 -->
@@ -415,7 +530,7 @@ const specFilterOptions = computed<Array<{ label: string; value: number | 'all' 
         </Column>
         <Column field="after" header="調整後" style="width: 80px" />
         <Column field="reason" header="調整原因" style="width: 120px" />
-        <Column field="operator" header="操作人員" />
+        <Column field="operator" header="調整人員" />
         <template #empty>
           <div class="py-6 text-center text-sm text-[var(--p-text-muted-color)]">
             沒有符合條件的調整紀錄
