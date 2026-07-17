@@ -496,6 +496,16 @@ const isLoading = ref(true)
 const layoutStore = useLayoutStore()
 const toast = useToast()
 const confirm = useConfirm()
+
+/** 已列印標籤的訂單 id；列印過的標籤按鈕右上角顯示打勾徽章（mock：點擊即視為已列印，可重印） */
+const labelPrintedIds = ref(new Set<string>())
+/** 表格「標籤列印」按鈕：mock 列印 → 跳提示 + 標記已列印 */
+function onPrintLabel(o: OrderRow, event: Event): void {
+  event.stopPropagation()
+  labelPrintedIds.value.add(o.id)
+  toast.add({ severity: 'info', summary: `列印標籤 · ${o.orderNo}`, life: 2500 })
+}
+
 onMounted(() => {
   layoutStore.isSidebarCollapsed = true
   // 模擬初始載入 1.2 秒
@@ -1297,10 +1307,16 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                   <i class="pi pi-print" style="font-size: 15.75px"></i>
                 </button>
                 <button
-                  v-tooltip.top="'標籤列印'"
-                  class="size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+                  v-tooltip.top="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
+                  class="relative size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+                  @click="onPrintLabel(data, $event)"
                 >
                   <i class="pi pi-tag" style="font-size: 15.75px"></i>
+                  <i
+                    v-if="labelPrintedIds.has(data.id)"
+                    class="pi pi-check-circle absolute -top-1 -right-1 text-[#16A34A]"
+                    style="font-size: 13px; background: var(--p-content-background); border-radius: 9999px"
+                  ></i>
                 </button>
                 <button
                   v-tooltip.top="data.invoiceNumber ? `已開立：${data.invoiceNumber}` : '開立發票'"
