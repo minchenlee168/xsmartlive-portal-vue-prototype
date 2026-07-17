@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { MenuItem } from 'primevue/menuitem'
 import { useLayoutStore } from '@/admin/stores/layout'
 import { useToast } from 'primevue/usetoast'
@@ -637,6 +637,77 @@ const selectedForBatchOrders = computed<OrderRow[]>(() =>
   orders.value.filter((o) => selectedForBatch.value.has(o.id)),
 )
 
+// ── 匯出 CSV：需先套用任一篩選或勾選 ≥1 筆才可匯出（mock，實際受權限控制）──
+const hasAppliedFilter = computed<boolean>(() => {
+  const a = applied.value
+  return a.keyword !== '' || a.dateRange !== null || a.payment !== '' || a.shippingStatus !== ''
+    || a.quickFilter !== 'all' || a.orderSource !== '' || a.socialPlatform !== '' || a.multiCart !== ''
+    || a.sessionName !== '' || a.precisionValue !== ''
+})
+const canExport = computed<boolean>(() => hasAppliedFilter.value || selectedForBatch.value.size > 0)
+const exportMenuRef = ref<PopoverApi | null>(null)
+function toggleExportMenu(event: Event): void {
+  exportMenuRef.value?.toggle(event)
+}
+function exportCsv(withDetail: boolean): void {
+  if (!canExport.value) return
+  const scope = selectedForBatch.value.size > 0 ? `已勾選 ${selectedForBatch.value.size} 筆` : '符合篩選的訂單'
+  toast.add({
+    severity: 'success',
+    summary: withDetail ? '匯出訂單列表（含商品明細）' : '匯出訂單列表',
+    detail: `已開始匯出 CSV（${scope}）`,
+    life: 2500,
+  })
+}
+/** 匯出選單項目：未達匯出條件時 disabled（用 Menu 取得內建鍵盤導覽 / a11y / 選單高度） */
+const exportMenuItems = computed<MenuItem[]>(() => [
+  { label: '匯出訂單列表', icon: 'pi pi-file-export', disabled: !canExport.value, command: () => exportCsv(false) },
+  { label: '匯出訂單列表（含商品明細）', icon: 'pi pi-file-export', disabled: !canExport.value, command: () => exportCsv(true) },
+])
+
+// ── 表格橫向捲動提示：資料還沒捲到底時，在固定操作欄左側顯示漸層 + 可點的 chevron ──
+const tableScrollWrap = ref<HTMLElement | null>(null)
+const canScrollLeft = ref(false)
+const canScrollRight = ref(false)
+const overlayTop = ref(0)
+const overlayHeight = ref(0)
+const frozenColWidth = ref(0)
+let scrollEl: HTMLElement | null = null
+function measureTable(): void {
+  const wrap = tableScrollWrap.value
+  if (!wrap) return
+  scrollEl = wrap.querySelector('.p-datatable-table-container')
+  if (!scrollEl) return
+  overlayTop.value = scrollEl.offsetTop
+  overlayHeight.value = scrollEl.clientHeight
+  const frozen = wrap.querySelector<HTMLElement>('.p-datatable-thead .p-datatable-frozen-column')
+  frozenColWidth.value = frozen ? frozen.offsetWidth : 0
+  updateScrollState()
+}
+function updateScrollState(): void {
+  if (!scrollEl) return
+  canScrollLeft.value = scrollEl.scrollLeft > 1
+  // 剩餘可捲距離 > 16px 才算還能往右（扣掉 scrollbar-gutter / 常駐捲軸保留的 ~12px 殘差，避免捲到底仍顯示）
+  canScrollRight.value = scrollEl.scrollWidth - (scrollEl.scrollLeft + scrollEl.clientWidth) > 16
+}
+function scrollTableBy(dir: 1 | -1): void {
+  scrollEl?.scrollBy({ left: dir * Math.round((scrollEl.clientWidth || 400) * 0.6), behavior: 'smooth' })
+}
+let tableRO: ResizeObserver | null = null
+onMounted(async () => {
+  await nextTick()
+  measureTable()
+  scrollEl?.addEventListener('scroll', updateScrollState, { passive: true })
+  tableRO = new ResizeObserver(() => measureTable())
+  if (tableScrollWrap.value) tableRO.observe(tableScrollWrap.value)
+})
+onBeforeUnmount(() => {
+  scrollEl?.removeEventListener('scroll', updateScrollState)
+  tableRO?.disconnect()
+})
+// 換頁 / 篩選改變後行高變動，重新量測
+watch(filtered, () => nextTick(measureTable))
+
 function openBatchConfirmDialog(): void {
   if (selectedForBatch.value.size === 0) return
   batchConfirmDialogVisible.value = true
@@ -939,7 +1010,30 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               />
             </Button>
             <Button label="預設配送設定" variant="outlined" @click="defaultShippingConfigDialogVisible = true" />
-            <Button label="匯出 CSV"      icon="pi pi-upload"  severity="secondary" variant="outlined" />
+            <Button
+              label="匯出 CSV"
+              icon="pi pi-file-export"
+              severity="secondary"
+              variant="outlined"
+              aria-haspopup="true"
+              aria-controls="export-menu"
+              @click="toggleExportMenu"
+            />
+            <Menu ref="exportMenuRef" id="export-menu" :model="exportMenuItems" :popup="true">
+              <!-- 未達匯出條件時的警告（Menu #start 插槽） -->
+              <template #start>
+                <Message v-if="!canExport" severity="warn" :closable="false" size="small" class="mx-2 my-2">
+                  尚未套用任何篩選，也未勾選訂單。請先套用篩選條件或至少勾選一筆再匯出。
+                </Message>
+              </template>
+              <!-- 權限提示（Menu #end 插槽） -->
+              <template #end>
+                <div class="mt-1 pt-2 border-t border-[var(--p-content-border-color)] flex items-center gap-1 px-3 py-2 text-xs text-[var(--p-text-muted-color)]">
+                  <i class="pi pi-info-circle"></i>
+                  此功能受權限控制
+                </div>
+              </template>
+            </Menu>
           </div>
         </div>
 
@@ -1098,6 +1192,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             </div>
           </div>
 
+          <div ref="tableScrollWrap" class="relative">
           <DataTable
             :value="filtered"
             :striped-rows="true"
@@ -1343,6 +1438,39 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             </div>
           </template>
           </DataTable>
+
+          <!-- 左側捲動提示：已向右捲動時出現，點擊往回捲 -->
+          <div
+            v-show="canScrollLeft"
+            class="pointer-events-none absolute z-10 flex items-start justify-start pl-1"
+            :style="{ top: overlayTop + 'px', height: overlayHeight + 'px', left: '0px', width: '56px', background: 'linear-gradient(to left, transparent, var(--p-content-background))' }"
+          >
+            <button
+              type="button"
+              class="pointer-events-auto mt-3 size-7 rounded-full bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] shadow flex items-center justify-center text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+              aria-label="向左捲動"
+              @click="scrollTableBy(-1)"
+            >
+              <i class="pi pi-chevron-left" style="font-size: 12px"></i>
+            </button>
+          </div>
+
+          <!-- 右側捲動提示：資料尚未捲到底時出現，貼在固定操作欄左側，點擊往右捲看更多欄位 -->
+          <div
+            v-show="canScrollRight"
+            class="pointer-events-none absolute z-10 flex items-start justify-end pr-1"
+            :style="{ top: overlayTop + 'px', height: overlayHeight + 'px', right: frozenColWidth + 'px', width: '56px', background: 'linear-gradient(to right, transparent, var(--p-content-background))' }"
+          >
+            <button
+              type="button"
+              class="pointer-events-auto mt-3 size-7 rounded-full bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] shadow flex items-center justify-center text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+              aria-label="向右捲動查看更多欄位"
+              @click="scrollTableBy(1)"
+            >
+              <i class="pi pi-chevron-right" style="font-size: 12px"></i>
+            </button>
+          </div>
+          </div>
         </div>
       </template>
     </Card>
