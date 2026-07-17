@@ -4,206 +4,268 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import MultiCartFormDialog, {
   type MultiCartFormPayload,
-  type MultiCartInitial,
+  type MultiCartRecord,
+  type CheckoutMode,
+  type TempLayer,
 } from './components/MultiCartFormDialog.vue'
 
 /**
- * 多購物車設定頁。
+ * 多購物車設定頁（依規劃原始設計 + 設計決議）。
  *
- * - 卡片版本 / 列表版本 兩個檢視 tab（目前 mock 只實作卡片版本，列表版本標示「規劃中」）
- * - 預設「購物車」單獨置頂顯示（紫框高亮、預設 tag）
- * - 其他購物車以「全部 / 可結帳 / 關閉中」狀態 tab 過濾顯示
- * - 每張卡片：標題 / 建立日期 / 支援金流 chips / 支援物流 chips / 可結帳 toggle / 編輯 / 刪除
+ * - 列表：建立日期 / 多購物車名稱（含說明）/ 設定摘要（金流・物流・行銷三行彩色標籤）/
+ *   啟用狀態 / 操作
+ * - 搜尋（名稱或購物車 ID）＋ 篩選（狀態 / 結帳模式 / 溫層）＋ 清除 ＋ 只顯示啟用中
+ * - 欄位排序、分頁（每頁 10 為單位：10、20、30、40、50）
+ * - 刪除為軟刪除；預設購物車不可停用、不可刪除
  */
 
 const toast = useToast()
 const confirm = useConfirm()
 
-// 檢視 tab（卡片 / 列表）
-type ViewMode = 'card' | 'list'
-const viewMode = ref<ViewMode>('card')
-
-// 狀態 tab
-type StatusTab = 'all' | 'active' | 'closed'
-const statusTab = ref<StatusTab>('all')
-const statusTabs: Array<{ key: StatusTab; label: string }> = [
-  { key: 'all',    label: '全部' },
-  { key: 'active', label: '可結帳' },
-  { key: 'closed', label: '關閉中' },
-]
-
-interface Cart {
-  id: number
-  name: string
-  isDefault?: boolean
-  /** true = 可結帳 / false = 關閉中 */
-  canCheckout: boolean
-  /** 建立日期（卡片版） / 建立時間（列表版用「YYYY-MM-DD HH:mm」） */
-  createdAt: string
-  /** 副描述（列表版顯示在名稱下方） */
-  description?: string
-  /** 支援金流 chip 標籤 */
-  payments: string[]
-  /** 支援物流 chip 標籤 */
-  shippings: string[]
-  /** 啟用紅利 */
-  featureBonus?: boolean
-  /** 允許棄標 */
-  featureAbandon?: boolean
-}
-
-const carts = ref<Cart[]>([
+const carts = ref<MultiCartRecord[]>([
   {
-    id: 1,
-    name: '購物車',
-    isDefault: true,
-    canCheckout: true,
-    createdAt: '2026-04-01 09:00',
-    payments: ['藍新金流', '藍新金流', '轉帳匯款'],
-    shippings: ['宅配(7-11 (Mock)、嘉里大榮 (Mock))', '超商取貨(7-11 (Mock))'],
+    date: '2026/05/07 14:44',
+    name: 'XSMART直播',
+    id: 'MC-000001',
+    desc: '新建收單時將自動套用此設定',
+    locked: true,
+    note: '銀行戶頭資料：<br>銀行:台新008<br>分行:13456-111333',
+    mode: '標單必結',
+    temp: '常溫',
+    codStar: true,
+    codStarLevel: 3,
+    coupon: true,
+    reward: true,
+    freeShip: 2000,
+    on: true,
+    payList: ['線上信用卡（藍新）', 'Apple Pay', 'ATM 繳費帳號', '超商代碼繳費', 'LINE Pay', '貨到付款'],
+    logiList: ['宅配', '超商配送', '跨境', '自取', '商家自建（如郵局）'],
   },
   {
-    id: 2,
-    name: '快速到貨購物車',
-    canCheckout: false,
-    createdAt: '2026-04-25 14:32',
-    payments: ['藍新金流'],
-    shippings: ['宅配(7-11 (Mock)、嘉里大榮 (Mock))'],
+    date: '2026/05/07 14:44',
+    name: '全功能配置',
+    id: 'MC-000002',
+    desc: '開放所有結帳行為與多種金流物流',
+    mode: '標單必結',
+    temp: '常溫',
+    codStar: false,
+    codStarLevel: 1,
+    coupon: true,
+    reward: true,
+    freeShip: 2000,
+    on: true,
+    payList: ['線上信用卡（藍新）', 'Apple Pay', 'ATM 繳費帳號', '超商代碼繳費', 'LINE Pay', '貨到付款'],
+    logiList: ['宅配', '超商配送', '跨境', '自取', '商家自建（如郵局）'],
   },
   {
-    id: 3,
-    name: '超商專用購物車',
-    canCheckout: true,
-    createdAt: '2026-04-22 10:15',
-    payments: ['貨到付款', '藍新金流'],
-    shippings: ['超商取貨(7-11 (Mock))'],
+    date: '2026/05/07 14:44',
+    name: '貨到付款限定',
+    id: 'MC-000003',
+    desc: '只開放超商貨到付款，不收線上付款',
+    mode: '自選結帳',
+    temp: '常溫',
+    codStar: true,
+    codStarLevel: 2,
+    coupon: false,
+    reward: false,
+    freeShip: null,
+    on: true,
+    payList: ['貨到付款'],
+    logiList: ['宅配', '超商配送'],
   },
   {
-    id: 4,
+    date: '2026/05/14 15:18',
+    name: '跨境配置',
+    id: 'MC-000004',
+    desc: '跨境配送（印尼、馬來西亞）專用',
+    mode: '標單必結',
+    temp: '冷凍',
+    codStar: false,
+    codStarLevel: 1,
+    coupon: true,
+    reward: false,
+    freeShip: 1500,
+    on: true,
+    payList: ['線上信用卡（藍新）', 'Apple Pay', 'LINE Pay'],
+    logiList: ['宅配', '跨境'],
+  },
+  {
+    date: '2026/05/14 19:05',
+    name: '自送結帳',
+    id: 'MC-000005',
+    desc: '只允許商家自行配送，不走第三方物流',
+    mode: '棄標結帳',
+    temp: '冷藏',
+    codStar: true,
+    codStarLevel: 4,
+    coupon: false,
+    reward: true,
+    freeShip: null,
+    on: false,
+    payList: ['轉帳匯款', '貨到付款'],
+    logiList: ['商家自建（如郵局）'],
+  },
+  {
+    date: '2026/05/14 16:07',
     name: '離島配送',
-    canCheckout: true,
-    createdAt: '2026-05-14 16:07',
-    description: '離島地區（澎湖、小琉球）專用',
-    payments: ['藍新金流', '轉帳匯款'],
-    shippings: ['宅配(嘉里大榮 (Mock))', '超商取貨(7-11 (Mock))'],
-    featureBonus: true,
-    featureAbandon: true,
+    id: 'MC-000006',
+    desc: '離島地區（澎湖、小琉球）專用',
+    mode: '暫停結帳',
+    temp: '常溫',
+    codStar: false,
+    codStarLevel: 1,
+    coupon: false,
+    reward: true,
+    freeShip: 3000,
+    on: true,
+    payList: ['ATM 繳費帳號', '貨到付款'],
+    logiList: ['宅配', '商家自建（如郵局）'],
   },
 ])
 
-const defaultCart = computed(() => carts.value.find((c) => c.isDefault))
-const otherCarts = computed(() => carts.value.filter((c) => !c.isDefault))
+// ── 搜尋 / 篩選 ────────────────────────────────
+const keyword = ref('')
+const statusFilter = ref<'all' | 'on' | 'off'>('all')
+const statusOptions = [
+  { label: '狀態：全部', value: 'all' },
+  { label: '啟用', value: 'on' },
+  { label: '停用', value: 'off' },
+]
+const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳']
+const modeFilter = ref<CheckoutMode | 'all'>('all')
+const modeOptions = [
+  { label: '結帳模式：全部', value: 'all' },
+  ...MODE_VALUES.map((m) => ({ label: m, value: m })),
+]
+const TEMP_VALUES: TempLayer[] = ['常溫', '冷藏', '冷凍']
+const tempFilter = ref<TempLayer | 'all'>('all')
+const tempOptions = [
+  { label: '溫層：全部', value: 'all' },
+  ...TEMP_VALUES.map((t) => ({ label: t, value: t })),
+]
+const onlyEnabled = ref(false)
 
-// 列表版本：分頁
-const listPageFirst = ref(0)
-const listRows = ref(10)
-const listRowsOptions = [10, 20, 50]
+function onResetFilters(): void {
+  keyword.value = ''
+  statusFilter.value = 'all'
+  modeFilter.value = 'all'
+  tempFilter.value = 'all'
+  onlyEnabled.value = false
+}
 
-const filteredCarts = computed(() => {
-  if (statusTab.value === 'all') return otherCarts.value
-  if (statusTab.value === 'active') return otherCarts.value.filter((c) => c.canCheckout)
-  return otherCarts.value.filter((c) => !c.canCheckout)
-})
+const visibleCarts = computed(() =>
+  carts.value.filter((c) => {
+    if (c.deleted) return false
+    if (onlyEnabled.value && !c.on) return false
+    if (statusFilter.value === 'on' && !c.on) return false
+    if (statusFilter.value === 'off' && c.on) return false
+    if (modeFilter.value !== 'all' && c.mode !== modeFilter.value) return false
+    if (tempFilter.value !== 'all' && c.temp !== tempFilter.value) return false
+    const kw = keyword.value.trim()
+    if (kw && !`${c.name} ${c.id}`.includes(kw)) return false
+    return true
+  }),
+)
 
-// 新增 / 編輯多購物車 dialog
+// ── 分頁（每頁 10 為單位） ─────────────────────
+const pageFirst = ref(0)
+const pageRows = ref(10)
+const pageRowsOptions = [10, 20, 30, 40, 50]
+
+// ── 設定摘要（金流 / 物流 / 行銷 三行） ────────
+interface SummaryLine {
+  label: string
+  labelClass: string
+  parts: Array<{ text: string; off?: boolean }>
+}
+function summaryOf(c: MultiCartRecord): SummaryLine[] {
+  return [
+    {
+      label: '金流',
+      labelClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      parts: [
+        { text: c.mode },
+        { text: `支付 ${c.payList.length} 種` },
+      ],
+    },
+    {
+      label: '物流',
+      labelClass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      parts: [
+        { text: `${c.temp}溫層` },
+        c.codStar
+          ? { text: `${c.codStarLevel} 星等過濾` }
+          : { text: '無星等過濾', off: true },
+        { text: `物流 ${c.logiList.length} 種` },
+      ],
+    },
+    {
+      label: '行銷',
+      labelClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      parts: [
+        c.coupon ? { text: '啟用優惠券' } : { text: '關閉優惠券', off: true },
+        c.reward ? { text: '啟用紅利' } : { text: '關閉紅利', off: true },
+        c.freeShip != null
+          ? { text: `免運滿 $${c.freeShip.toLocaleString()}` }
+          : { text: '未設定免運', off: true },
+      ],
+    },
+  ]
+}
+
+// ── 新增 / 編輯 dialog ────────────────────────
 const formDialogVisible = ref(false)
-const formDialogInitial = ref<MultiCartInitial | null>(null)
+const formDialogInitial = ref<MultiCartRecord | null>(null)
+const defaultCart = computed(() => carts.value.find((c) => c.locked) ?? null)
 
-const paymentLabelMap: Record<string, string> = {
-  transfer: '轉帳匯款',
-  cod: '貨到付款',
-  pickup: '自取',
-  'newebpay-credit': '藍新金流',
-  'newebpay-atm': '藍新金流',
-  ipass: 'iPASS MONEY',
-  linepay: 'LINE Pay',
+function nextCartId(): string {
+  const max = Math.max(0, ...carts.value.map((c) => Number(c.id.replace(/\D/g, '')) || 0))
+  return `MC-${String(max + 1).padStart(6, '0')}`
 }
-const shippingLabelMap: Record<string, string> = {
-  home: '宅配(7-11 (Mock)、嘉里大榮 (Mock))',
-  cvs:  '超商取貨(7-11 (Mock))',
-}
-/** label → id：mock 用簡單 reverse map（藍新金流預設信用卡，多個 ATM 帳號 user 再勾） */
-function paymentLabelToId(label: string): string {
-  const reverse: Record<string, string> = {
-    '轉帳匯款': 'transfer',
-    '貨到付款': 'cod',
-    '自取': 'pickup',
-    '藍新金流': 'newebpay-credit',
-    'iPASS MONEY': 'ipass',
-    'LINE Pay': 'linepay',
-  }
-  return reverse[label] ?? label
-}
-function shippingLabelToId(label: string): string {
-  if (label.startsWith('宅配')) return 'home'
-  if (label.startsWith('超商')) return 'cvs'
-  return label
-}
+const generatedId = computed(nextCartId)
 
 function onAddCart(): void {
   formDialogInitial.value = null
   formDialogVisible.value = true
 }
-function onEditCart(c: Cart): void {
-  // 把 Cart 投影成 MultiCartInitial 預填到 dialog
-  formDialogInitial.value = {
-    id: c.id,
-    name: c.name,
-    behaviors: {
-      canCheckout: c.canCheckout,
-      allowBonus:  !!c.featureBonus,
-      allowAbandon: !!c.featureAbandon,
-    },
-    payments: Array.from(new Set(c.payments.map(paymentLabelToId))),
-    shippings: Array.from(new Set(c.shippings.map(shippingLabelToId))),
-  }
+function onEditCart(c: MultiCartRecord): void {
+  formDialogInitial.value = c
   formDialogVisible.value = true
 }
 function onCartFormSaved(payload: MultiCartFormPayload): void {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
-
-  if (payload.id != null) {
-    // 編輯模式：找到原本的 cart 寫回
-    const target = carts.value.find((c) => c.id === payload.id)
+  if (payload.editingId) {
+    const target = carts.value.find((c) => c.id === payload.editingId)
     if (!target) return
-    target.name = payload.name
-    target.canCheckout = payload.behaviors.canCheckout
-    target.payments = payload.payments.map((id) => paymentLabelMap[id] ?? id)
-    target.shippings = payload.shippings.map((id) => shippingLabelMap[id] ?? id)
-    target.featureBonus = payload.behaviors.allowBonus
-    target.featureAbandon = payload.behaviors.allowAbandon
-    toast.add({ severity: 'success', summary: `已儲存「${payload.name}」`, life: 1800 })
+    Object.assign(target, payload.record)
+    toast.add({ severity: 'success', summary: `已儲存「${payload.record.name}」`, life: 1800 })
     return
   }
-
-  // 新增模式
-  const newId = Math.max(0, ...carts.value.map((c) => c.id)) + 1
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
   carts.value.push({
-    id: newId,
-    name: payload.name,
-    canCheckout: payload.behaviors.canCheckout,
-    createdAt: ts,
-    payments: payload.payments.map((id) => paymentLabelMap[id] ?? id),
-    shippings: payload.shippings.map((id) => shippingLabelMap[id] ?? id),
-    featureBonus: payload.behaviors.allowBonus,
-    featureAbandon: payload.behaviors.allowAbandon,
+    ...payload.record,
+    id: nextCartId(),
+    date: `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    on: true,
   })
-  toast.add({ severity: 'success', summary: `已建立「${payload.name}」`, life: 1800 })
+  toast.add({ severity: 'success', summary: `已建立「${payload.record.name}」`, life: 1800 })
 }
-function onDeleteCart(c: Cart, event: Event): void {
+
+/** 軟刪除：僅標記 deleted，資料保留（列表隱藏） */
+function onDeleteCart(c: MultiCartRecord, event: Event): void {
+  if (c.locked) return
   confirm.require({
     target: event.currentTarget as HTMLElement,
     header: '刪除多購物車',
-    message: `確定刪除「${c.name}」嗎？此動作無法復原。`,
+    message: `確定刪除「${c.name}」嗎？刪除後如需復原，請聯繫客服協助。`,
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: '刪除',
     rejectLabel: '取消',
     acceptClass: 'p-button-danger',
+    defaultFocus: 'reject',
     accept: () => {
-      carts.value = carts.value.filter((x) => x.id !== c.id)
-      toast.add({ severity: 'success', summary: `已刪除「${c.name}」`, life: 1500 })
+      c.deleted = true
+      toast.add({ severity: 'success', summary: `已刪除「${c.name}」`, life: 1800 })
     },
   })
 }
@@ -218,229 +280,168 @@ function onDeleteCart(c: Cart, event: Event): void {
     }"
   >
     <template #content>
-      <!-- 頁首：標題 + 說明 icon -->
-      <div class="px-6 pt-5 pb-3 flex items-center gap-2">
+      <!-- 頁首：標題 + 新增 -->
+      <div class="px-6 pt-5 pb-3 flex items-center justify-between gap-3 flex-wrap">
         <h1 class="text-2xl font-bold text-[var(--p-text-color)]">多購物車設定</h1>
-        <i
-          v-tooltip.top="'透過多購物車設定，讓不同類型訂單走獨立的金物流組合'"
-          class="pi pi-info-circle text-[var(--p-text-muted-color)] cursor-help"
-          style="font-size: 15px"
-        ></i>
-      </div>
-
-      <!-- 檢視 tab：卡片 / 列表（TabList 加 px-6 對齊上下內容的左右內距） -->
-      <Tabs :value="viewMode" @update:value="(v) => viewMode = v as ViewMode">
-        <TabList :pt="{ root: { class: 'px-6' } }">
-          <Tab value="card">卡片版本</Tab>
-          <Tab value="list">列表版本</Tab>
-        </TabList>
-      </Tabs>
-
-      <!-- 副標 + 新增 -->
-      <div class="px-6 pt-4 pb-3 flex items-center justify-between gap-3 flex-wrap">
-        <p class="text-sm text-[var(--p-text-muted-color)]">
-          建立多組多購物車設定，商品卡可選擇適合的多購物車組合
-        </p>
         <Button label="新增多購物車" icon="pi pi-plus" @click="onAddCart" />
       </div>
 
-      <!-- 卡片版本 -->
-      <div v-if="viewMode === 'card'" class="px-6 pb-6 flex flex-col gap-4">
-        <!-- 預設購物車 Card：紫框、紫底淡色高亮 -->
-        <div
-          v-if="defaultCart"
-          class="rounded-lg border-2 border-[var(--p-primary-color)] bg-[var(--p-primary-50)]/30 p-4"
-        >
-          <div class="flex items-start justify-between gap-3 flex-wrap">
-            <div class="flex items-center gap-2">
-              <span class="text-base font-bold text-[var(--p-text-color)]">{{ defaultCart.name }}</span>
-              <Tag value="預設" severity="info" />
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center gap-2">
-                <span class="text-[13px] text-[var(--p-text-color)]">可結帳</span>
-                <ToggleSwitch v-model="defaultCart.canCheckout" />
-              </div>
-              <Button
-                v-tooltip.top="'編輯'"
-                icon="pi pi-pencil"
-                severity="secondary"
-                variant="text"
-                rounded
-                @click="onEditCart(defaultCart)"
-              />
-            </div>
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div class="flex items-center gap-2 mb-2 text-[13px] text-[var(--p-text-muted-color)]">
-                <i class="pi pi-credit-card" style="font-size: 13px"></i>
-                支援金流
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Tag v-for="(p, i) in defaultCart.payments" :key="i" :value="p" severity="info" />
-              </div>
-            </div>
-            <div>
-              <div class="flex items-center gap-2 mb-2 text-[13px] text-[var(--p-text-muted-color)]">
-                <i class="pi pi-truck" style="font-size: 13px"></i>
-                支援物流
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Tag v-for="(s, i) in defaultCart.shippings" :key="i" :value="s" severity="info" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 狀態 tab -->
-        <div class="flex items-center gap-6 border-b border-[var(--p-content-border-color)]">
-          <button
-            v-for="t in statusTabs"
-            :key="t.key"
-            class="pb-3 text-sm font-medium transition-colors relative -mb-px"
-            :class="statusTab === t.key
-              ? 'text-[var(--p-primary-color)] border-b-2 border-[var(--p-primary-color)]'
-              : 'text-[var(--p-text-muted-color)] hover:text-[var(--p-text-color)]'"
-            @click="statusTab = t.key"
-          >{{ t.label }}</button>
-        </div>
-
-        <!-- 其他購物車卡片 -->
-        <div
-          v-for="c in filteredCarts"
-          :key="c.id"
-          class="rounded-lg border border-[var(--p-content-border-color)] p-4"
-        >
-          <div class="flex items-start justify-between gap-3 flex-wrap">
-            <div class="flex flex-col gap-1">
-              <span class="text-base font-bold text-[var(--p-text-color)]">{{ c.name }}</span>
-              <span class="text-xs text-[var(--p-text-muted-color)]">建立日期:{{ c.createdAt }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center gap-2">
-                <span class="text-[13px] text-[var(--p-text-color)]">可結帳</span>
-                <ToggleSwitch v-model="c.canCheckout" />
-              </div>
-              <Button
-                v-tooltip.top="'編輯'"
-                icon="pi pi-pencil"
-                severity="secondary"
-                variant="text"
-                rounded
-                @click="onEditCart(c)"
-              />
-              <Button
-                v-tooltip.top="'刪除'"
-                icon="pi pi-trash"
-                severity="danger"
-                variant="text"
-                rounded
-                @click="onDeleteCart(c, $event)"
-              />
-            </div>
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div class="flex items-center gap-2 mb-2 text-[13px] text-[var(--p-text-muted-color)]">
-                <i class="pi pi-credit-card" style="font-size: 13px"></i>
-                支援金流
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Tag v-for="(p, i) in c.payments" :key="i" :value="p" severity="info" />
-              </div>
-            </div>
-            <div>
-              <div class="flex items-center gap-2 mb-2 text-[13px] text-[var(--p-text-muted-color)]">
-                <i class="pi pi-truck" style="font-size: 13px"></i>
-                支援物流
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Tag v-for="(s, i) in c.shippings" :key="i" :value="s" severity="info" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="filteredCarts.length === 0" class="py-12 text-center text-color-secondary">
-          目前沒有符合條件的多購物車。
-        </div>
+      <!-- 搜尋 / 篩選列 -->
+      <div class="px-6 pb-4 flex items-center gap-2 flex-wrap">
+        <IconField icon-position="left">
+          <InputIcon><i class="pi pi-search text-sm"></i></InputIcon>
+          <InputText
+            v-model="keyword"
+            placeholder="搜尋名稱或購物車 ID"
+            aria-label="搜尋名稱或購物車 ID"
+            class="!w-[240px]"
+          />
+        </IconField>
+        <Select
+          v-model="statusFilter"
+          :options="statusOptions"
+          option-label="label"
+          option-value="value"
+          aria-label="依狀態篩選"
+          class="!w-[140px]"
+        />
+        <Select
+          v-model="modeFilter"
+          :options="modeOptions"
+          option-label="label"
+          option-value="value"
+          aria-label="依結帳模式篩選"
+          class="!w-[170px]"
+        />
+        <Select
+          v-model="tempFilter"
+          :options="tempOptions"
+          option-label="label"
+          option-value="value"
+          aria-label="依溫層篩選"
+          class="!w-[130px]"
+        />
+        <Button label="清除" severity="secondary" outlined @click="onResetFilters" />
+        <label class="ml-auto flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
+          <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
+          只顯示啟用中
+        </label>
       </div>
 
-      <!-- 列表版本 -->
-      <div v-else class="px-6 pb-6">
+      <!-- 列表 -->
+      <div class="px-6 pb-6">
         <DataTable
-          :value="carts"
+          :value="visibleCarts"
           data-key="id"
           striped-rows
           paginator
-          :rows="listRows"
-          :rows-per-page-options="listRowsOptions"
-          v-model:first="listPageFirst"
+          :rows="pageRows"
+          :rows-per-page-options="pageRowsOptions"
+          v-model:first="pageFirst"
+          removable-sort
           current-page-report-template="共 {totalRecords} 筆"
           paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
         >
-          <Column header="建立時間" style="width: 180px">
+          <Column field="date" header="建立日期" sortable style="width: 170px">
             <template #body="{ data }">
-              <span class="text-[var(--p-text-muted-color)]">{{ data.createdAt }}</span>
+              <span class="text-[var(--p-text-muted-color)]">{{ data.date }}</span>
             </template>
           </Column>
-          <Column header="名稱">
+
+          <Column field="name" header="多購物車名稱" sortable style="min-width: 200px">
             <template #body="{ data }">
               <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold">{{ data.name }}</span>
-                  <Tag v-if="data.isDefault" value="預設" severity="info" />
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-[var(--p-text-color)]">{{ data.name }}</span>
+                  <Tag v-if="data.locked" value="預設" severity="info" />
                 </div>
-                <span v-if="data.description" class="text-xs text-[var(--p-text-muted-color)]">{{ data.description }}</span>
+                <span class="text-xs text-[var(--p-text-muted-color)]">{{ data.id }}</span>
+                <span v-if="data.desc" class="text-xs text-[var(--p-text-muted-color)]">{{ data.desc }}</span>
               </div>
             </template>
           </Column>
-          <Column header="支援功能" style="width: 280px">
+
+          <Column header="設定摘要" style="min-width: 320px">
             <template #body="{ data }">
-              <div class="flex flex-wrap gap-2">
-                <Tag :value="`金流 ${data.payments.length}`" severity="info" />
-                <Tag :value="`物流 ${data.shippings.length}`" severity="info" />
-                <Tag v-if="data.featureBonus" value="紅利" severity="success" />
-                <Tag v-if="data.featureAbandon" value="可棄標" severity="secondary" />
+              <div class="flex flex-col gap-1.5">
+                <div
+                  v-for="line in summaryOf(data)"
+                  :key="line.label"
+                  class="flex items-baseline gap-2"
+                >
+                  <span
+                    class="shrink-0 w-[34px] text-center text-[11px] font-bold rounded px-0 py-0.5"
+                    :class="line.labelClass"
+                  >{{ line.label }}</span>
+                  <span class="text-[12.5px] leading-relaxed text-[var(--p-text-color)]">
+                    <template v-for="(p, i) in line.parts" :key="i">
+                      <span :class="p.off ? 'text-[var(--p-text-muted-color)]' : ''">{{ p.text }}</span
+                      ><span v-if="i < line.parts.length - 1">、</span>
+                    </template>
+                  </span>
+                </div>
               </div>
             </template>
           </Column>
-          <Column header="可結帳" style="width: 100px">
+
+          <Column field="on" header="啟用狀態" sortable style="width: 130px">
             <template #body="{ data }">
-              <ToggleSwitch v-model="data.canCheckout" />
+              <div
+                v-tooltip.top="data.locked ? '預設購物車不可停用' : ''"
+                class="inline-flex items-center gap-2"
+              >
+                <ToggleSwitch
+                  v-model="data.on"
+                  :disabled="data.locked"
+                  :aria-label="`${data.name} 啟用狀態`"
+                />
+                <span class="text-xs text-[var(--p-text-muted-color)]">
+                  {{ data.on ? '啟用' : '停用' }}
+                </span>
+              </div>
             </template>
           </Column>
-          <Column header="操作" style="width: 100px" body-class="text-right" header-class="text-right">
+
+          <Column header="操作" style="width: 110px" body-class="text-right" header-class="text-right">
             <template #body="{ data }">
-              <div class="flex items-center justify-end gap-1" @click.stop>
+              <div class="flex items-center justify-end gap-1">
                 <Button
                   v-tooltip.top="'編輯'"
-                  icon="pi pi-pencil"
-                  severity="secondary"
+                  icon="pi pi-pen-to-square"
                   variant="text"
                   rounded
+                  size="small"
+                  :aria-label="`編輯 ${data.name}`"
                   @click="onEditCart(data)"
                 />
                 <Button
-                  v-if="!data.isDefault"
+                  v-if="!data.locked"
                   v-tooltip.top="'刪除'"
                   icon="pi pi-trash"
                   severity="danger"
                   variant="text"
                   rounded
+                  size="small"
+                  :aria-label="`刪除 ${data.name}`"
                   @click="onDeleteCart(data, $event)"
+                />
+                <Button
+                  v-else
+                  v-tooltip.top="'預設購物車不可刪除'"
+                  icon="pi pi-trash"
+                  severity="secondary"
+                  variant="text"
+                  rounded
+                  size="small"
+                  disabled
+                  aria-label="預設購物車不可刪除"
                 />
               </div>
             </template>
           </Column>
 
           <template #empty>
-            <div class="py-12 text-center text-color-secondary">
-              尚未建立多購物車。
-            </div>
+            <div class="py-12 text-center text-color-secondary">沒有符合條件的資料</div>
           </template>
         </DataTable>
       </div>
@@ -450,6 +451,8 @@ function onDeleteCart(c: Cart, event: Event): void {
   <MultiCartFormDialog
     v-model:visible="formDialogVisible"
     :initial="formDialogInitial"
+    :template="defaultCart"
+    :generated-id="generatedId"
     @saved="onCartFormSaved"
   />
 </template>

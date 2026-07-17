@@ -50,11 +50,6 @@ export const sidebarMenu: MenuItem[] = [
         icon: ['far', 'clipboard-list'],
         to: RouteName.LiveRecords,
       },
-      {
-        labelKey: 'nav.multi_cart_settings',
-        icon: ['far', 'bag-shopping'],
-        to: RouteName.MultiCartSettings,
-      },
     ],
   },
   {
@@ -93,6 +88,12 @@ export const sidebarMenu: MenuItem[] = [
         to: RouteName.OrderList,
       },
     ],
+  },
+  // 多購物車設定：獨立頂層項，與訂單管理同級（依規劃藍圖）
+  {
+    labelKey: 'nav.multi_cart_settings',
+    icon: ['far', 'bag-shopping'],
+    to: RouteName.MultiCartSettings,
   },
   {
     labelKey: 'nav.invoice.invoice',
