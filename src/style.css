@@ -141,3 +141,14 @@ html.frame-mode .p-drawer-mask {
     color: #000 !important;
   }
 }
+
+/* Select 下拉選項面板依內容寬、不截斷長選項（Design.md §7.6）。
+   PrimeVue 開啟時已把 overlay min-width 設為觸發器寬；這裡讓它再往「最長選項」成長、
+   選項文字不換行不出現「…」；只在超過視窗寬時才受限，避免爆版。 */
+.p-select-overlay {
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+.p-select-overlay .p-select-option {
+  white-space: nowrap;
+}

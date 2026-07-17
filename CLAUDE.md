@@ -8,10 +8,11 @@
 
 `.claude/agents/` 定義 4 個唯讀設計 sub-agent:`ui-layout-designer` / `ui-visual-style` / `ui-content-writer` / `ui-design-reviewer`。
 
-- **新頁面 / 大幅改動**（新增 dialog / 重寫 UI 區塊 / 表單多欄位…）**一律先過 `ui-design-reviewer`** — 這不是選配
+- **大幅版面改動**（新頁面 / 重寫 UI 區塊 / 新增 dialog / 多欄位表單…）：**動手前先過 `ui-layout-designer` 規劃版面骨架**,交付前再過 `ui-design-reviewer` 審查 — 兩者都不是選配（前者定骨架、後者把關品質）
 - **標準工作流**:`ui-layout-designer → ui-visual-style → ui-content-writer → ui-design-reviewer`
+- 後台常見版型範式（列表頁骨架、彈窗版型選用、操作按鈕分群）已收錄於 `document/design.md` §6.7–6.9,規劃前先讀,不要每次重新發明
 - Sub-agent 唯讀,只回報問題不改檔;修正由主 session 或對應 agent 執行
-- 小改動（改文案、Tag 顏色、rename label 等）不必動用 sub-agent
+- 小改動（改文案、Tag 顏色、rename label、區塊搬移等）不必動用 sub-agent
 
 ## Prototype changelog 慣例
 本 repo 是 `xsmartlive-portal-vue-prototype`。TopBar 有 info icon 點開的 Dialog,自動讀最近 10 筆 commit 顯示給用戶。
