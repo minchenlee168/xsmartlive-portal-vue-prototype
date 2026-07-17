@@ -70,12 +70,12 @@ const pickupOptions: CarrierOption[] = [
   { label: 'MIFFY 東區門市', value: 'miffy_east' },
 ]
 
-// 三溫層欄位設定:label + 色票(依 Design.md 二 語意色)
-interface TempColMeta { key: Temp; label: string; bg: string; color: string }
+// 三溫層欄位設定:label + 對應 PrimeVue Tag severity（顏色 / 深淺色主題交給 Aura theme，不自訂色票）
+interface TempColMeta { key: Temp; label: string; severity: 'warn' | 'info' | 'secondary' }
 const TEMP_COLS: TempColMeta[] = [
-  { key: 'warm',    label: '常溫', bg: '#FEF9C3', color: '#CA8A04' },   // Design.md 警告 Soft/Strong
-  { key: 'chilled', label: '冷藏', bg: '#DBEAFE', color: '#2563EB' },   // Design.md 資訊 Soft/Strong
-  { key: 'frozen',  label: '冷凍', bg: '#CFFAFE', color: '#0891B2' },   // 冷凍溫層(Design.md 未明列,以 cyan-100 / cyan-700 近似)
+  { key: 'warm',    label: '常溫', severity: 'warn' },      // 警告語意
+  { key: 'chilled', label: '冷藏', severity: 'info' },      // 資訊語意
+  { key: 'frozen',  label: '冷凍', severity: 'secondary' }, // 無官方冷色語意，用中性 secondary（靠文字區分）
 ]
 
 // 上半區 6 個 row(配送方式 × 3 溫層);跨境冷藏/冷凍留白 —
@@ -112,28 +112,20 @@ function onCancel(): void {
   >
     <template #header>
       <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-2">
-          <i class="pi pi-star-fill text-[#CA8A04]" style="font-size: 16px"></i>
-          <span class="text-lg font-bold text-[var(--p-text-color)]">預設配送設定</span>
-        </div>
+        <span class="text-lg font-bold text-[var(--p-text-color)]">預設配送設定</span>
         <span class="text-xs text-[var(--p-text-muted-color)]">
           依有啟用的物流商快速帶入設定,在消費者下單時自動帶入。
         </span>
       </div>
     </template>
 
-    <div class="flex flex-col gap-4 p-5">
-      <!-- 三溫層 grid:左欄 label 140px、其餘三欄平分 -->
-      <div class="grid grid-cols-[140px_1fr_1fr_1fr] gap-x-3 gap-y-3 items-center">
-        <!-- 溫層 header 列(左上角空、其餘三格為溫層 chip) -->
+    <div class="flex flex-col gap-4 p-6">
+      <!-- 三溫層 grid：依彈窗寬度自適應，不用橫向捲軸 -->
+      <div class="grid grid-cols-[120px_1fr_1fr_1fr] gap-x-2 gap-y-3 items-center">
+        <!-- 溫層 header 列(左上角空、其餘三格為溫層 Tag) -->
         <div></div>
-        <div
-          v-for="t in TEMP_COLS"
-          :key="t.key"
-          class="text-center rounded-md py-2 text-sm font-medium"
-          :style="{ background: t.bg, color: t.color }"
-        >
-          {{ t.label }}
+        <div v-for="t in TEMP_COLS" :key="t.key" class="flex justify-center">
+          <Tag :value="t.label" :severity="t.severity" />
         </div>
 
         <!-- 配送方式 rows -->
@@ -151,19 +143,18 @@ function onCancel(): void {
               option-value="value"
               class="w-full"
               scroll-height="auto"
+              :aria-label="`${row.label} ${t.label} 物流商`"
             />
             <div
               v-else
-              class="h-10 flex items-center justify-center rounded-md bg-[var(--p-content-hover-background)] text-[var(--p-text-muted-color)] text-sm"
+              class="min-h-[44px] flex items-center justify-center rounded-md bg-[var(--p-content-hover-background)] text-[var(--p-text-muted-color)] text-sm"
             >
               —
             </div>
           </template>
         </template>
-      </div>
 
-      <!-- 自取 / 商家自建:不分溫層,單一 select -->
-      <div class="grid grid-cols-[140px_1fr] gap-x-3 gap-y-3 items-center">
+        <!-- 自取 / 商家自建：併入同一矩陣、label 在左；不分溫層 → Select 橫跨三個溫層欄 -->
         <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
           <i class="pi pi-map-marker" style="font-size: 14px; color: var(--p-primary-color)"></i>
           <span>自取</span>
@@ -173,28 +164,29 @@ function onCancel(): void {
           :options="pickupOptions"
           option-label="label"
           option-value="value"
-          class="w-full"
+          class="col-span-3 w-full"
+          aria-label="自取 物流商"
         />
-
         <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
-          <span class="pl-6">商家自建</span>
+          <i class="pi pi-building" style="font-size: 14px; color: var(--p-primary-color)"></i>
+          <span>商家自建</span>
         </div>
         <Select
           v-model="config.self"
           :options="selfOptions"
           option-label="label"
           option-value="value"
-          class="w-full"
+          class="col-span-3 w-full"
+          aria-label="商家自建 物流商"
         />
       </div>
 
-      <!-- 資訊 banner(Design.md 二 資訊 Soft/Strong) -->
-      <div class="flex items-start gap-2 rounded-md border border-[#DBEAFE] bg-[#DBEAFE]/50 px-3 py-3">
-        <i class="pi pi-info-circle" style="font-size: 14px; color: #2563EB; margin-top: 2px"></i>
-        <span class="text-xs text-[var(--p-text-color)] leading-relaxed">
+      <!-- 資訊 banner：改用 PrimeVue Message（顏色 / 深淺色主題交給 Aura theme） -->
+      <Message severity="info" :closable="false">
+        <span class="text-xs leading-relaxed">
           下單時依配送方式與溫層自動帶入對應的預設物流商;跨境僅常溫;自取 / 商家自建不分溫層。商家可於訂單管理逐筆調整。
         </span>
-      </div>
+      </Message>
     </div>
 
     <template #footer>
