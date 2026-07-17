@@ -459,6 +459,120 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       </div>
     </div>
 
+    <!-- 出貨管理（依規範：紫色外框） -->
+    <div class="rounded-lg border-2 border-[var(--p-primary-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
+      <div class="flex items-center gap-2">
+        <i class="pi pi-clipboard text-[var(--p-primary-color)]"></i>
+        <span class="text-sm font-bold text-[var(--p-text-color)]">出貨管理</span>
+      </div>
+      <!-- 動作按鈕列 -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <Button label="設定配送" icon="pi pi-cog" size="small" @click="shippingConfigDialogVisible = true" />
+        <Button
+          label="狀態切換"
+          icon="pi pi-sync"
+          severity="secondary"
+          variant="outlined"
+          size="small"
+          :disabled="!nextStatusInfo"
+          @click="openStatusSwitchDialog"
+        />
+        <Button label="分批出貨" icon="pi pi-th-large" severity="secondary" variant="outlined" size="small" @click="openSplitPage" />
+        <Button label="列印出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="printDialogVisible = true" />
+        <Button label="列印標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" />
+        <Button
+          :label="order.invoiceNumber ? '已開立發票' : '開立發票'"
+          icon="pi pi-file"
+          severity="secondary"
+          variant="outlined"
+          size="small"
+          @click="issueInvoiceDialogVisible = true"
+        />
+      </div>
+
+      <!-- 左：配送物流 / 發票 / 出貨進度 Timeline；右：出貨單備註 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-4 min-w-0">
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
+            <span v-if="order.carrierStatus === 'configured'" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
+              <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+              <span class="font-medium">{{ order.carrierName }}</span>
+              <template v-if="order.trackingStatus">
+                <span class="text-[var(--p-text-muted-color)]">·</span>
+                <span>取號 {{ order.trackingStatus }}</span>
+              </template>
+            </span>
+            <span v-else class="inline-flex items-center gap-1 text-[#CA8A04]">
+              <i class="pi pi-exclamation-circle text-[13px]"></i>
+              尚未指定物流商與取號
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">發票</span>
+            <!-- 已開立：發票號碼 + 開立時間；未開立：橘字警示 -->
+            <span v-if="order.invoiceNumber" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
+              <i class="pi pi-id-card text-[var(--p-primary-color)] text-[13px]"></i>
+              <span class="font-medium">{{ order.invoiceNumber }}</span>
+              <template v-if="order.invoiceIssuedAt">
+                <span class="text-[var(--p-text-muted-color)]">·</span>
+                <span class="text-xs text-[var(--p-text-muted-color)]">{{ order.invoiceIssuedAt }}</span>
+              </template>
+            </span>
+            <span v-else class="inline-flex items-center gap-1 text-[#CA8A04]">
+              <i class="pi pi-exclamation-circle text-[13px]"></i>
+              尚未開立
+            </span>
+          </div>
+
+          <!-- 出貨進度 Timeline（左欄內） -->
+          <div class="flex flex-col gap-2">
+            <span class="text-xs text-[var(--p-text-muted-color)]">出貨進度</span>
+            <!-- Stepper marker 可點按 → 跳確認彈窗切換到該階段 -->
+            <Timeline :value="progressSteps" layout="horizontal" align="top" class="w-full">
+              <template #marker="{ item }">
+                <button
+                  type="button"
+                  v-tooltip.top="`切換為「${item.label}」`"
+                  class="rounded-full inline-flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                  :style="{
+                    width: item.isCurrent ? '32px' : '24px',
+                    height: item.isCurrent ? '32px' : '24px',
+                    background: item.isCurrent || item.isPast ? 'var(--p-primary-color)' : 'var(--p-content-hover-background)',
+                    color: item.isCurrent || item.isPast ? '#fff' : 'var(--p-text-muted-color)',
+                    border: item.isCurrent || item.isPast ? 'none' : '1px solid var(--p-content-border-color)',
+                  }"
+                  @click="onStepClick(item.key as OrderRow['shippingStatus'])"
+                >
+                  <i :class="item.icon" class="text-xs"></i>
+                </button>
+              </template>
+              <template #content="{ item }">
+                <div class="flex flex-col items-center gap-1 pt-1 whitespace-nowrap">
+                  <span class="text-xs" :style="item.isCurrent ? 'color: var(--p-primary-color); font-weight: 600' : 'color: var(--p-text-muted-color)'">{{ item.label }}</span>
+                  <span class="text-xs text-[var(--p-text-muted-color)]">{{ item.time }}</span>
+                </div>
+              </template>
+              <template #connector>
+                <span class="block h-px w-full" style="background: var(--p-content-border-color)"></span>
+              </template>
+            </Timeline>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註</span>
+            <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
+              <Checkbox binary />
+              <span>同步顯示於出貨單</span>
+            </label>
+          </div>
+          <Textarea placeholder="輸入出貨相關備註...（將同步顯示於出貨單）" rows="5" class="w-full resize-none" />
+        </div>
+      </div>
+    </div>
+
     <!-- 商品明細（單一扁平商品表 + 用戶備註 + 訂單總計） -->
     <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
       <span class="text-sm font-bold text-[var(--p-text-color)]">商品明細</span>
@@ -553,120 +667,6 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             class="mt-2"
             @click="diffAdjDialogVisible = true"
           />
-        </div>
-      </div>
-    </div>
-
-    <!-- 出貨管理（依規範：紫色外框） -->
-    <div class="rounded-lg border-2 border-[var(--p-primary-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
-      <div class="flex items-center gap-2">
-        <i class="pi pi-clipboard text-[var(--p-primary-color)]"></i>
-        <span class="text-sm font-bold text-[var(--p-text-color)]">出貨管理</span>
-      </div>
-      <!-- 動作按鈕列 -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <Button label="設定配送" icon="pi pi-cog" size="small" @click="shippingConfigDialogVisible = true" />
-        <Button
-          label="狀態切換"
-          icon="pi pi-sync"
-          severity="secondary"
-          variant="outlined"
-          size="small"
-          :disabled="!nextStatusInfo"
-          @click="openStatusSwitchDialog"
-        />
-        <Button label="分批出貨" icon="pi pi-th-large" severity="secondary" variant="outlined" size="small" @click="openSplitPage" />
-        <Button label="列印出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="printDialogVisible = true" />
-        <Button label="列印標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" />
-        <Button
-          :label="order.invoiceNumber ? '已開立發票' : '開立發票'"
-          icon="pi pi-file"
-          severity="secondary"
-          variant="outlined"
-          size="small"
-          @click="issueInvoiceDialogVisible = true"
-        />
-      </div>
-
-      <!-- 左：配送物流 / 發票 / 出貨進度 Timeline；右：出貨單備註 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-4 min-w-0">
-          <div class="flex items-center gap-2 text-[13px]">
-            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
-            <span v-if="order.carrierStatus === 'configured'" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-              <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
-              <span class="font-medium">{{ order.carrierName }}</span>
-              <template v-if="order.trackingStatus">
-                <span class="text-[var(--p-text-muted-color)]">·</span>
-                <span>取號 {{ order.trackingStatus }}</span>
-              </template>
-            </span>
-            <span v-else class="inline-flex items-center gap-1 text-[#CA8A04]">
-              <i class="pi pi-exclamation-circle text-[13px]"></i>
-              尚未指定物流商與取號
-            </span>
-          </div>
-          <div class="flex items-center gap-2 text-[13px]">
-            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">發票</span>
-            <!-- 已開立：發票號碼 + 開立時間；未開立：橘字警示 -->
-            <span v-if="order.invoiceNumber" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-              <i class="pi pi-id-card text-[var(--p-primary-color)] text-[13px]"></i>
-              <span class="font-medium">{{ order.invoiceNumber }}</span>
-              <template v-if="order.invoiceIssuedAt">
-                <span class="text-[var(--p-text-muted-color)]">·</span>
-                <span class="text-xs text-[var(--p-text-muted-color)]">{{ order.invoiceIssuedAt }}</span>
-              </template>
-            </span>
-            <span v-else class="inline-flex items-center gap-1 text-[#CA8A04]">
-              <i class="pi pi-exclamation-circle text-[13px]"></i>
-              尚未開立
-            </span>
-          </div>
-
-          <!-- 出貨進度 Timeline（左欄內） -->
-          <div class="flex flex-col gap-2">
-            <span class="text-xs text-[var(--p-text-muted-color)] text-center">出貨進度</span>
-            <!-- Stepper marker 可點按 → 跳確認彈窗切換到該階段 -->
-            <Timeline :value="progressSteps" layout="horizontal" align="top" class="w-full">
-              <template #marker="{ item }">
-                <button
-                  type="button"
-                  v-tooltip.top="`切換為「${item.label}」`"
-                  class="rounded-full inline-flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
-                  :style="{
-                    width: item.isCurrent ? '32px' : '24px',
-                    height: item.isCurrent ? '32px' : '24px',
-                    background: item.isCurrent || item.isPast ? 'var(--p-primary-color)' : 'var(--p-content-hover-background)',
-                    color: item.isCurrent || item.isPast ? '#fff' : 'var(--p-text-muted-color)',
-                    border: item.isCurrent || item.isPast ? 'none' : '1px solid var(--p-content-border-color)',
-                  }"
-                  @click="onStepClick(item.key as OrderRow['shippingStatus'])"
-                >
-                  <i :class="item.icon" class="text-xs"></i>
-                </button>
-              </template>
-              <template #content="{ item }">
-                <div class="flex flex-col items-center gap-1 pt-1 whitespace-nowrap">
-                  <span class="text-xs" :style="item.isCurrent ? 'color: var(--p-primary-color); font-weight: 600' : 'color: var(--p-text-muted-color)'">{{ item.label }}</span>
-                  <span class="text-xs text-[var(--p-text-muted-color)]">{{ item.time }}</span>
-                </div>
-              </template>
-              <template #connector>
-                <span class="block h-px w-full" style="background: var(--p-content-border-color)"></span>
-              </template>
-            </Timeline>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註</span>
-            <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
-              <Checkbox binary />
-              <span>同步顯示於出貨單</span>
-            </label>
-          </div>
-          <Textarea placeholder="輸入出貨相關備註...（將同步顯示於出貨單）" rows="5" class="w-full resize-none" />
         </div>
       </div>
     </div>
