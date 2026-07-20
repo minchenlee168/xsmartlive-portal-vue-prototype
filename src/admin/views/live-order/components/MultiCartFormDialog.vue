@@ -109,7 +109,6 @@ const LOGI_OPTIONS: Array<{ value: string; noFee?: boolean }> = [
   { value: '商家自建（如郵局）' },
 ]
 const TEMP_OPTIONS: TempLayer[] = ['常溫', '冷藏', '冷凍']
-const ON_OFF = ['啟用', '關閉']
 const STAR_OPTIONS = [1, 2, 3, 4, 5].map((n) => ({ label: `${n} 星`, value: n }))
 
 // ── 運費矩陣定義（與規劃原始設計一致） ─────────
@@ -182,10 +181,10 @@ const temp = ref<TempLayer>('常溫')
 const payList = ref<Set<string>>(new Set())
 const logiList = ref<Set<string>>(new Set())
 const transferNote = ref('')
-const codStarOn = ref('啟用')
+const codStarOn = ref(true)
 const codStarLevel = ref(3)
-const couponOn = ref('啟用')
-const rewardOn = ref('啟用')
+const couponOn = ref(true)
+const rewardOn = ref(true)
 const freeShip = ref<number | null>(null)
 const feeVals = ref<Record<string, number>>({})
 const feeOff = ref<Record<string, boolean>>({})
@@ -201,10 +200,10 @@ function applyRecord(d: MultiCartRecord): void {
   temp.value = d.temp
   payList.value = new Set(d.payList)
   logiList.value = new Set(d.logiList)
-  codStarOn.value = d.codStar ? '啟用' : '關閉'
+  codStarOn.value = d.codStar
   codStarLevel.value = d.codStarLevel || 3
-  couponOn.value = d.coupon ? '啟用' : '關閉'
-  rewardOn.value = d.reward ? '啟用' : '關閉'
+  couponOn.value = d.coupon
+  rewardOn.value = d.reward
   freeShip.value = d.freeShip
   feeVals.value = { ...(d.feeVals ?? {}) }
   feeOff.value = { ...(d.feeOff ?? {}) }
@@ -318,10 +317,10 @@ function onSave(): void {
       note: transferNote.value,
       mode: mode.value,
       temp: temp.value,
-      codStar: codStarOn.value === '啟用',
+      codStar: codStarOn.value,
       codStarLevel: codStarLevel.value,
-      coupon: couponOn.value === '啟用',
-      reward: rewardOn.value === '啟用',
+      coupon: couponOn.value,
+      reward: rewardOn.value,
       freeShip: freeShip.value,
       payList: PAY_OPTIONS.filter((p) => payList.value.has(p)),
       logiList: LOGI_OPTIONS.filter((o) => logiList.value.has(o.value)).map((o) => o.value),
@@ -356,9 +355,10 @@ function onSave(): void {
 
       <!-- ═══ 購物車基本設定 ═══ -->
       <p class="section-head">購物車基本設定</p>
+      <Divider class="!mt-2 !mb-4" />
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <div class="flex flex-col gap-2">
-          <label for="mc-name" class="text-sm font-bold text-[var(--p-text-color)]">
+          <label for="mc-name" class="text-sm text-[var(--p-text-color)]">
             多購物車名稱 <span class="text-red-600 dark:text-red-400">*</span>
           </label>
           <InputText
@@ -370,12 +370,12 @@ function onSave(): void {
           />
         </div>
         <div class="flex flex-col gap-2">
-          <label for="mc-id" class="text-sm font-bold text-[var(--p-text-color)]">購物車 ID</label>
+          <label for="mc-id" class="text-sm text-[var(--p-text-color)]">購物車 ID</label>
           <InputText id="mc-id" :model-value="cartId" disabled class="w-full" />
         </div>
       </div>
       <div class="flex flex-col gap-2 mb-4">
-        <label for="mc-desc" class="text-sm font-bold text-[var(--p-text-color)]">購物車說明</label>
+        <label for="mc-desc" class="text-sm text-[var(--p-text-color)]">購物車說明</label>
         <InputText
           id="mc-desc"
           v-model="desc"
@@ -386,11 +386,12 @@ function onSave(): void {
 
       <!-- ═══ 金流設定 ═══ -->
       <p class="section-head">金流設定</p>
+      <Divider class="!mt-2 !mb-4" />
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">
+        <span class="text-sm text-[var(--p-text-color)]">
           結帳模式 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
         </span>
-        <div class="fbox flex flex-wrap items-center gap-x-5 gap-y-3">
+        <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <span v-for="opt in MODE_OPTIONS" :key="opt.value" class="inline-flex items-center gap-2">
             <RadioButton v-model="mode" :input-id="`mc-mode-${opt.value}`" :value="opt.value" />
             <label :for="`mc-mode-${opt.value}`" class="text-sm text-[var(--p-text-color)] cursor-pointer">
@@ -405,10 +406,10 @@ function onSave(): void {
         </div>
       </div>
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">
+        <span class="text-sm text-[var(--p-text-color)]">
           支付方式設定 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">複選</span>
         </span>
-        <div class="fbox grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
+        <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
           <span v-for="p in PAY_OPTIONS" :key="p" class="inline-flex items-center gap-2 min-w-0">
             <Checkbox
               :model-value="payList.has(p)"
@@ -423,23 +424,24 @@ function onSave(): void {
         </div>
       </div>
       <div v-if="isTransferSelected" class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">轉帳匯款金流備註</span>
+        <span class="text-sm text-[var(--p-text-color)]">轉帳匯款金流備註</span>
         <Editor v-model="transferNote" editor-style="height: 110px" placeholder="輸入轉帳匯款金流備註…" />
       </div>
 
       <!-- ═══ 物流設定 ═══ -->
       <p class="section-head">物流設定</p>
+      <Divider class="!mt-2 !mb-4" />
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">
+        <span class="text-sm text-[var(--p-text-color)]">
           配送溫層 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選</span>
         </span>
         <SelectButton v-model="temp" :options="TEMP_OPTIONS" :allow-empty="false" aria-label="配送溫層" />
       </div>
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">
+        <span class="text-sm text-[var(--p-text-color)]">
           物流方式設定 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">複選</span>
         </span>
-        <div class="fbox flex flex-wrap gap-x-6 gap-y-2">
+        <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap gap-x-6 gap-y-2">
           <span v-for="o in LOGI_OPTIONS" :key="o.value" class="inline-flex items-center gap-2">
             <Checkbox
               :model-value="logiList.has(o.value)"
@@ -456,7 +458,7 @@ function onSave(): void {
 
       <!-- 運費設定（矩陣） -->
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)] inline-flex items-center gap-2">
+        <span class="text-sm text-[var(--p-text-color)] inline-flex items-center gap-2">
           運費設定
           <i
             v-tooltip.top="'將帶入預設物流的運費設定，可參考目前預設值直接調整運費。'"
@@ -467,7 +469,7 @@ function onSave(): void {
 
         <div
           v-if="isFeeEmpty"
-          class="fbox py-5 text-center text-sm text-[var(--p-text-muted-color)]"
+          class="border border-[var(--p-content-border-color)] rounded-xl px-4 py-6 text-center text-sm text-[var(--p-text-muted-color)]"
         >
           請先於上方勾選「物流方式設定」與「支付方式設定」，費用表將自動展開。
         </div>
@@ -482,7 +484,7 @@ function onSave(): void {
             :key="scope"
           >
             <div class="flex items-center gap-2 mt-1">
-              <span class="text-sm font-bold text-[var(--p-primary-color)]">
+              <span class="text-sm font-bold text-[var(--p-text-color)]">
                 {{ scope === 'dom' ? '國內配送' : '跨境配送' }}
               </span>
               <Button
@@ -605,9 +607,12 @@ function onSave(): void {
 
       <!-- 貨到付款星等過濾 -->
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">貨到付款星等過濾</span>
+        <span class="text-sm text-[var(--p-text-color)]">貨到付款星等過濾</span>
         <div class="flex items-center gap-4 flex-wrap">
-          <SelectButton v-model="codStarOn" :options="ON_OFF" :allow-empty="false" aria-label="貨到付款星等過濾" />
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <ToggleSwitch v-model="codStarOn" aria-label="貨到付款星等過濾" />
+            <span class="text-sm text-[var(--p-text-color)]">{{ codStarOn ? '啟用' : '關閉' }}</span>
+          </label>
           <span class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)]">
             最低星等
             <Select
@@ -615,7 +620,7 @@ function onSave(): void {
               :options="STAR_OPTIONS"
               option-label="label"
               option-value="value"
-              :disabled="codStarOn !== '啟用'"
+              :disabled="!codStarOn"
               aria-label="最低星等"
               class="!w-[100px]"
             />
@@ -625,16 +630,23 @@ function onSave(): void {
 
       <!-- ═══ 行銷設定 ═══ -->
       <p class="section-head">行銷設定</p>
+      <Divider class="!mt-2 !mb-4" />
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">優惠券</span>
-        <SelectButton v-model="couponOn" :options="ON_OFF" :allow-empty="false" aria-label="優惠券" />
+        <span class="text-sm text-[var(--p-text-color)]">優惠券</span>
+        <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
+          <ToggleSwitch v-model="couponOn" aria-label="優惠券" />
+          <span class="text-sm text-[var(--p-text-color)]">{{ couponOn ? '啟用' : '關閉' }}</span>
+        </label>
       </div>
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">紅利點數</span>
-        <SelectButton v-model="rewardOn" :options="ON_OFF" :allow-empty="false" aria-label="紅利點數" />
+        <span class="text-sm text-[var(--p-text-color)]">紅利點數</span>
+        <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
+          <ToggleSwitch v-model="rewardOn" aria-label="紅利點數" />
+          <span class="text-sm text-[var(--p-text-color)]">{{ rewardOn ? '啟用' : '關閉' }}</span>
+        </label>
       </div>
       <div class="flex flex-col gap-2 mb-2">
-        <label for="mc-freeship" class="text-sm font-bold text-[var(--p-text-color)]">
+        <label for="mc-freeship" class="text-sm text-[var(--p-text-color)]">
           免運設定 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">滿多少元免運（留空表示不設定）</span>
         </label>
         <InputNumber
@@ -658,23 +670,15 @@ function onSave(): void {
 </template>
 
 <style scoped>
-/* 區段標題（紫字＋虛線底，對應規劃原始設計的 section-head） */
+/* 區段標題：一般文字色（不用主色），分隔線改用 <Divider> 元件（見 template） */
 .section-head {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--p-primary-color);
-  margin: 20px 0 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed var(--p-content-border-color);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--p-text-color);
+  margin: 16px 0 0;
 }
 .section-head:first-child {
   margin-top: 4px;
-}
-/* 選項外框盒 */
-.fbox {
-  border: 1px solid var(--p-content-border-color);
-  border-radius: 12px;
-  padding: 14px 16px;
 }
 /* 運費矩陣表格線與表頭 */
 .fee-table th,

@@ -26,6 +26,7 @@ export interface MenuItem {
  * 客服管理 / 會員管理 / 設定…）暫不列入。
  */
 export const sidebarMenu: MenuItem[] = [
+  /* 直播收單區暫時隱藏（先隱藏，日後恢復移除此註解即可）
   {
     labelKey: 'nav.live',
     imgSrc: liveLogoUrl,
@@ -52,6 +53,7 @@ export const sidebarMenu: MenuItem[] = [
       },
     ],
   },
+  */
   {
     labelKey: 'nav.product.product',
     icon: ['far', 'box-isometric'],
@@ -95,6 +97,7 @@ export const sidebarMenu: MenuItem[] = [
     icon: ['far', 'bag-shopping'],
     to: RouteName.MultiCartSettings,
   },
+  /* 電子發票暫時隱藏（先隱藏，日後恢復移除此註解即可）
   {
     labelKey: 'nav.invoice.invoice',
     icon: ['far', 'receipt'],
@@ -111,6 +114,7 @@ export const sidebarMenu: MenuItem[] = [
       },
     ],
   },
+  */
   {
     labelKey: 'nav.marketing',
     icon: ['far', 'chart-mixed'],

@@ -186,44 +186,62 @@ const pageRows = ref(10)
 const pageRowsOptions = [10, 20, 30, 40, 50]
 
 // ── 設定摘要（金流 / 物流 / 行銷 三行） ────────
+interface SummaryPart {
+  text?: string
+  off?: boolean
+  /** 整顆 chip 的色調：primary=主色、green=綠、blue=藍、red=紅；未設 = 灰(secondary) */
+  tone?: 'primary' | 'green' | 'blue' | 'red'
+  /** 數量型 chip：前綴 + 主色數字 + 後綴，如「支付 6 種」 */
+  count?: { pre: string; n: number; post: string }
+}
 interface SummaryLine {
   label: string
-  labelClass: string
-  parts: Array<{ text: string; off?: boolean }>
+  parts: SummaryPart[]
 }
 function summaryOf(c: MultiCartRecord): SummaryLine[] {
   return [
     {
       label: '金流',
-      labelClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
       parts: [
-        { text: c.mode },
-        { text: `支付 ${c.payList.length} 種` },
+        { text: c.mode, tone: c.mode === '暫停結帳' ? 'red' : 'primary' },
+        { count: { pre: '支付', n: c.payList.length, post: '種' } },
       ],
     },
     {
       label: '物流',
-      labelClass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
       parts: [
-        { text: `${c.temp}溫層` },
+        { text: c.temp, tone: c.temp === '冷凍' || c.temp === '冷藏' ? 'blue' : undefined },
         c.codStar
           ? { text: `${c.codStarLevel} 星等過濾` }
           : { text: '無星等過濾', off: true },
-        { text: `物流 ${c.logiList.length} 種` },
+        { count: { pre: '物流', n: c.logiList.length, post: '種' } },
       ],
     },
     {
       label: '行銷',
-      labelClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       parts: [
-        c.coupon ? { text: '啟用優惠券' } : { text: '關閉優惠券', off: true },
-        c.reward ? { text: '啟用紅利' } : { text: '關閉紅利', off: true },
+        c.coupon ? { text: '啟用優惠券', tone: 'green' } : { text: '關閉優惠券', off: true },
+        c.reward ? { text: '啟用紅利', tone: 'green' } : { text: '關閉紅利', off: true },
         c.freeShip != null
           ? { text: `免運滿 $${c.freeShip.toLocaleString()}` }
           : { text: '未設定免運', off: true },
       ],
     },
   ]
+}
+/** tone → PrimeVue Tag severity（primary 沒有對應 severity，用 secondary 打底再以 style 蓋色） */
+function toneSeverity(p: SummaryPart): 'success' | 'info' | 'danger' | 'secondary' {
+  if (p.tone === 'green') return 'success'
+  if (p.tone === 'blue') return 'info'
+  if (p.tone === 'red') return 'danger'
+  return 'secondary'
+}
+/** primary 色調的 chip：主色文字 + 主色淡底（用 token，深淺色自動適應） */
+function toneStyle(p: SummaryPart): string {
+  if (p.tone === 'primary') {
+    return 'background: color-mix(in srgb, var(--p-primary-color) 12%, transparent); color: var(--p-primary-color);'
+  }
+  return ''
 }
 
 // ── 新增 / 編輯 dialog ────────────────────────
@@ -355,6 +373,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           :value="visibleCarts"
           data-key="id"
           striped-rows
+          scrollable
           paginator
           :rows="pageRows"
           :rows-per-page-options="pageRowsOptions"
@@ -388,18 +407,21 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
                 <div
                   v-for="line in summaryOf(data)"
                   :key="line.label"
-                  class="flex items-baseline gap-2"
+                  class="flex items-start gap-2"
                 >
-                  <span
-                    class="shrink-0 w-[34px] text-center text-xs font-bold rounded px-0 py-1"
-                    :class="line.labelClass"
-                  >{{ line.label }}</span>
-                  <span class="text-xs leading-relaxed text-[var(--p-text-color)]">
-                    <template v-for="(p, i) in line.parts" :key="i">
-                      <span :class="p.off ? 'text-[var(--p-text-muted-color)]' : ''">{{ p.text }}</span
-                      ><span v-if="i < line.parts.length - 1">、</span>
-                    </template>
-                  </span>
+                  <span class="shrink-0 w-8 pt-1 text-xs text-[var(--p-text-muted-color)]">{{ line.label }}</span>
+                  <div class="flex flex-wrap items-center gap-1">
+                    <Tag
+                      v-for="(p, i) in line.parts"
+                      :key="i"
+                      :severity="toneSeverity(p)"
+                      :style="toneStyle(p)"
+                      :class="p.off ? 'opacity-45' : ''"
+                    >
+                      <template v-if="p.count">{{ p.count.pre }} <span style="color: var(--p-primary-color)">{{ p.count.n }}</span> {{ p.count.post }}</template>
+                      <template v-else>{{ p.text }}</template>
+                    </Tag>
+                  </div>
                 </div>
               </div>
             </template>
