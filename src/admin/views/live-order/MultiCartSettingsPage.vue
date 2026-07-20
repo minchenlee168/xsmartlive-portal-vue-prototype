@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import MultiCartFormDialog, {
@@ -38,6 +38,21 @@ const carts = ref<MultiCartRecord[]>([
     on: true,
     payList: ['線上信用卡（藍新）', 'Apple Pay', 'ATM 繳費帳號', '超商代碼繳費', 'LINE Pay', '貨到付款'],
     logiList: ['宅配', '超商配送', '跨境', '自取', '商家自建（如郵局）'],
+  },
+  {
+    date: '2026/05/07 14:44',
+    name: '直播收單車',
+    id: 'MC-000007',
+    desc: '新建收單時自動套用此設定',
+    locked: true,
+    mode: '標單必結',
+    temp: '常溫',
+    coupon: true,
+    reward: true,
+    freeShip: 2000,
+    on: true,
+    payList: ['線上信用卡（藍新）', 'Apple Pay', 'ATM 繳費帳號', '超商代碼繳費', 'LINE Pay', '貨到付款'],
+    logiList: ['宅配', '超商配送', '自取'],
   },
   {
     date: '2026/05/07 14:44',
@@ -111,6 +126,27 @@ const carts = ref<MultiCartRecord[]>([
   },
 ])
 
+// ── 來源分頁（收單得標 / 商城） ──────────────────
+type CartSource = 'live' | 'mall'
+/** 結帳模式 → 來源：商城結帳 = 商城；其餘 4 種 = 收單得標。一台車只屬一種來源 */
+function sourceOf(mode: CheckoutMode): CartSource {
+  return mode === '商城結帳' ? 'mall' : 'live'
+}
+const activeTab = ref<CartSource>('live')
+const liveCount = computed(
+  () => carts.value.filter((c) => !c.deleted && sourceOf(c.mode) === 'live').length,
+)
+const mallCount = computed(
+  () => carts.value.filter((c) => !c.deleted && sourceOf(c.mode) === 'mall').length,
+)
+const sourceTabs = computed(() => [
+  { value: 'live' as CartSource, label: `收單得標（${liveCount.value}）` },
+  { value: 'mall' as CartSource, label: `商城（${mallCount.value}）` },
+])
+const addButtonLabel = computed(() =>
+  activeTab.value === 'mall' ? '新增商城購物車' : '新增收單得標購物車',
+)
+
 // ── 搜尋 / 篩選 ────────────────────────────────
 const keyword = ref('')
 // 三個下拉用 placeholder 呈現（狀態 / 結帳模式 / 溫層），預設 null = 不限；配 show-clear 讓使用者清回未選
@@ -119,9 +155,10 @@ const statusOptions = [
   { label: '啟用', value: 'on' },
   { label: '停用', value: 'off' },
 ]
-const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳', '商城結帳']
+// 結帳模式篩選只在「收單得標」tab 出現，選項僅 4 種直播模式（不含商城結帳）
+const LIVE_MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳']
 const modeFilter = ref<CheckoutMode | null>(null)
-const modeOptions = MODE_VALUES.map((m) => ({ label: m, value: m }))
+const modeOptions = LIVE_MODE_VALUES.map((m) => ({ label: m, value: m }))
 const TEMP_VALUES: TempLayer[] = ['常溫', '冷藏', '冷凍']
 const tempFilter = ref<TempLayer | null>(null)
 const tempOptions = TEMP_VALUES.map((t) => ({ label: t, value: t }))
@@ -154,9 +191,13 @@ function onResetFilters(): void {
   pageFirst.value = 0
 }
 
+// 切換來源 tab 時全部重置篩選（兩 tab 是不同資料集，保留條件易讓人以為列表壞掉）
+watch(activeTab, () => onResetFilters())
+
 const visibleCarts = computed(() =>
   carts.value.filter((c) => {
     if (c.deleted) return false
+    if (sourceOf(c.mode) !== activeTab.value) return false
     if (onlyEnabled.value && !c.on) return false
     if (appliedStatus.value === 'on' && !c.on) return false
     if (appliedStatus.value === 'off' && c.on) return false
@@ -190,8 +231,11 @@ function summaryOf(c: MultiCartRecord): SummaryLine[] {
   return [
     {
       label: '金流',
+      // 商城 tab 整欄模式都是「商城結帳」逐列重複、無鑑別力 → 省略模式 chip，只留支付方式
       parts: [
-        { text: c.mode, tone: c.mode === '暫停結帳' ? 'red' : 'primary' },
+        ...(sourceOf(c.mode) === 'mall'
+          ? []
+          : [{ text: c.mode, tone: c.mode === '暫停結帳' ? 'red' : 'primary' } as SummaryPart]),
         { count: { n: c.payList.length, post: '種支付方式', list: c.payList } },
       ],
     },
@@ -232,7 +276,11 @@ function toneStyle(p: SummaryPart): string {
 // ── 新增 / 編輯 dialog ────────────────────────
 const formDialogVisible = ref(false)
 const formDialogInitial = ref<MultiCartRecord | null>(null)
-const defaultCart = computed(() => carts.value.find((c) => c.locked) ?? null)
+const formDialogSource = ref<CartSource>('live')
+// 範本 = 當前來源的預設車（新增時帶入該來源的設定，不跨來源套用）
+const defaultCart = computed(
+  () => carts.value.find((c) => c.locked && sourceOf(c.mode) === activeTab.value) ?? null,
+)
 
 function nextCartId(): string {
   const max = Math.max(0, ...carts.value.map((c) => Number(c.id.replace(/\D/g, '')) || 0))
@@ -242,10 +290,12 @@ const generatedId = computed(nextCartId)
 
 function onAddCart(): void {
   formDialogInitial.value = null
+  formDialogSource.value = activeTab.value
   formDialogVisible.value = true
 }
 function onEditCart(c: MultiCartRecord): void {
   formDialogInitial.value = c
+  formDialogSource.value = sourceOf(c.mode)
   formDialogVisible.value = true
 }
 function onCartFormSaved(payload: MultiCartFormPayload): void {
@@ -299,11 +349,18 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
       <!-- 頁首：標題 + 新增 -->
       <div class="px-6 pt-5 pb-3 flex items-center justify-between gap-3 flex-wrap">
         <h1 class="text-2xl font-bold text-[var(--p-text-color)]">多購物車設定</h1>
-        <Button label="新增多購物車" icon="pi pi-plus" @click="onAddCart" />
+        <Button :label="addButtonLabel" icon="pi pi-plus" @click="onAddCart" />
       </div>
 
+      <!-- 來源分頁：收單得標 / 商城 -->
+      <Tabs :value="activeTab" @update:value="(v) => (activeTab = v as CartSource)">
+        <TabList :pt="{ root: { class: 'px-6' } }">
+          <Tab v-for="t in sourceTabs" :key="t.value" :value="t.value">{{ t.label }}</Tab>
+        </TabList>
+      </Tabs>
+
       <!-- 搜尋 / 篩選列 -->
-      <div class="px-6 pb-4 flex items-center gap-2 flex-wrap">
+      <div class="px-6 pt-4 pb-4 flex items-center gap-2 flex-wrap">
         <IconField icon-position="left">
           <InputIcon><i class="pi pi-search text-sm"></i></InputIcon>
           <InputText
@@ -325,6 +382,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           class="!w-[140px]"
         />
         <Select
+          v-if="activeTab === 'live'"
           v-model="modeFilter"
           :options="modeOptions"
           option-label="label"
@@ -378,7 +436,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-bold text-[var(--p-text-color)]">{{ data.name }}</span>
-                  <Tag v-if="data.locked" value="商城預設" severity="info" />
+                  <Tag v-if="data.locked" value="預設" severity="info" />
                 </div>
                 <span class="text-xs text-[var(--p-text-muted-color)]">{{ data.id }}</span>
                 <span v-if="data.desc" class="text-xs text-[var(--p-text-muted-color)]">{{ data.desc }}</span>
@@ -481,6 +539,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
     v-model:visible="formDialogVisible"
     :initial="formDialogInitial"
     :template="defaultCart"
+    :source="formDialogSource"
     :generated-id="generatedId"
     @saved="onCartFormSaved"
   />

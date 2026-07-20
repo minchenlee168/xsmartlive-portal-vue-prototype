@@ -57,12 +57,15 @@ interface Props {
   template?: MultiCartRecord | null
   /** 新增模式顯示的自動產生 ID（唯讀） */
   generatedId?: string
+  /** 來源：live=收單得標（顯示 4 種直播模式）、mall=商城（僅商城結帳、唯讀） */
+  source?: 'live' | 'mall'
 }
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   initial: null,
   template: null,
   generatedId: '',
+  source: 'live',
 })
 const emit = defineEmits<{
   'update:visible': [value: boolean]
@@ -86,6 +89,12 @@ const MODE_OPTIONS: Array<{ value: CheckoutMode; info: string }> = [
   { value: '暫停結帳', info: '暫停結帳：暫時關閉此購物車結帳功能，買家看得到但無法進行結帳。' },
   { value: '商城結帳', info: '商城結帳：與一般電商相同，可自由勾選、移除商品後結帳。' },
 ]
+/** 依來源過濾結帳模式選項：mall → 只有商城結帳；live → 4 種直播模式 */
+const visibleModeOptions = computed(() =>
+  props.source === 'mall'
+    ? MODE_OPTIONS.filter((o) => o.value === '商城結帳')
+    : MODE_OPTIONS.filter((o) => o.value !== '商城結帳'),
+)
 const PAY_OPTIONS = [
   '線上信用卡（藍新）',
   '線上信用卡（數位鎏）',
@@ -215,6 +224,9 @@ watch(
     }
     // 新增：帶入「預設購物車」的設定作為範本（名稱／說明留空）
     if (props.template) applyRecord(props.template)
+    // 結帳模式跟著來源走：商城 → 商城結帳；收單得標 → 維持直播模式（範本非直播時退回標單必結）
+    if (props.source === 'mall') mode.value = '商城結帳'
+    else if (mode.value === '商城結帳') mode.value = '標單必結'
     name.value = ''
     desc.value = ''
     feeVals.value = {}
@@ -380,11 +392,12 @@ function onSave(): void {
       <Divider class="!mt-2 !mb-4" />
       <div class="flex flex-col gap-2 mb-4">
         <span class="text-sm text-[var(--p-text-color)]">
-          結帳模式 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
+          結帳模式
+          <span class="text-xs font-normal text-[var(--p-text-muted-color)]">{{ props.source === 'mall' ? '商城來源固定為商城結帳' : '單選；游標移到 ⓘ 看說明' }}</span>
         </span>
         <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-          <span v-for="opt in MODE_OPTIONS" :key="opt.value" class="inline-flex items-center gap-2">
-            <RadioButton v-model="mode" :input-id="`mc-mode-${opt.value}`" :value="opt.value" />
+          <span v-for="opt in visibleModeOptions" :key="opt.value" class="inline-flex items-center gap-2">
+            <RadioButton v-model="mode" :input-id="`mc-mode-${opt.value}`" :value="opt.value" :disabled="props.source === 'mall'" />
             <label :for="`mc-mode-${opt.value}`" class="text-sm text-[var(--p-text-color)] cursor-pointer">
               {{ opt.value }}
             </label>
