@@ -25,7 +25,7 @@ const confirm = useConfirm()
 const carts = ref<MultiCartRecord[]>([
   {
     date: '2026/05/07 14:44',
-    name: '購物車',
+    name: 'Xsmart 商城',
     id: 'MC-000001',
     desc: '新建收單時將自動套用此設定',
     locked: true,
@@ -41,7 +41,7 @@ const carts = ref<MultiCartRecord[]>([
   },
   {
     date: '2026/05/07 14:44',
-    name: '預設購物車',
+    name: 'Xsmart直播間',
     id: 'MC-000007',
     desc: '新建收單時自動套用此設定',
     locked: true,
@@ -355,8 +355,8 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
         </TabList>
       </Tabs>
 
-      <!-- 搜尋 / 篩選列（新增鈕同排靠右） -->
-      <div class="px-6 pt-4 pb-3 flex items-center gap-2 flex-wrap">
+      <!-- 搜尋 / 篩選列（只顯示啟用中接清除後、新增鈕靠右） -->
+      <div class="px-6 pt-4 pb-4 flex items-center gap-2 flex-wrap">
         <IconField icon-position="left">
           <InputIcon><i class="pi pi-search text-sm"></i></InputIcon>
           <InputText
@@ -400,15 +400,11 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
         />
         <Button label="搜尋" @click="onSearch" />
         <Button label="清除" severity="secondary" outlined @click="onResetFilters" />
-        <Button label="新增多購物車" icon="pi pi-plus" class="ml-auto" @click="onAddCart" />
-      </div>
-
-      <!-- 只顯示啟用中（獨立一列） -->
-      <div class="px-6 pb-4">
-        <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)] w-fit">
+        <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
           <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
           只顯示啟用中
         </label>
+        <Button label="新增多購物車" icon="pi pi-plus" class="ml-auto" @click="onAddCart" />
       </div>
 
       <!-- 列表 -->
