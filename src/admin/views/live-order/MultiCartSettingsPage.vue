@@ -125,43 +125,56 @@ const carts = ref<MultiCartRecord[]>([
 
 // ── 搜尋 / 篩選 ────────────────────────────────
 const keyword = ref('')
-const statusFilter = ref<'all' | 'on' | 'off'>('all')
+// 三個下拉用 placeholder 呈現（狀態 / 結帳模式 / 溫層），預設 null = 不限；配 show-clear 讓使用者清回未選
+const statusFilter = ref<'on' | 'off' | null>(null)
 const statusOptions = [
-  { label: '狀態：全部', value: 'all' },
   { label: '啟用', value: 'on' },
   { label: '停用', value: 'off' },
 ]
 const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳']
-const modeFilter = ref<CheckoutMode | 'all'>('all')
-const modeOptions = [
-  { label: '結帳模式：全部', value: 'all' },
-  ...MODE_VALUES.map((m) => ({ label: m, value: m })),
-]
+const modeFilter = ref<CheckoutMode | null>(null)
+const modeOptions = MODE_VALUES.map((m) => ({ label: m, value: m }))
 const TEMP_VALUES: TempLayer[] = ['常溫', '冷藏', '冷凍']
-const tempFilter = ref<TempLayer | 'all'>('all')
-const tempOptions = [
-  { label: '溫層：全部', value: 'all' },
-  ...TEMP_VALUES.map((t) => ({ label: t, value: t })),
-]
+const tempFilter = ref<TempLayer | null>(null)
+const tempOptions = TEMP_VALUES.map((t) => ({ label: t, value: t }))
 const onlyEnabled = ref(false)
+
+// 搜尋條件：keyword / statusFilter / modeFilter / tempFilter 為草稿(pending)，按「搜尋」才 commit 到 applied；
+// 「只顯示啟用中」為即時 toggle，不受搜尋按鈕影響。
+const appliedKeyword = ref('')
+const appliedStatus = ref<'on' | 'off' | null>(null)
+const appliedMode = ref<CheckoutMode | null>(null)
+const appliedTemp = ref<TempLayer | null>(null)
+function onSearch(): void {
+  appliedKeyword.value = keyword.value.trim()
+  appliedStatus.value = statusFilter.value
+  appliedMode.value = modeFilter.value
+  appliedTemp.value = tempFilter.value
+  pageFirst.value = 0
+}
 
 function onResetFilters(): void {
   keyword.value = ''
-  statusFilter.value = 'all'
-  modeFilter.value = 'all'
-  tempFilter.value = 'all'
+  statusFilter.value = null
+  modeFilter.value = null
+  tempFilter.value = null
   onlyEnabled.value = false
+  appliedKeyword.value = ''
+  appliedStatus.value = null
+  appliedMode.value = null
+  appliedTemp.value = null
+  pageFirst.value = 0
 }
 
 const visibleCarts = computed(() =>
   carts.value.filter((c) => {
     if (c.deleted) return false
     if (onlyEnabled.value && !c.on) return false
-    if (statusFilter.value === 'on' && !c.on) return false
-    if (statusFilter.value === 'off' && c.on) return false
-    if (modeFilter.value !== 'all' && c.mode !== modeFilter.value) return false
-    if (tempFilter.value !== 'all' && c.temp !== tempFilter.value) return false
-    const kw = keyword.value.trim()
+    if (appliedStatus.value === 'on' && !c.on) return false
+    if (appliedStatus.value === 'off' && c.on) return false
+    if (appliedMode.value && c.mode !== appliedMode.value) return false
+    if (appliedTemp.value && c.temp !== appliedTemp.value) return false
+    const kw = appliedKeyword.value
     if (kw && !`${c.name} ${c.id}`.includes(kw)) return false
     return true
   }),
@@ -295,6 +308,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
             placeholder="搜尋名稱或購物車 ID"
             aria-label="搜尋名稱或購物車 ID"
             class="!w-[240px]"
+            @keyup.enter="onSearch"
           />
         </IconField>
         <Select
@@ -302,6 +316,8 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           :options="statusOptions"
           option-label="label"
           option-value="value"
+          placeholder="狀態"
+          show-clear
           aria-label="依狀態篩選"
           class="!w-[140px]"
         />
@@ -310,6 +326,8 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           :options="modeOptions"
           option-label="label"
           option-value="value"
+          placeholder="結帳模式"
+          show-clear
           aria-label="依結帳模式篩選"
           class="!w-[170px]"
         />
@@ -318,9 +336,12 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           :options="tempOptions"
           option-label="label"
           option-value="value"
+          placeholder="溫層"
+          show-clear
           aria-label="依溫層篩選"
           class="!w-[130px]"
         />
+        <Button label="搜尋" @click="onSearch" />
         <Button label="清除" severity="secondary" outlined @click="onResetFilters" />
         <label class="ml-auto flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
           <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
@@ -363,17 +384,17 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
 
           <Column header="設定摘要" style="min-width: 320px">
             <template #body="{ data }">
-              <div class="flex flex-col gap-1.5">
+              <div class="flex flex-col gap-2">
                 <div
                   v-for="line in summaryOf(data)"
                   :key="line.label"
                   class="flex items-baseline gap-2"
                 >
                   <span
-                    class="shrink-0 w-[34px] text-center text-[11px] font-bold rounded px-0 py-0.5"
+                    class="shrink-0 w-[34px] text-center text-xs font-bold rounded px-0 py-1"
                     :class="line.labelClass"
                   >{{ line.label }}</span>
-                  <span class="text-[12.5px] leading-relaxed text-[var(--p-text-color)]">
+                  <span class="text-xs leading-relaxed text-[var(--p-text-color)]">
                     <template v-for="(p, i) in line.parts" :key="i">
                       <span :class="p.off ? 'text-[var(--p-text-muted-color)]' : ''">{{ p.text }}</span
                       ><span v-if="i < line.parts.length - 1">、</span>
