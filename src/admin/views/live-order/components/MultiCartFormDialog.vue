@@ -408,7 +408,7 @@ function onSave(): void {
         <span class="text-sm font-bold text-[var(--p-text-color)]">
           支付方式設定 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">複選</span>
         </span>
-        <div class="fbox grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2.5">
+        <div class="fbox grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
           <span v-for="p in PAY_OPTIONS" :key="p" class="inline-flex items-center gap-2 min-w-0">
             <Checkbox
               :model-value="payList.has(p)"
@@ -416,7 +416,7 @@ function onSave(): void {
               :input-id="`mc-pay-${p}`"
               @update:model-value="togglePay(p)"
             />
-            <label :for="`mc-pay-${p}`" class="text-[13.5px] text-[var(--p-text-color)] cursor-pointer whitespace-nowrap">
+            <label :for="`mc-pay-${p}`" class="text-sm text-[var(--p-text-color)] cursor-pointer whitespace-nowrap">
               {{ p }}
             </label>
           </span>
@@ -439,7 +439,7 @@ function onSave(): void {
         <span class="text-sm font-bold text-[var(--p-text-color)]">
           物流方式設定 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">複選</span>
         </span>
-        <div class="fbox flex flex-wrap gap-x-6 gap-y-2.5">
+        <div class="fbox flex flex-wrap gap-x-6 gap-y-2">
           <span v-for="o in LOGI_OPTIONS" :key="o.value" class="inline-flex items-center gap-2">
             <Checkbox
               :model-value="logiList.has(o.value)"
@@ -447,7 +447,7 @@ function onSave(): void {
               :input-id="`mc-logi-${o.value}`"
               @update:model-value="toggleLogi(o.value)"
             />
-            <label :for="`mc-logi-${o.value}`" class="text-[13.5px] text-[var(--p-text-color)] cursor-pointer whitespace-nowrap">
+            <label :for="`mc-logi-${o.value}`" class="text-sm text-[var(--p-text-color)] cursor-pointer whitespace-nowrap">
               {{ o.value }}<span v-if="o.noFee" class="text-xs text-[var(--p-text-muted-color)]">（不計運費）</span>
             </label>
           </span>
@@ -467,7 +467,7 @@ function onSave(): void {
 
         <div
           v-if="isFeeEmpty"
-          class="fbox py-5 text-center text-[13px] text-[var(--p-text-muted-color)]"
+          class="fbox py-5 text-center text-sm text-[var(--p-text-muted-color)]"
         >
           請先於上方勾選「物流方式設定」與「支付方式設定」，費用表將自動展開。
         </div>
@@ -481,8 +481,8 @@ function onSave(): void {
             ]"
             :key="scope"
           >
-            <div class="flex items-center gap-2.5 mt-1">
-              <span class="text-[13px] font-bold text-[var(--p-primary-color)]">
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-sm font-bold text-[var(--p-primary-color)]">
                 {{ scope === 'dom' ? '國內配送' : '跨境配送' }}
               </span>
               <Button
@@ -506,7 +506,7 @@ function onSave(): void {
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-[var(--p-content-border-color)]">
-              <table class="fee-table w-full border-collapse text-[12.5px]" style="min-width: 640px">
+              <table class="fee-table w-full border-collapse text-xs" style="min-width: 640px">
                 <thead>
                   <tr>
                     <th rowspan="2" style="width: 210px">物流方式</th>
@@ -529,24 +529,24 @@ function onSave(): void {
                   <template v-for="g in scope === 'dom' ? domesticGroups : CB_GROUPS" :key="g.name + (g.sub ?? '')">
                     <tr v-for="([payLabel, payId], pi) in feePays" :key="payId">
                       <td v-if="pi === 0" :rowspan="feePays.length" class="fee-logi">
-                        <div class="flex items-center gap-1.5 font-bold text-[13.5px] text-[var(--p-text-color)]">
+                        <div class="flex items-center gap-2 font-bold text-sm text-[var(--p-text-color)]">
                           <span class="inline-block w-[9px] h-[9px] rounded-full shrink-0" :style="{ background: g.dot }"></span>
                           {{ g.name }}
                         </div>
-                        <div v-if="g.sub" class="text-[11px] font-bold mt-0.5 text-[var(--p-primary-color)]">{{ g.sub }}</div>
-                        <div class="mt-1.5 flex flex-col gap-1">
+                        <div v-if="g.sub" class="text-xs font-bold mt-1 text-[var(--p-primary-color)]">{{ g.sub }}</div>
+                        <div class="mt-2 flex flex-col gap-1">
                           <div
                             v-for="[cName, kdai] in g.carriers"
                             :key="cName"
                             class="flex items-center gap-1 text-xs text-[var(--p-text-muted-color)]"
                           >
                             <span class="w-2.5 text-center">›</span>{{ cName }}
-                            <Tag v-if="kdai > 0" :value="`${kdai} 客代`" severity="secondary" class="!ml-auto !py-0 !text-[10px]" />
+                            <Tag v-if="kdai > 0" :value="`${kdai} 客代`" severity="secondary" class="!ml-auto !py-0 !text-xs" />
                           </div>
                         </div>
                       </td>
                       <td class="text-center">
-                        <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
                           <Checkbox
                             :model-value="!isRowOff(scope, g, payId)"
                             binary
@@ -554,7 +554,7 @@ function onSave(): void {
                             @update:model-value="toggleRowOff(scope, g, payId)"
                           />
                           <span
-                            class="inline-block text-[11px] font-bold px-2 py-0.5 rounded whitespace-nowrap"
+                            class="inline-block text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap"
                             :class="[
                               payId === 'cod'
                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
@@ -608,7 +608,7 @@ function onSave(): void {
         <span class="text-sm font-bold text-[var(--p-text-color)]">貨到付款星等過濾</span>
         <div class="flex items-center gap-4 flex-wrap">
           <SelectButton v-model="codStarOn" :options="ON_OFF" :allow-empty="false" aria-label="貨到付款星等過濾" />
-          <span class="inline-flex items-center gap-2 text-[13px] text-[var(--p-text-color)]">
+          <span class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)]">
             最低星等
             <Select
               v-model="codStarLevel"
