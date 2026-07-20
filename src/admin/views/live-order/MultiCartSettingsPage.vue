@@ -30,10 +30,8 @@ const carts = ref<MultiCartRecord[]>([
     desc: '新建收單時將自動套用此設定',
     locked: true,
     note: '銀行戶頭資料：<br>銀行:台新008<br>分行:13456-111333',
-    mode: '標單必結',
+    mode: '商城結帳',
     temp: '常溫',
-    codStar: true,
-    codStarLevel: 3,
     coupon: true,
     reward: true,
     freeShip: 2000,
@@ -48,8 +46,6 @@ const carts = ref<MultiCartRecord[]>([
     desc: '開放所有結帳行為與多種金流物流',
     mode: '標單必結',
     temp: '常溫',
-    codStar: false,
-    codStarLevel: 1,
     coupon: true,
     reward: true,
     freeShip: 2000,
@@ -64,8 +60,6 @@ const carts = ref<MultiCartRecord[]>([
     desc: '只開放超商貨到付款，不收線上付款',
     mode: '自選結帳',
     temp: '常溫',
-    codStar: true,
-    codStarLevel: 2,
     coupon: false,
     reward: false,
     freeShip: null,
@@ -80,8 +74,6 @@ const carts = ref<MultiCartRecord[]>([
     desc: '跨境配送（印尼、馬來西亞）專用',
     mode: '標單必結',
     temp: '冷凍',
-    codStar: false,
-    codStarLevel: 1,
     coupon: true,
     reward: false,
     freeShip: 1500,
@@ -96,8 +88,6 @@ const carts = ref<MultiCartRecord[]>([
     desc: '只允許商家自行配送，不走第三方物流',
     mode: '棄標結帳',
     temp: '冷藏',
-    codStar: true,
-    codStarLevel: 4,
     coupon: false,
     reward: true,
     freeShip: null,
@@ -112,8 +102,6 @@ const carts = ref<MultiCartRecord[]>([
     desc: '離島地區（澎湖、小琉球）專用',
     mode: '暫停結帳',
     temp: '常溫',
-    codStar: false,
-    codStarLevel: 1,
     coupon: false,
     reward: true,
     freeShip: 3000,
@@ -131,7 +119,7 @@ const statusOptions = [
   { label: '啟用', value: 'on' },
   { label: '停用', value: 'off' },
 ]
-const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳']
+const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳', '商城結帳']
 const modeFilter = ref<CheckoutMode | null>(null)
 const modeOptions = MODE_VALUES.map((m) => ({ label: m, value: m }))
 const TEMP_VALUES: TempLayer[] = ['常溫', '冷藏', '冷凍']
@@ -191,8 +179,8 @@ interface SummaryPart {
   off?: boolean
   /** 整顆 chip 的色調：primary=主色、green=綠、blue=藍、red=紅；未設 = 灰(secondary) */
   tone?: 'primary' | 'green' | 'blue' | 'red'
-  /** 數量型 chip：前綴 + 主色數字 + 後綴，如「支付 6 種」 */
-  count?: { pre: string; n: number; post: string }
+  /** 數量型 chip：主色數字 + 後綴 + 完整清單（hover tooltip 用），如「6 種支付方式」 */
+  count?: { n: number; post: string; list: string[] }
 }
 interface SummaryLine {
   label: string
@@ -204,17 +192,14 @@ function summaryOf(c: MultiCartRecord): SummaryLine[] {
       label: '金流',
       parts: [
         { text: c.mode, tone: c.mode === '暫停結帳' ? 'red' : 'primary' },
-        { count: { pre: '支付', n: c.payList.length, post: '種' } },
+        { count: { n: c.payList.length, post: '種支付方式', list: c.payList } },
       ],
     },
     {
       label: '物流',
       parts: [
         { text: c.temp, tone: c.temp === '冷凍' || c.temp === '冷藏' ? 'blue' : undefined },
-        c.codStar
-          ? { text: `${c.codStarLevel} 星等過濾` }
-          : { text: '無星等過濾', off: true },
-        { count: { pre: '物流', n: c.logiList.length, post: '種' } },
+        { count: { n: c.logiList.length, post: '種物流方式', list: c.logiList } },
       ],
     },
     {
@@ -393,7 +378,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-bold text-[var(--p-text-color)]">{{ data.name }}</span>
-                  <Tag v-if="data.locked" value="預設" severity="info" />
+                  <Tag v-if="data.locked" value="商城預設" severity="info" />
                 </div>
                 <span class="text-xs text-[var(--p-text-muted-color)]">{{ data.id }}</span>
                 <span v-if="data.desc" class="text-xs text-[var(--p-text-muted-color)]">{{ data.desc }}</span>
@@ -414,11 +399,12 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
                     <Tag
                       v-for="(p, i) in line.parts"
                       :key="i"
+                      v-tooltip.top="p.count?.list.join('、')"
                       :severity="toneSeverity(p)"
                       :style="toneStyle(p)"
-                      :class="p.off ? 'opacity-45' : ''"
+                      :class="[p.off ? 'opacity-45' : '', p.count ? 'cursor-help' : '']"
                     >
-                      <template v-if="p.count">{{ p.count.pre }} <span style="color: var(--p-primary-color)">{{ p.count.n }}</span> {{ p.count.post }}</template>
+                      <template v-if="p.count"><span style="color: var(--p-primary-color)">{{ p.count.n }}</span> {{ p.count.post }}</template>
                       <template v-else>{{ p.text }}</template>
                     </Tag>
                   </div>

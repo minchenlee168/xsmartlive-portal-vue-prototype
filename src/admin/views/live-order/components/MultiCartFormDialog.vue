@@ -9,15 +9,14 @@ import { computed, ref, watch } from 'vue'
  * 2. 金流設定：結帳模式（單選，ⓘ hover 說明）/ 支付方式設定（複選 10 種）
  *    勾「轉帳匯款」時顯示「轉帳匯款金流備註」（文字編輯器）
  * 3. 物流設定：配送溫層（單選）/ 物流方式設定（複選，自取不計運費）/
- *    運費設定（物流方式 × 付款方式 × 地區 × 溫層 矩陣，帶預設值可編輯）/
- *    貨到付款星等過濾（啟用／關閉 + 最低星等）
+ *    運費設定（物流方式 × 付款方式 × 地區 × 溫層 矩陣，帶預設值可編輯）
  * 4. 行銷設定：優惠券 / 紅利點數 / 免運設定（留空表示不設定）
  *
  * 設計決議：不放「結帳發票顯示」；ⓘ 說明用 hover 顯示。
  * 驗證：名稱未填、免運或運費金額為負數 → 紅框標示且不可儲存。
  */
 
-export type CheckoutMode = '標單必結' | '自選結帳' | '棄標結帳' | '暫停結帳'
+export type CheckoutMode = '標單必結' | '自選結帳' | '棄標結帳' | '暫停結帳' | '商城結帳'
 export type TempLayer = '常溫' | '冷藏' | '冷凍'
 
 export interface MultiCartRecord {
@@ -30,8 +29,6 @@ export interface MultiCartRecord {
   note?: string
   mode: CheckoutMode
   temp: TempLayer
-  codStar: boolean
-  codStarLevel: number
   coupon: boolean
   reward: boolean
   /** 免運門檻；null = 未設定 */
@@ -87,6 +84,7 @@ const MODE_OPTIONS: Array<{ value: CheckoutMode; info: string }> = [
   { value: '自選結帳', info: '自選結帳：客人挑選自己想結帳的商品；即使是標單的商品，也可延後至下次結帳。' },
   { value: '棄標結帳', info: '棄標結帳：客人可先移除不要的商品後，剩下的商品需一次整單結帳。' },
   { value: '暫停結帳', info: '暫停結帳：暫時關閉此購物車結帳功能，買家看得到但無法進行結帳。' },
+  { value: '商城結帳', info: '商城結帳：與一般電商相同，可自由勾選、移除商品後結帳。' },
 ]
 const PAY_OPTIONS = [
   '線上信用卡（藍新）',
@@ -109,7 +107,6 @@ const LOGI_OPTIONS: Array<{ value: string; noFee?: boolean }> = [
   { value: '商家自建（如郵局）' },
 ]
 const TEMP_OPTIONS: TempLayer[] = ['常溫', '冷藏', '冷凍']
-const STAR_OPTIONS = [1, 2, 3, 4, 5].map((n) => ({ label: `${n} 星`, value: n }))
 
 // ── 運費矩陣定義（與規劃原始設計一致） ─────────
 interface FeeGroup {
@@ -181,8 +178,6 @@ const temp = ref<TempLayer>('常溫')
 const payList = ref<Set<string>>(new Set())
 const logiList = ref<Set<string>>(new Set())
 const transferNote = ref('')
-const codStarOn = ref(true)
-const codStarLevel = ref(3)
 const couponOn = ref(true)
 const rewardOn = ref(true)
 const freeShip = ref<number | null>(null)
@@ -200,8 +195,6 @@ function applyRecord(d: MultiCartRecord): void {
   temp.value = d.temp
   payList.value = new Set(d.payList)
   logiList.value = new Set(d.logiList)
-  codStarOn.value = d.codStar
-  codStarLevel.value = d.codStarLevel || 3
   couponOn.value = d.coupon
   rewardOn.value = d.reward
   freeShip.value = d.freeShip
@@ -317,8 +310,6 @@ function onSave(): void {
       note: transferNote.value,
       mode: mode.value,
       temp: temp.value,
-      codStar: codStarOn.value,
-      codStarLevel: codStarLevel.value,
       coupon: couponOn.value,
       reward: rewardOn.value,
       freeShip: freeShip.value,
@@ -517,7 +508,7 @@ function onSave(): void {
                       v-for="r in scope === 'dom' ? DOMESTIC_REGIONS : CB_REGIONS"
                       :key="r"
                       colspan="3"
-                    >📍 {{ r }}</th>
+                    ><i class="pi pi-map-marker" style="font-size: 12px"></i> {{ r }}</th>
                   </tr>
                   <tr>
                     <template v-for="r in scope === 'dom' ? DOMESTIC_REGIONS : CB_REGIONS" :key="r">
@@ -603,29 +594,6 @@ function onSave(): void {
             </div>
           </template>
         </template>
-      </div>
-
-      <!-- 貨到付款星等過濾 -->
-      <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm text-[var(--p-text-color)]">貨到付款星等過濾</span>
-        <div class="flex items-center gap-4 flex-wrap">
-          <label class="inline-flex items-center gap-2 cursor-pointer">
-            <ToggleSwitch v-model="codStarOn" aria-label="貨到付款星等過濾" />
-            <span class="text-sm text-[var(--p-text-color)]">{{ codStarOn ? '啟用' : '關閉' }}</span>
-          </label>
-          <span class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)]">
-            最低星等
-            <Select
-              v-model="codStarLevel"
-              :options="STAR_OPTIONS"
-              option-label="label"
-              option-value="value"
-              :disabled="!codStarOn"
-              aria-label="最低星等"
-              class="!w-[100px]"
-            />
-          </span>
-        </div>
       </div>
 
       <!-- ═══ 行銷設定 ═══ -->
