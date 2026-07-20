@@ -95,6 +95,8 @@ const visibleModeOptions = computed(() =>
     ? MODE_OPTIONS.filter((o) => o.value === '商城結帳')
     : MODE_OPTIONS.filter((o) => o.value !== '商城結帳'),
 )
+/** 商城來源：結帳模式固定為商城結帳，只顯示說明字串 */
+const mallModeInfo = MODE_OPTIONS.find((o) => o.value === '商城結帳')?.info ?? ''
 const PAY_OPTIONS = [
   '線上信用卡（藍新）',
   '線上信用卡（數位鎏）',
@@ -390,13 +392,15 @@ function onSave(): void {
       <!-- ═══ 金流設定 ═══ -->
       <p class="section-head">金流設定</p>
       <Divider class="!mt-2 !mb-4" />
-      <!-- 結帳模式：商城來源固定為商城結帳、無需選擇 → 整區隱藏 -->
-      <div v-if="props.source !== 'mall'" class="flex flex-col gap-2 mb-4">
+      <div class="flex flex-col gap-2 mb-4">
         <span class="text-sm text-[var(--p-text-color)]">
           結帳模式
-          <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
+          <span v-if="props.source !== 'mall'" class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
         </span>
-        <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <!-- 商城：固定商城結帳，只顯示說明字串 -->
+        <p v-if="props.source === 'mall'" class="text-sm text-[var(--p-text-muted-color)]">{{ mallModeInfo }}</p>
+        <!-- 收單得標：4 種模式單選 -->
+        <div v-else class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <span v-for="opt in visibleModeOptions" :key="opt.value" class="inline-flex items-center gap-2">
             <RadioButton v-model="mode" :input-id="`mc-mode-${opt.value}`" :value="opt.value" />
             <label :for="`mc-mode-${opt.value}`" class="text-sm text-[var(--p-text-color)] cursor-pointer">

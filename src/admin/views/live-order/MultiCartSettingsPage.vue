@@ -357,13 +357,13 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
 
       <!-- 搜尋 / 篩選列（只顯示啟用中接清除後、新增鈕靠右） -->
       <div class="px-6 pt-4 pb-4 flex items-center gap-2 flex-wrap">
-        <IconField icon-position="left">
+        <IconField icon-position="left" class="w-full md:w-auto order-1 md:order-none">
           <InputIcon><i class="pi pi-search text-sm"></i></InputIcon>
           <InputText
             v-model="keyword"
             placeholder="搜尋名稱或購物車 ID"
             aria-label="搜尋名稱或購物車 ID"
-            class="!w-[240px]"
+            class="w-full md:!w-[240px]"
             @keyup.enter="onSearch"
           />
         </IconField>
@@ -375,7 +375,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           placeholder="狀態"
           show-clear
           aria-label="依狀態篩選"
-          class="!w-[140px]"
+          class="!w-[calc(50%_-_4px)] md:!w-[140px] order-3 md:order-none"
         />
         <Select
           v-if="activeTab === 'live'"
@@ -386,7 +386,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           placeholder="結帳模式"
           show-clear
           aria-label="依結帳模式篩選"
-          class="!w-[170px]"
+          class="!w-full md:!w-[170px] order-2 md:order-none"
         />
         <Select
           v-model="tempFilter"
@@ -396,20 +396,39 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
           placeholder="溫層"
           show-clear
           aria-label="依溫層篩選"
-          class="!w-[130px]"
+          class="!w-[calc(50%_-_4px)] md:!w-[130px] order-4 md:order-none"
         />
-        <Button label="搜尋" @click="onSearch" />
-        <Button label="清除" severity="secondary" outlined @click="onResetFilters" />
-        <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
-          <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
-          只顯示啟用中
-        </label>
-        <Button label="新增多購物車" icon="pi pi-plus" class="ml-auto" @click="onAddCart" />
+        <!-- 桌機動作列：搜尋 清除 只顯示啟用中 … 新增（靠右） -->
+        <div class="hidden md:flex items-center gap-2 grow">
+          <Button label="搜尋" @click="onSearch" />
+          <Button label="清除" severity="secondary" outlined @click="onResetFilters" />
+          <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
+            <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
+            只顯示啟用中
+          </label>
+          <Button label="新增多購物車" icon="pi pi-plus" class="ml-auto" @click="onAddCart" />
+        </div>
+        <!-- 手機動作列：搜尋/清除一排、只顯示啟用中＋新增一排 -->
+        <div class="flex md:hidden flex-col gap-2 w-full order-last">
+          <div class="flex items-center gap-2">
+            <Button label="搜尋" class="flex-1" @click="onSearch" />
+            <Button label="清除" severity="secondary" outlined class="flex-1" @click="onResetFilters" />
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
+              <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
+              只顯示啟用中
+            </label>
+            <Button label="新增多購物車" icon="pi pi-plus" class="ml-auto" @click="onAddCart" />
+          </div>
+        </div>
       </div>
 
-      <!-- 列表 -->
+      <!-- 列表：桌機 table / 手機卡片（比照收單頁 table 手機版） -->
       <div class="px-6 pb-6">
+        <!-- 桌機：table -->
         <DataTable
+          class="hidden md:block"
           :value="visibleCarts"
           data-key="id"
           striped-rows
@@ -528,6 +547,90 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
             <div class="py-12 text-center text-color-secondary">沒有符合條件的資料</div>
           </template>
         </DataTable>
+
+        <!-- 手機：卡片條列（比照收單頁 table 手機版：icon + label : value + divide-y） -->
+        <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+          <div v-for="c in visibleCarts" :key="c.id" class="py-3 flex flex-col gap-2">
+            <!-- 頂部：icon + 名稱 + 預設 badge + 啟用開關 -->
+            <div class="flex items-start gap-3">
+              <div class="size-10 rounded-md bg-[var(--p-primary-50)] flex items-center justify-center shrink-0">
+                <i class="pi pi-shopping-cart" style="font-size: 16px; color: var(--p-primary-color)"></i>
+              </div>
+              <div class="flex flex-col gap-1 min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-[var(--p-text-color)]">{{ c.name }}</span>
+                  <Tag v-if="c.locked" value="預設" severity="info" class="shrink-0" />
+                </div>
+                <span class="text-xs text-[var(--p-text-muted-color)]">{{ c.id }}</span>
+                <span v-if="c.desc" class="text-xs text-[var(--p-text-muted-color)]">{{ c.desc }}</span>
+              </div>
+              <div v-tooltip.top="c.locked ? '預設購物車不可停用' : ''" class="shrink-0">
+                <ToggleSwitch v-model="c.on" :disabled="c.locked" :aria-label="`${c.name} 啟用狀態`" />
+              </div>
+            </div>
+            <!-- 設定摘要 -->
+            <div class="flex flex-col gap-2">
+              <div
+                v-for="line in summaryOf(c)"
+                :key="line.label"
+                class="flex items-start gap-2"
+              >
+                <span class="shrink-0 w-8 pt-1 text-xs text-[var(--p-text-muted-color)]">{{ line.label }}</span>
+                <div class="flex flex-wrap items-center gap-1">
+                  <Tag
+                    v-for="(p, i) in line.parts"
+                    :key="i"
+                    v-tooltip.top="p.count?.list.join('、')"
+                    :severity="toneSeverity(p)"
+                    :style="toneStyle(p)"
+                    :class="[p.off ? 'opacity-45' : '', p.count ? 'cursor-help' : '']"
+                  >
+                    <template v-if="p.count"><span style="color: var(--p-primary-color)">{{ p.count.n }}</span> {{ p.count.post }}</template>
+                    <template v-else>{{ p.text }}</template>
+                  </Tag>
+                </div>
+              </div>
+            </div>
+            <!-- 底部：建立日期（左下）+ 編輯／刪除（右下） -->
+            <div class="flex items-center gap-2 pt-1">
+              <span class="text-xs text-[var(--p-text-muted-color)]">{{ c.date }}</span>
+              <div class="flex items-center gap-1 ml-auto">
+                <Button
+                  v-tooltip.top="'編輯'"
+                  icon="pi pi-pen-to-square"
+                  variant="text"
+                  rounded
+                  size="small"
+                  :aria-label="`編輯 ${c.name}`"
+                  @click="onEditCart(c)"
+                />
+                <Button
+                  v-if="!c.locked"
+                  v-tooltip.top="'刪除'"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  variant="text"
+                  rounded
+                  size="small"
+                  :aria-label="`刪除 ${c.name}`"
+                  @click="onDeleteCart(c, $event)"
+                />
+                <Button
+                  v-else
+                  v-tooltip.top="'預設購物車不可刪除'"
+                  icon="pi pi-trash"
+                  severity="secondary"
+                  variant="text"
+                  rounded
+                  size="small"
+                  disabled
+                  aria-label="預設購物車不可刪除"
+                />
+              </div>
+            </div>
+          </div>
+          <div v-if="!visibleCarts.length" class="py-12 text-center text-color-secondary">沒有符合條件的資料</div>
+        </div>
       </div>
     </template>
   </Card>
