@@ -25,7 +25,7 @@ const confirm = useConfirm()
 const carts = ref<MultiCartRecord[]>([
   {
     date: '2026/05/07 14:44',
-    name: 'XSMART直播',
+    name: '購物車',
     id: 'MC-000001',
     desc: '新建收單時將自動套用此設定',
     locked: true,
@@ -41,7 +41,7 @@ const carts = ref<MultiCartRecord[]>([
   },
   {
     date: '2026/05/07 14:44',
-    name: '直播收單車',
+    name: '預設購物車',
     id: 'MC-000007',
     desc: '新建收單時自動套用此設定',
     locked: true,
@@ -143,9 +143,6 @@ const sourceTabs = computed(() => [
   { value: 'live' as CartSource, label: `收單得標（${liveCount.value}）` },
   { value: 'mall' as CartSource, label: `商城（${mallCount.value}）` },
 ])
-const addButtonLabel = computed(() =>
-  activeTab.value === 'mall' ? '新增商城購物車' : '新增收單得標購物車',
-)
 
 // ── 搜尋 / 篩選 ────────────────────────────────
 const keyword = ref('')
@@ -347,9 +344,8 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
   >
     <template #content>
       <!-- 頁首：標題 + 新增 -->
-      <div class="px-6 pt-5 pb-3 flex items-center justify-between gap-3 flex-wrap">
+      <div class="px-6 pt-5 pb-3">
         <h1 class="text-2xl font-bold text-[var(--p-text-color)]">多購物車設定</h1>
-        <Button :label="addButtonLabel" icon="pi pi-plus" @click="onAddCart" />
       </div>
 
       <!-- 來源分頁：收單得標 / 商城 -->
@@ -359,8 +355,8 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
         </TabList>
       </Tabs>
 
-      <!-- 搜尋 / 篩選列 -->
-      <div class="px-6 pt-4 pb-4 flex items-center gap-2 flex-wrap">
+      <!-- 搜尋 / 篩選列（新增鈕同排靠右） -->
+      <div class="px-6 pt-4 pb-3 flex items-center gap-2 flex-wrap">
         <IconField icon-position="left">
           <InputIcon><i class="pi pi-search text-sm"></i></InputIcon>
           <InputText
@@ -404,7 +400,12 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
         />
         <Button label="搜尋" @click="onSearch" />
         <Button label="清除" severity="secondary" outlined @click="onResetFilters" />
-        <label class="ml-auto flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)]">
+        <Button label="新增多購物車" icon="pi pi-plus" class="ml-auto" @click="onAddCart" />
+      </div>
+
+      <!-- 只顯示啟用中（獨立一列） -->
+      <div class="px-6 pb-4">
+        <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--p-text-color)] w-fit">
           <ToggleSwitch v-model="onlyEnabled" aria-label="只顯示啟用中" />
           只顯示啟用中
         </label>
