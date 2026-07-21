@@ -28,8 +28,6 @@ export interface MultiCartRecord {
   /** 轉帳匯款金流備註（HTML） */
   note?: string
   mode: CheckoutMode
-  /** 是否同時開放「商城結帳」：勾選後此購物車在商城上賣時可自由勾選、移除商品後結帳 */
-  mallCheckout?: boolean
   temp: TempLayer
   coupon: boolean
   reward: boolean
@@ -178,7 +176,6 @@ const CB_REGIONS = ['馬來西亞（目的地）', '香港（目的地）']
 const name = ref('')
 const desc = ref('')
 const mode = ref<CheckoutMode>('標單必結')
-const mallCheckout = ref(true)
 const temp = ref<TempLayer>('常溫')
 const payList = ref<Set<string>>(new Set())
 const logiList = ref<Set<string>>(new Set())
@@ -197,7 +194,6 @@ function applyRecord(d: MultiCartRecord): void {
   desc.value = d.desc ?? ''
   transferNote.value = d.note ?? ''
   mode.value = d.mode
-  mallCheckout.value = d.mallCheckout ?? true
   temp.value = d.temp
   payList.value = new Set(d.payList)
   logiList.value = new Set(d.logiList)
@@ -317,7 +313,6 @@ function onSave(): void {
       desc: desc.value.trim(),
       note: transferNote.value,
       mode: mode.value,
-      mallCheckout: mallCheckout.value,
       temp: temp.value,
       coupon: couponOn.value,
       reward: rewardOn.value,
@@ -388,9 +383,12 @@ function onSave(): void {
       <p class="section-head">金流設定</p>
       <Divider class="!mt-2 !mb-4" />
       <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm text-[var(--p-text-color)]">
-          結帳模式
-          <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
+        <span class="text-sm text-[var(--p-text-color)] flex flex-wrap items-center gap-x-2">
+          <span class="inline-flex items-center gap-1">
+            結帳模式
+            <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
+          </span>
+          <span class="ml-auto text-xs font-normal text-[var(--p-text-muted-color)]">＊商城商品為可自由勾選與移除商品，不屬於上述任一種模式。</span>
         </span>
         <!-- 收單下標結帳模式：4 種直播模式單選 -->
         <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -406,17 +404,6 @@ function onSave(): void {
             ></i>
           </span>
         </div>
-      </div>
-      <!-- 商城結帳模式：是否也上商城賣（採商城結帳模式的自由勾選行為），與收單結帳模式獨立 -->
-      <div class="flex flex-col gap-2 mb-4">
-        <span class="text-sm text-[var(--p-text-color)]">
-          商城結帳模式
-          <span class="text-xs font-normal text-[var(--p-text-muted-color)]">啟用採「商城結帳模式」，可自由勾選、移除商品後結帳</span>
-        </span>
-        <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
-          <ToggleSwitch v-model="mallCheckout" aria-label="商城結帳模式" />
-          <span class="text-sm text-[var(--p-text-color)]">{{ mallCheckout ? '啟用' : '關閉' }}</span>
-        </label>
       </div>
       <div class="flex flex-col gap-2 mb-4">
         <span class="text-sm text-[var(--p-text-color)]">
