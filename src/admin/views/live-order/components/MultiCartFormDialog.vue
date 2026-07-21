@@ -28,6 +28,8 @@ export interface MultiCartRecord {
   /** 轉帳匯款金流備註（HTML） */
   note?: string
   mode: CheckoutMode
+  /** 是否同時開放「商城結帳」：勾選後此購物車在商城上賣時可自由勾選、移除商品後結帳 */
+  mallCheckout?: boolean
   temp: TempLayer
   coupon: boolean
   reward: boolean
@@ -57,15 +59,12 @@ interface Props {
   template?: MultiCartRecord | null
   /** 新增模式顯示的自動產生 ID（唯讀） */
   generatedId?: string
-  /** 來源：live=收單得標（顯示 4 種直播模式）、mall=商城（僅商城結帳、唯讀） */
-  source?: 'live' | 'mall'
 }
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   initial: null,
   template: null,
   generatedId: '',
-  source: 'live',
 })
 const emit = defineEmits<{
   'update:visible': [value: boolean]
@@ -89,14 +88,8 @@ const MODE_OPTIONS: Array<{ value: CheckoutMode; info: string }> = [
   { value: '暫停結帳', info: '暫停結帳：暫時關閉此購物車結帳功能，買家看得到但無法進行結帳。' },
   { value: '商城結帳', info: '商城結帳：與一般電商相同，可自由勾選、移除商品後結帳。' },
 ]
-/** 依來源過濾結帳模式選項：mall → 只有商城結帳；live → 4 種直播模式 */
-const visibleModeOptions = computed(() =>
-  props.source === 'mall'
-    ? MODE_OPTIONS.filter((o) => o.value === '商城結帳')
-    : MODE_OPTIONS.filter((o) => o.value !== '商城結帳'),
-)
-/** 商城來源：結帳模式固定為商城結帳，只顯示說明字串 */
-const mallModeInfo = MODE_OPTIONS.find((o) => o.value === '商城結帳')?.info ?? ''
+/** 收單下標結帳模式：4 種直播模式（單選）；商城通路另以獨立開關呈現 */
+const liveModeOptions = MODE_OPTIONS.filter((o) => o.value !== '商城結帳')
 const PAY_OPTIONS = [
   '線上信用卡（藍新）',
   '線上信用卡（數位鎏）',
@@ -185,6 +178,7 @@ const CB_REGIONS = ['馬來西亞（目的地）', '香港（目的地）']
 const name = ref('')
 const desc = ref('')
 const mode = ref<CheckoutMode>('標單必結')
+const mallCheckout = ref(true)
 const temp = ref<TempLayer>('常溫')
 const payList = ref<Set<string>>(new Set())
 const logiList = ref<Set<string>>(new Set())
@@ -203,6 +197,7 @@ function applyRecord(d: MultiCartRecord): void {
   desc.value = d.desc ?? ''
   transferNote.value = d.note ?? ''
   mode.value = d.mode
+  mallCheckout.value = d.mallCheckout ?? true
   temp.value = d.temp
   payList.value = new Set(d.payList)
   logiList.value = new Set(d.logiList)
@@ -226,9 +221,8 @@ watch(
     }
     // 新增：帶入「預設購物車」的設定作為範本（名稱／說明留空）
     if (props.template) applyRecord(props.template)
-    // 結帳模式跟著來源走：商城 → 商城結帳；收單得標 → 維持直播模式（範本非直播時退回標單必結）
-    if (props.source === 'mall') mode.value = '商城結帳'
-    else if (mode.value === '商城結帳') mode.value = '標單必結'
+    // 新增車只在 4 種直播模式中選（範本若為商城結帳則退回標單必結）
+    if (mode.value === '商城結帳') mode.value = '標單必結'
     name.value = ''
     desc.value = ''
     feeVals.value = {}
@@ -323,6 +317,7 @@ function onSave(): void {
       desc: desc.value.trim(),
       note: transferNote.value,
       mode: mode.value,
+      mallCheckout: mallCheckout.value,
       temp: temp.value,
       coupon: couponOn.value,
       reward: rewardOn.value,
@@ -395,13 +390,11 @@ function onSave(): void {
       <div class="flex flex-col gap-2 mb-4">
         <span class="text-sm text-[var(--p-text-color)]">
           結帳模式
-          <span v-if="props.source !== 'mall'" class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
+          <span class="text-xs font-normal text-[var(--p-text-muted-color)]">單選；游標移到 ⓘ 看說明</span>
         </span>
-        <!-- 商城：固定商城結帳，只顯示說明字串 -->
-        <p v-if="props.source === 'mall'" class="text-sm text-[var(--p-text-muted-color)]">{{ mallModeInfo }}</p>
-        <!-- 收單得標：4 種模式單選 -->
-        <div v-else class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-          <span v-for="opt in visibleModeOptions" :key="opt.value" class="inline-flex items-center gap-2">
+        <!-- 收單下標結帳模式：4 種直播模式單選 -->
+        <div class="border border-[var(--p-content-border-color)] rounded-xl p-4 flex flex-wrap items-center gap-x-5 gap-y-3">
+          <span v-for="opt in liveModeOptions" :key="opt.value" class="inline-flex items-center gap-2">
             <RadioButton v-model="mode" :input-id="`mc-mode-${opt.value}`" :value="opt.value" />
             <label :for="`mc-mode-${opt.value}`" class="text-sm text-[var(--p-text-color)] cursor-pointer">
               {{ opt.value }}
@@ -413,6 +406,17 @@ function onSave(): void {
             ></i>
           </span>
         </div>
+      </div>
+      <!-- 商城結帳模式：是否也上商城賣（採商城結帳模式的自由勾選行為），與收單結帳模式獨立 -->
+      <div class="flex flex-col gap-2 mb-4">
+        <span class="text-sm text-[var(--p-text-color)]">
+          商城結帳模式
+          <span class="text-xs font-normal text-[var(--p-text-muted-color)]">啟用採「商城結帳模式」，可自由勾選、移除商品後結帳</span>
+        </span>
+        <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
+          <ToggleSwitch v-model="mallCheckout" aria-label="商城結帳模式" />
+          <span class="text-sm text-[var(--p-text-color)]">{{ mallCheckout ? '啟用' : '關閉' }}</span>
+        </label>
       </div>
       <div class="flex flex-col gap-2 mb-4">
         <span class="text-sm text-[var(--p-text-color)]">
