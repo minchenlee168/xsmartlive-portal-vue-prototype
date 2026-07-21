@@ -30,6 +30,7 @@ cp "$REPO/.githooks/pre-commit"      "$B/payload/.githooks/"
 # 把打包工具本身也放進 payload → 裝過的專案能就地重打包回桌面（自我傳播）
 cp "$REPO/scripts/pack-design-system.sh" "$B/payload/scripts/"
 cp "$REPO/scripts/bundle-assets/"*       "$B/payload/scripts/bundle-assets/"
+cp "$REPO/scripts/DESIGN-SYSTEM.md"      "$B/payload/scripts/"
 
 # 2) CLAUDE.design-system.md：comment header + CLAUDE.md 從「## 設計規範」到「## Prototype changelog」前
 {

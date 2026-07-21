@@ -34,6 +34,7 @@ cp "$SRC/.githooks/pre-commit"      "$TARGET/.githooks/pre-commit"
 # 打包工具一起裝進去 → 目標專案改完規範後可就地重打包回桌面
 cp "$SRC/scripts/pack-design-system.sh" "$TARGET/scripts/pack-design-system.sh"
 cp "$SRC/scripts/bundle-assets/"*       "$TARGET/scripts/bundle-assets/"
+[[ -f "$SRC/scripts/DESIGN-SYSTEM.md" ]] && cp "$SRC/scripts/DESIGN-SYSTEM.md" "$TARGET/scripts/DESIGN-SYSTEM.md"
 chmod +x "$TARGET/.githooks/pre-commit" "$TARGET/scripts/design-md-lint.sh" "$TARGET/scripts/pack-design-system.sh" "$TARGET/scripts/bundle-assets/install.sh"
 echo "✓ 已複製：design.md、agents、lint、hook、打包工具（pack-design-system.sh + bundle-assets）"
 
