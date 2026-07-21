@@ -118,8 +118,8 @@ const statusOptions = [
   { label: '啟用', value: 'on' },
   { label: '停用', value: 'off' },
 ]
-// 結帳模式篩選：涵蓋全部 5 種模式（含商城結帳）
-const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳', '商城結帳']
+// 結帳模式篩選：4 種直播模式（不含商城結帳，商城商品不屬於任一結帳模式）
+const MODE_VALUES: CheckoutMode[] = ['標單必結', '自選結帳', '棄標結帳', '暫停結帳']
 const modeFilter = ref<CheckoutMode | null>(null)
 const modeOptions = MODE_VALUES.map((m) => ({ label: m, value: m }))
 const TEMP_VALUES: TempLayer[] = ['常溫', '冷藏', '冷凍']
