@@ -88,6 +88,26 @@ const AppPreset = definePreset(Aura, {
       },
     },
   },
+  components: {
+    // 開關代表「啟用 / 關閉」，開啟態統一用成功綠 green-500 (#22C55E)，
+    // 不跟主題主色（紫）走；綠是固定語意色，8 套主題切換時維持一致。
+    toggleswitch: {
+      colorScheme: {
+        light: {
+          root: {
+            checkedBackground: '{green.500}',
+            checkedHoverBackground: '{green.600}',
+          },
+        },
+        dark: {
+          root: {
+            checkedBackground: '{green.500}',
+            checkedHoverBackground: '{green.600}',
+          },
+        },
+      },
+    },
+  },
 })
 
 const app = createApp(App)
