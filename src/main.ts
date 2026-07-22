@@ -96,13 +96,13 @@ const AppPreset = definePreset(Aura, {
         light: {
           root: {
             checkedBackground: '{green.500}',
-            checkedHoverBackground: '{green.600}',
+            checkedHoverBackground: '{green.500}',
           },
         },
         dark: {
           root: {
             checkedBackground: '{green.500}',
-            checkedHoverBackground: '{green.600}',
+            checkedHoverBackground: '{green.500}',
           },
         },
       },
