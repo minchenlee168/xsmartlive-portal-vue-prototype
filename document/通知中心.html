@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知中心 — 規範版（依 design.md）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<style>
+/* ================= 專案設計 token（對齊 src/style.css / design.md 第二、三、七節） =================
+   本檔為獨立 HTML 原型，無法直接載入 PrimeVue/Tailwind；改以 CSS 變數鏡射專案 token，
+   所有顏色/圓角/陰影一律走 token，不再自訂裸色。舊 class 名稱以別名指回專案 token。 */
+:root{
+  /* 品牌主色 ramp（#7008e7 = 500，對齊 src/style.css） */
+  --primary:#7008e7;
+  --primary-50:#f5f0fe; --primary-100:#e9ddfd; --primary-200:#d3bbfb;
+  --primary-300:#b88ef7; --primary-400:#9a55f2; --primary-700:#5006a3;
+  --primary-800:#3e0480; --primary-900:#2f0362; --primary-950:#1d013e;
+  --primary-bg:#7008e7; --primary-hover-bg:#5b06bd;
+  --primary-surface:#F2EBFF;              /* design.md §2 主色 Soft：淡紫底/選中/tag */
+
+  /* 中性 surface / 邊框 / 文字（design.md §2） */
+  --surface-0:#ffffff; --surface-50:#f8fafc; --surface-100:#f1f5f9; --surface-200:#e2e8f0;
+  --page-bg:#f1f5f9;                      /* 內容區背景（surface-100，對齊 src/style.css --page-bg） */
+  --border-color:#e5e7eb;                 /* 一般 hairline（border-gray-200，design.md §7.3） */
+  --border-light:#e2e8f0;
+  --border-strong:#cbd5e1;                /* 輸入框邊框（design.md §2 #CBD5E1） */
+  --text:#334155;                         /* 文字主色（surface-700） */
+  --text-muted:#64748b;                   /* 文字次色 */
+  --muted:#94a3b8;                        /* placeholder / 最淺 metadata */
+
+  /* 功能色（design.md §2，成對 strong/soft） */
+  --success:#16a34a; --success-soft:#dcfce7;
+  --danger:#dc2626;  --danger-soft:#fee2e2;
+  --warn:#ca8a04;    --warn-soft:#fef9c3;
+  --info:#2563eb;    --info-soft:#dbeafe;
+
+  /* 圓角 / 陰影（design.md §7.3、§8；卡片陰影對齊 src/style.css --card-shadow） */
+  --r:6px; --r-card:10px;
+  --card-shadow:0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
+
+  /* 舊 class 名稱別名（沿用既有 class，值改指專案 token） */
+  --primary-soft:var(--primary-surface);
+  --primary-hover:var(--primary-hover-bg);
+  --border:var(--border-color);
+  --text-2:var(--text-muted);
+  --neutral-100:var(--surface-100);
+  --bg:var(--page-bg);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5;}
+button,input,select,textarea{font-family:inherit;}
+
+/* ================= 框架 ================= */
+.app{width:100vw;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{flex:0 0 60px;height:60px;padding:0 24px;background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;}
+.tb-left{display:flex;align-items:center;gap:16px;}
+.logo{width:32px;height:32px;border-radius:8px;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;}
+.sys-title{font-size:20px;font-weight:500;margin:0;white-space:nowrap;}
+.collapse-btn{width:32px;height:32px;border-radius:999px;border:none;background:var(--surface-100);color:var(--text-2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.collapse-btn:hover{background:var(--surface-200);}
+.collapse-btn.rot{transform:rotate(180deg);}
+.switcher{height:36px;border:1px solid var(--border-strong);border-radius:var(--r);padding:0 12px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;background:#fff;cursor:pointer;}
+.switcher.store{width:224px;}
+.tb-right{display:inline-flex;align-items:center;gap:16px;}
+.tb-icon{width:36px;height:36px;border-radius:999px;border:none;background:transparent;color:var(--text-2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;position:relative;}
+.tb-icon:hover{background:var(--surface-100);}
+@keyframes bellpulse{0%,100%{transform:none}15%{transform:rotate(-12deg)}30%{transform:rotate(10deg)}45%{transform:rotate(-8deg)}60%{transform:rotate(6deg)}75%{transform:rotate(-3deg)}}
+.tb-icon.pulse{animation:bellpulse .7s ease;}
+/* 🔔 未讀 badge */
+.tb-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;
+  background:var(--danger);color:#fff;font-size:11px;font-weight:600;line-height:16px;text-align:center;}
+
+.main{display:flex;flex:1;min-height:0;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{flex:0 0 256px;width:256px;background:#fff;border-right:1px solid var(--border);
+  overflow-y:auto;transition:flex-basis .2s ease,width .2s ease;}
+.sidebar.collapsed{flex-basis:56px;width:56px;overflow:hidden;}
+.sidebar ul{list-style:none;margin:0;padding:0;}
+.m-item{height:56px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  cursor:pointer;transition:color .2s;white-space:nowrap;}
+.m-item:hover{color:var(--primary);}
+.m-item .lead{display:flex;align-items:center;gap:8px;}
+.ico{width:20px;flex:0 0 20px;text-align:center;}
+.m-group.active{background:var(--primary);color:#fff;}
+.m-group.active:hover{color:#fff;}
+.m-children{padding-left:16px;background:var(--neutral-100);}
+.m-child{height:56px;padding:16px;display:flex;align-items:center;gap:8px;cursor:pointer;
+  transition:color .2s;white-space:nowrap;justify-content:space-between;}
+.m-child .lead{display:flex;align-items:center;gap:8px;}
+.m-child:hover{color:var(--primary);}
+.m-child.active{color:var(--primary);border-right:4px solid var(--primary);}
+.chev{font-size:12px;}
+.sidebar.collapsed .lbl,.sidebar.collapsed .chev,.sidebar.collapsed .m-children{display:none;}
+/* 側欄未讀小圓點 badge */
+.nav-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;
+  font-size:11px;font-weight:600;line-height:18px;text-align:center;}
+
+.content{flex:1;min-width:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px;}
+
+/* ================= 元件 ================= */
+.card{background:var(--surface-0);border:1px solid var(--border);border-radius:var(--r-card);padding:24px;box-shadow:var(--card-shadow);}
+.page-title{font-size:24px;font-weight:700;line-height:32px;margin:0;display:flex;align-items:center;gap:8px;}
+.section-title{font-size:16px;font-weight:600;margin:0;}
+.helper{font-size:12px;color:var(--text-2);}
+
+.btn{height:40px;padding:0 16px;border-radius:var(--r);border:1px solid transparent;background:var(--primary);color:#fff;
+  font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn:hover{background:var(--primary-hover);}
+.btn.secondary{background:#fff;color:var(--text-2);border-color:var(--border-strong);}
+.btn.secondary:hover{background:var(--surface-50);}
+.btn.outlined{background:#fff;color:var(--primary);border-color:var(--primary);}
+.btn.outlined:hover{background:var(--primary-soft);}
+.btn.sm{height:32px;padding:0 12px;font-size:14px;}
+
+.field{display:flex;flex-direction:column;gap:8px;}
+.field>label{font-size:14px;}
+.req{color:var(--danger);}
+.optional{font-size:12px;color:var(--muted);}
+.input,.select,.textarea{width:100%;height:40px;padding:0 12px;font-size:14px;color:var(--text);background:#fff;
+  border:1px solid var(--border-strong);border-radius:var(--r);transition:all .2s;}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-soft);}
+.textarea{height:auto;padding:8px 12px;line-height:1.6;resize:vertical;font-size:14px;}
+.input:disabled,.textarea:disabled{background:var(--surface-100);color:var(--muted);}
+.input-icon{position:relative;}
+.input-icon .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;}
+.input-icon .input{padding-left:32px;}
+
+.tbl{width:100%;border-collapse:collapse;font-size:14px;}
+.tbl th{text-align:left;font-weight:600;padding:12px 16px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.tbl td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tbody tr:nth-child(even){background:var(--surface-50);}
+.tbl tbody tr:hover{background:var(--primary-soft);}
+.tbl tbody tr.clickable{cursor:pointer;}
+/* 收件匣：未讀白底 / 已讀淺灰；去斑馬紋與紫色 hover，只留未讀圓點 */
+.inbox-tbl tbody tr{cursor:pointer;}
+/* 底色語意：白＝進行中、淡灰＝已結束、淡紫＝hover。因底色承載狀態，此表不套隔行底色
+   （用 .tbl.inbox-tbl 提高權重，蓋過全域的 nth-child(even) 斑馬紋） */
+.tbl.inbox-tbl tbody tr{background:#fff;}
+.tbl.inbox-tbl tbody tr.read{background:var(--neutral-100);}
+.tbl.inbox-tbl tbody tr:hover{background:var(--primary-soft);}
+.st{font-size:12px;font-weight:500;white-space:nowrap;}
+.st.unread{color:var(--info);}
+.st.off{color:var(--muted);font-weight:400;}
+.sdot{width:7px;height:7px;border-radius:999px;background:var(--info);display:inline-block;margin-right:5px;vertical-align:1px;}
+.udot{display:inline-block;width:8px;height:8px;border-radius:999px;background:var(--info);flex:none;}
+.attr-ic{font-size:12px;color:var(--warn);cursor:default;}
+/* 鈴鐺下拉面板 */
+.bell-wrap{position:relative;}
+.bell-panel{position:absolute;top:calc(100% + 8px);right:0;width:360px;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-card);box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:200;display:none;}
+.bell-panel.open{display:block;}
+.bp-hd{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border);}
+.bp-hd .t{font-weight:700;font-size:16px;}
+.bp-hd .c{font-size:12px;color:var(--text-2);}
+.bp-hd .clr{margin-left:auto;font-size:14px;color:var(--text-2);cursor:pointer;background:none;border:none;}
+.bp-hd .clr:hover{color:var(--primary);}
+.bp-body{max-height:400px;overflow-y:auto;padding:8px 0;}
+.bp-sec{padding:8px 16px 4px;font-size:12px;color:var(--text-2);}
+.bp-card{margin:0 12px 8px;border:1px solid var(--border);border-radius:var(--r);padding:12px;display:grid;
+  grid-template-columns:32px 1fr;gap:12px;align-items:start;cursor:pointer;transition:background .2s;}
+.bp-card:hover{background:var(--neutral-100);}
+.bp-card>div{min-width:0;}
+.bp-circ{width:32px;height:32px;border-radius:999px;background:var(--neutral-100);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.bp-title{font-weight:600;font-size:14px;}
+.bp-sub{font-size:12px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bp-time{font-size:12px;color:var(--muted);margin-top:4px;}
+.bp-empty{padding:32px 16px;text-align:center;color:var(--text-2);font-size:14px;}
+.bp-ft{padding:12px 16px;border-top:1px solid var(--border);text-align:center;}
+.bp-ft button{color:var(--info);font-size:14px;background:none;border:none;cursor:pointer;}
+.bp-ft button:hover{text-decoration:underline;}
+.sortic{color:var(--muted);font-size:11px;margin-left:4px;}
+.table-scroll{overflow:auto;}
+.empty{text-align:center;padding:48px 16px;color:var(--text-2);font-size:14px;}
+
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 10px;border-radius:999px;white-space:nowrap;}
+.tag .dot{width:6px;height:6px;border-radius:999px;background:currentColor;}
+.tag.success{background:var(--success-soft);color:var(--success);}
+.tag.danger{background:var(--danger-soft);color:var(--danger);}
+.tag.warn{background:var(--warn-soft);color:var(--warn);}
+.tag.info{background:var(--info-soft);color:var(--info);}
+.tag.primary{background:var(--primary-soft);color:var(--primary);}
+.tag.secondary{background:var(--surface-100);color:var(--text-2);}
+
+.icobtn{width:32px;height:32px;border-radius:999px;border:none;background:transparent;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:14px;position:relative;transition:all .2s;}
+.icobtn:hover{background:var(--surface-100);}
+.icobtn.view{color:var(--success);} .icobtn.edit{color:var(--primary);} .icobtn.read{color:var(--info);} .icobtn.muted{color:var(--muted);}
+.icobtn[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;
+  transform:translateX(-50%);background:var(--text);color:#fff;font-size:12px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:30;}
+
+.paginator{display:flex;align-items:center;justify-content:center;gap:4px;padding-top:12px;}
+.pg{min-width:32px;height:32px;padding:0 8px;border:none;background:transparent;border-radius:var(--r);
+  color:var(--text-2);font-size:14px;cursor:pointer;}
+.pg:hover{background:var(--surface-100);} .pg.active{background:var(--primary);color:#fff;}
+.paginator .info{margin-left:12px;font-size:12px;color:var(--text-2);}
+
+/* ===== Tabs（design.md 6.6；TabList px-6 對齊，7.1） ===== */
+.tabs-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--border);margin:-24px -24px 16px;padding:0 24px;}
+.tabs{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;border:0;margin:0;padding:0;}
+.tabs::-webkit-scrollbar{height:0;}
+.tabs-right{display:flex;align-items:center;gap:14px;flex:none;}
+.btn.aux{height:36px;}
+.tab{height:44px;padding:0 12px;border:none;background:transparent;color:var(--text-2);font-size:14px;font-weight:500;
+  cursor:pointer;position:relative;display:inline-flex;align-items:center;gap:6px;transition:color .2s;}
+.tab:hover{color:var(--primary);}
+.tab.active{color:var(--primary);}
+.tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--primary);}
+.tab .cnt{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--surface-100);color:var(--text-2);
+  font-size:11px;font-weight:600;line-height:18px;text-align:center;}
+.tab.active .cnt{background:var(--primary-soft);color:var(--primary);}
+
+/* ===== ToggleSwitch（PrimeVue 對應） ===== */
+.toggle{position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;flex:0 0 40px;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle .track{position:absolute;inset:0;background:var(--border-strong);border-radius:999px;transition:all .2s;}
+.toggle .thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:999px;transition:all .2s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+.toggle input:checked + .track{background:var(--primary);}
+.toggle input:checked + .track + .thumb{transform:translateX(18px);}
+
+/* ===== Drawer（右側抽屜） ===== */
+.drawer-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;z-index:100;}
+.drawer-mask.open{display:block;}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:520px;max-width:100%;background:#fff;z-index:101;
+  transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;box-shadow:-8px 0 24px rgba(0,0,0,.12);}
+.drawer.open{transform:none;}
+.dw-hd{flex:0 0 auto;padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.dw-hd h3{font-size:18px;font-weight:700;margin:0 0 4px;}
+.dw-bd{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px;}
+.dw-ft{flex:0 0 auto;padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.dw-x{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;}
+
+/* Dialog（收件匣詳情） */
+.mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.mask.open{display:flex;}
+.dialog{background:#fff;border-radius:var(--r-card);width:560px;max-width:100%;box-shadow:0 20px 40px rgba(0,0,0,.15);animation:fade .2s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.dlg-hd{padding:20px 24px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.dlg-bd{padding:0 24px 8px;}
+.dlg-ft{padding:16px 24px 20px;display:flex;justify-content:flex-end;gap:8px;}
+.dlg-x{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;}
+
+/* 變數 chip */
+.var-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.var-chip{border:1px solid var(--border-strong);background:#fff;color:var(--text);border-radius:var(--r);
+  padding:4px 10px;font-size:14px;cursor:pointer;transition:all .2s;font-family:ui-monospace,monospace;}
+.var-chip:hover{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);}
+
+/* 預覽區 */
+.preview{background:var(--neutral-100);border:1px dashed var(--border-strong);border-radius:var(--r);padding:12px 16px;font-size:14px;line-height:1.7;white-space:pre-wrap;}
+.kv{display:flex;gap:8px;font-size:14px;}
+.kv .k{color:var(--text-2);flex:0 0 88px;}
+
+/* 資訊條 */
+.infobar{background:var(--info-soft);border:1px solid var(--info);border-radius:var(--r);padding:12px 16px;
+  font-size:12px;color:var(--info);display:flex;gap:8px;align-items:flex-start;line-height:1.6;}
+
+.module-path{font-size:12px;color:var(--text-2);}
+.link{color:var(--info);text-decoration:none;font-size:14px;}
+.link:hover{text-decoration:underline;}
+
+/* 嵌入模式：整合頁以 ?embed=1 載入時，藏掉自帶側欄與 TopBar，只留內容區 */
+body.embed .topbar,body.embed .sidebar{display:none;}
+.page{display:none;}
+.page.active{display:flex;flex-direction:column;gap:16px;}
+.search-grid{display:grid;grid-template-columns:1fr 200px 200px;gap:8px;}
+.search-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+@media(max-width:1200px){.search-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TopBar：🔔 通知鈴鐺（未讀 badge）作為收件匣的便捷入口，主 IA 仍走側欄 -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="logo">X</div>
+      <p class="sys-title" id="sys-title">直播管家</p>
+      <button class="collapse-btn" id="collapse-btn" title="收合側邊欄" aria-label="收合側邊欄"><i class="fa-solid fa-angle-left"></i></button>
+      <div class="switcher store"><span>好物直播間</span><span style="color:var(--muted);font-size:12px;"><i class="fa-solid fa-chevron-down"></i></span></div>
+      <div class="switcher"><span>商店管理</span><span style="color:var(--muted);font-size:12px;"><i class="fa-solid fa-chevron-down"></i></span></div>
+    </div>
+    <div class="tb-right">
+      <div class="bell-wrap">
+        <button class="tb-icon" title="通知" id="bell-btn" aria-label="通知"><span><i class="fa-regular fa-bell"></i></span><span class="tb-badge" id="tb-unread">4</span></button>
+        <div class="bell-panel" id="bell-panel">
+          <div class="bp-hd">
+            <span><i class="fa-regular fa-bell"></i></span><span class="t">通知中心</span><span class="c" id="bp-count">0 筆</span>
+            <button class="clr" onclick="clearAllBell()">清除全部</button>
+          </div>
+          <div class="bp-body" id="bp-body"></div>
+          <div class="bp-ft"><button onclick="gotoInbox()">查看全部通知</button></div>
+        </div>
+      </div>
+      <button class="tb-icon" title="主題切換" aria-label="主題切換"><i class="fa-regular fa-moon"></i></button>
+      <button class="tb-icon" title="語言" aria-label="語言"><i class="fa-solid fa-globe"></i></button>
+      <button class="tb-icon" title="帳號" aria-label="帳號"><i class="fa-regular fa-user"></i></button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Sidebar：只保留與本功能相關的項目（其餘模組省略以利辨識）。
+         通知中心(頂層,讀) / 客服中心(既有,雙向對話) / 訊息範本(設定下,設定) -->
+    <div class="sidebar" id="sidebar">
+      <ul>
+        <!-- 通知中心：帳號級收件匣（頂層 + 🔔）；平台通知 + 客戶單向提醒 -->
+        <li><div class="m-item m-group active" data-nav="inbox">
+          <div class="lead"><span class="ico"><i class="fa-regular fa-bell"></i></span><span class="lbl">通知中心</span></div>
+          <span class="nav-badge lbl" id="nav-unread">4</span>
+        </div></li>
+        <!-- 設定：訊息範本歸此，商店級 -->
+        <li>
+          <div class="m-item"><div class="lead"><span class="ico"><i class="fa-solid fa-gear"></i></span><span class="lbl">設定</span></div><span class="chev lbl"><i class="fa-solid fa-chevron-down"></i></span></div>
+          <ul class="m-children">
+            <li><div class="m-child" data-nav="template">
+              <span class="lead"><span class="ico"><i class="fa-regular fa-envelope"></i></span><span class="lbl">訊息範本</span></span>
+            </div></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="content">
+
+      <!-- ============================================================ -->
+      <!-- 子頁 1：通知收件匣 -->
+      <!-- ============================================================ -->
+      <div class="page active" id="page-inbox">
+        <!-- 頁面標題（Display 24/700，對齊 design.md 三、字級階梯與其他頁面一致） -->
+        <div>
+          <h1 class="page-title">通知中心</h1>
+          <p class="helper" style="margin-top:4px;">平台與系統發送給您的通知；點整列可查看完整內容。</p>
+        </div>
+        <!-- 依 6.6：Table 上方有分類 → 用 Tabs；模式二（Tabs 左、功能鈕右） -->
+        <div class="card">
+          <!-- design.md 6.6 模式二：Tabs 左、功能鈕右，同一列 -->
+          <div class="tabs-row">
+            <div class="tabs" id="inbox-tabs">
+              <!-- 分頁由共用分類清單動態產生 -->
+            </div>
+            <div class="tabs-right">
+              <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;white-space:nowrap;">
+                <input type="checkbox" id="only-unread" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;">
+                只看未讀
+              </label>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table class="tbl inbox-tbl">
+              <thead>
+                <tr>
+                  <th style="width:150px;">通知類型</th>
+                  <th>通知</th>
+                  <th style="width:120px;">時間<span class="sortic"><i class="fa-solid fa-sort"></i></span></th>
+                  <th style="width:90px;">狀態</th>
+                  <th style="width:100px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="inbox-rows"></tbody>
+            </table>
+          </div>
+          <div class="paginator">
+            <button class="pg" aria-label="上一頁"><i class="fa-solid fa-angle-left"></i></button><button class="pg active">1</button><button class="pg" aria-label="下一頁"><i class="fa-solid fa-angle-right"></i></button>
+            <span class="info" id="inbox-count">每頁 10 筆 · 共 7 筆</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- 子頁 2：訊息範本設定（聚合視圖） -->
+      <!-- ============================================================ -->
+      <div class="page" id="page-template">
+        <!-- 搜尋 Card：標題在 Card 左上（7.6）；3 個條件，<4 免清除鈕 -->
+        <div class="card">
+          <h1 class="page-title" style="margin-bottom:8px;">訊息範本</h1>
+          <p class="helper" style="margin-bottom:16px;">設定各功能模組發送給會員／客人的訊息範本。範本採「總部預設 + 單店覆寫」：總部定一套預設，個別商店可沿用或自訂。</p>
+          <div class="search-grid">
+            <div class="field">
+              <label>關鍵字</label>
+              <div class="input-icon"><span class="ic"><i class="fa-solid fa-magnifying-glass"></i></span><input class="input" placeholder="請輸入範本名稱 / 內容"></div>
+            </div>
+            <div class="field">
+              <label>所屬模組</label>
+              <select class="select">
+                <option>全部模組</option><option>物流管理</option><option>訂單管理</option>
+                <option>會員管理</option><option>行銷活動</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>啟用狀態</label>
+              <select class="select"><option>全部</option><option>已啟用</option><option>已停用</option></select>
+            </div>
+          </div>
+          <div class="search-actions">
+            <button class="btn">搜尋</button>
+          </div>
+        </div>
+
+        <!-- 編輯範圍：總部預設 / 各商店（實作時商店部分跟隨上方全域商店切換器） -->
+        <div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 24px;flex-wrap:wrap;">
+          <label style="font-size:14px;font-weight:600;white-space:nowrap;">編輯範圍</label>
+          <select class="select" style="width:280px;flex:0 0 280px;" id="scope-select">
+            <option value="hq">總部預設（套用全部商店）</option>
+            <option value="s1">好物直播間</option>
+            <option value="s2">潮流二號店</option>
+          </select>
+          <span class="helper" id="scope-hint"></span>
+        </div>
+
+        <!-- 範本表格 Card：上方 Tabs 依「通道」分類（6.6 模式二） -->
+        <div class="card">
+          <div class="tabs" id="tpl-tabs">
+            <button class="tab active" data-ch="all">全部 <span class="cnt">8</span></button>
+            <button class="tab" data-ch="sms">簡訊 SMS <span class="cnt">3</span></button>
+            <button class="tab" data-ch="inapp">站內信 <span class="cnt">2</span></button>
+            <button class="tab" data-ch="email">Email <span class="cnt">2</span></button>
+            <button class="tab" data-ch="line">LINE <span class="cnt">1</span></button>
+          </div>
+
+          <div class="table-scroll">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>範本名稱</th>
+                  <th style="width:110px;">通道</th>
+                  <th>所屬模組</th>
+                  <th style="width:120px;">本店狀態</th>
+                  <th style="width:96px;">啟用</th>
+                  <th style="width:150px;">最後更新<span class="sortic"><i class="fa-solid fa-sort"></i></span></th>
+                  <th style="width:96px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="tpl-rows"></tbody>
+            </table>
+          </div>
+          <div class="paginator">
+            <button class="pg" aria-label="上一頁"><i class="fa-solid fa-angle-left"></i></button><button class="pg active">1</button><button class="pg" aria-label="下一頁"><i class="fa-solid fa-angle-right"></i></button>
+            <span class="info">每頁 10 筆 · 共 8 筆</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 收件匣詳情 Dialog ===== -->
+<div class="mask" id="dlg-notif">
+  <div class="dialog">
+    <div class="dlg-hd">
+      <div>
+        <div id="nt-cat" style="margin-bottom:8px;"></div>
+        <div id="nt-title" style="font-size:18px;font-weight:700;"></div>
+      </div>
+      <button class="dlg-x" onclick="closeDialog('dlg-notif')" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="dlg-bd">
+      <p class="helper" id="nt-time" style="margin:0 0 12px;"></p>
+      <div id="nt-body" style="font-size:14px;line-height:1.8;"></div>
+      <div id="nt-stores"></div>
+      <div id="nt-action" style="margin-top:16px;"></div>
+    </div>
+    <div class="dlg-ft"><button class="btn secondary" onclick="closeDialog('dlg-notif')">關閉</button></div>
+  </div>
+</div>
+
+<!-- ===== 廣播公告彈窗（公司端開啟「廣播公告」時優先顯示） ===== -->
+<div class="mask" id="dlg-announce">
+  <div class="dialog" style="width:520px;">
+    <div class="dlg-hd">
+      <span id="an-cat"></span>
+      <button class="dlg-x" onclick="closeAnnounce()" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="dlg-bd">
+      <div id="an-title" style="font-size:18px;font-weight:700;margin-bottom:6px;"></div>
+      <p class="helper" id="an-time" style="margin:0 0 12px;"></p>
+      <div id="an-body" style="font-size:14px;line-height:1.8;"></div>
+    </div>
+    <div class="dlg-ft" style="justify-content:space-between;align-items:center;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="an-noshow" style="width:16px;height:16px;accent-color:var(--primary);">
+        下次不顯示
+      </label>
+      <button class="btn" onclick="closeAnnounce()">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 範本編輯 Drawer（共用編輯器；聚合視圖與各模組共掛此元件） ===== -->
+<div class="drawer-mask" id="dw-mask" onclick="closeDrawer()"></div>
+<div class="drawer" id="tpl-drawer">
+  <div class="dw-hd">
+    <div>
+      <h3 id="dw-title">編輯範本</h3>
+      <div class="module-path" id="dw-path">物流管理 › 配送貨態資訊 › 物流商通知</div>
+    </div>
+    <button class="dw-x" onclick="closeDrawer()" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="dw-bd">
+    <div class="infobar" id="dw-info"><span><i class="fa-solid fa-circle-info"></i></span><span id="dw-info-text"></span></div>
+
+    <div class="field">
+      <label>範本名稱 <span class="req">*</span></label>
+      <input class="input" id="dw-name" value="出貨通知">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="field">
+        <label>發送通道</label>
+        <input class="input" id="dw-channel" value="簡訊 SMS" disabled>
+        <p class="helper">通道由所屬模組決定，不可於此變更。</p>
+      </div>
+      <div class="field">
+        <label>啟用狀態</label>
+        <div style="display:flex;align-items:center;gap:8px;height:40px;">
+          <label class="toggle"><input type="checkbox" id="dw-enabled" checked><span class="track"></span><span class="thumb"></span></label>
+          <span id="dw-enabled-label" style="font-size:14px;">已啟用</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>觸發時機</label>
+      <input class="input" id="dw-trigger" value="訂單出貨、物流商配送狀態更新時" disabled>
+    </div>
+
+    <!-- 內容套用方式：僅商店範圍顯示（總部範圍直接編輯預設） -->
+    <div class="field" id="dw-apply-row" style="display:none;">
+      <label>內容套用方式</label>
+      <div style="display:flex;align-items:center;gap:8px;height:40px;">
+        <label class="toggle"><input type="checkbox" id="dw-custom" onchange="onCustomToggle()"><span class="track"></span><span class="thumb"></span></label>
+        <span id="dw-custom-label" style="font-size:14px;">沿用總部預設</span>
+      </div>
+      <p class="helper" id="dw-apply-hint"></p>
+    </div>
+
+    <!-- Email 專用主旨（依通道顯示） -->
+    <div class="field" id="dw-subject-field" style="display:none;">
+      <label>信件主旨 <span class="req">*</span></label>
+      <input class="input" id="dw-subject" placeholder="請輸入信件主旨">
+    </div>
+
+    <div class="field">
+      <label>可用變數 <span class="optional">（點擊插入游標處）</span></label>
+      <div class="var-chips" id="dw-vars"></div>
+    </div>
+
+    <div class="field">
+      <label>訊息內容 <span class="req">*</span></label>
+      <textarea class="textarea" id="dw-content" rows="5" oninput="updateSmsCount()"></textarea>
+      <p class="helper" id="dw-count"></p>
+    </div>
+
+    <div class="field">
+      <label>預覽 <span class="optional">（以範例資料代入變數）</span></label>
+      <div class="preview" id="dw-preview"></div>
+    </div>
+  </div>
+  <div class="dw-ft" style="justify-content:space-between;">
+    <button class="btn secondary" id="dw-restore" style="display:none;" onclick="restoreDefault()">還原為總部預設</button>
+    <div style="display:flex;gap:8px;margin-left:auto;">
+      <button class="btn secondary" onclick="closeDrawer()">取消</button>
+      <button class="btn" onclick="saveTpl()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 資料 ===================== */
+/* 分類＝與公司後台共用同一份類別清單（單一來源），沒有就用預設 */
+const TYPES_KEY='__xslNotifyTypes_v2';
+const DEFAULT_CATS=[
+  {id:'system',name:'系統公告',sev:'info'},
+  {id:'maintenance',name:'維護通知',sev:'info'},
+  {id:'notice',name:'系統通知',sev:'success'},
+  {id:'order',name:'訂單營運異常',sev:'danger',sysEvent:true},
+  {id:'customer',name:'客戶動態',sev:'secondary',sysEvent:true},
+];
+function catList(){
+  try{const a=JSON.parse(localStorage.getItem(TYPES_KEY)||'null'); if(a&&a.length)return a;}catch(e){}
+  return DEFAULT_CATS.slice();
+}
+let CAT={};
+function buildCAT(){ CAT={}; catList().forEach(c=>{CAT[c.id]=[c.name,c.sev];}); }
+buildCAT();
+const notifications=[
+  {id:1,cat:'notice',sev:'success',title:'物流商「黑貓宅急便」開通成功',read:false,time:'2026/07/16 09:12',
+   body:'您申請的物流商「黑貓宅急便」已審核通過並完成開通，即日起可於「物流管理」建立出貨單並使用該物流商寄件服務。',action:{label:'前往物流管理',type:'link'}},
+  {id:2,cat:'notice',sev:'danger',title:'金流「綠界科技」開通審核未通過',read:false,time:'2026/07/15 17:40',
+   body:'您申請的金流「綠界科技」因「營業登記文件不清晰」審核未通過。請重新上傳清晰的證明文件後再次送審。',action:{label:'重新送審',type:'link'}},
+  {id:3,cat:'maintenance',sev:'info',title:'系統維護公告：7/20 02:00–04:00',read:true,time:'2026/07/14 10:00',pinned:true,
+   body:'為提供更穩定的服務，系統將於 2026/07/20 02:00–04:00 進行例行維護，期間後台將暫停服務，造成不便敬請見諒。',action:null},
+  {id:4,cat:'notice',sev:'success',title:'商家資格審核通過',read:true,time:'2026/07/12 14:26',
+   body:'恭喜！您的商家資格審核已通過，帳號功能已全數開通，歡迎開始使用直播管家的完整功能。',action:null},
+  {id:5,cat:'notice',sev:'warn',title:'合約將於 2026/08/31 到期',read:false,time:'2026/07/11 08:00',
+   body:'您的服務合約將於 2026/08/31 到期。為避免服務中斷，請於到期前完成續約手續。',action:{label:'前往續約',type:'link'}},
+  {id:6,cat:'order',sev:'danger',title:'訂單 #20260715-008 付款異常',read:false,time:'2026/07/15 21:03',
+   body:'訂單 #20260715-008 的付款發生異常（授權失敗），目前訂單狀態為「待處理」，請確認後聯繫買家或取消訂單。',action:{label:'查看訂單',type:'link'}},
+  {id:7,cat:'system',sev:'info',title:'新功能上線：AI 商品文案建議',read:true,time:'2026/07/09 11:20',
+   body:'「AI 商品文案建議」功能正式上線，於商品編輯頁點擊「AI 建議」即可自動產生商品標題與賣點文案。',action:null},
+  {id:8,cat:'system',sev:'info',title:'付款服務條款更新公告',read:true,time:'2026/07/06 09:00',
+   body:'金流服務條款將於 2026/08/01 起更新，主要調整撥款週期與手續費計算方式，詳情請參閱條款全文。',action:{label:'查看條款全文',type:'link'}},
+  {id:9,cat:'customer',sev:'secondary',title:'新訂單 #20260716-014 已成立',read:false,time:'2026/07/16 10:05',
+   body:'客戶「陳美如」剛完成一筆訂單 #20260716-014，金額 NT$ 2,480。此為單向提醒，如需回覆客戶請至既有的「客服中心」。',action:{label:'查看訂單',type:'link'}},
+  {id:10,cat:'customer',sev:'secondary',title:'商品收到新評價（4★）',read:true,time:'2026/07/15 19:30',
+   body:'商品「無線藍牙耳機」收到一則新評價（4 星）：「音質不錯，出貨也快。」',action:{label:'查看評價',type:'link'}},
+];
+
+const CH={sms:['簡訊 SMS','info'],inapp:['站內信','primary'],email:['Email','warn'],line:['LINE','success']};
+const templates=[
+  {id:1,name:'出貨通知',ch:'sms',module:'物流管理',path:'物流管理 › 配送貨態資訊 › 物流商通知',trigger:'訂單出貨、物流狀態更新時',enabled:true,updated:'2026/07/14 16:08',
+   vars:['{{會員姓名}}','{{訂單編號}}','{{物流商名稱}}','{{物流單號}}'],
+   content:'{{會員姓名}} 您好，您的訂單 {{訂單編號}} 已由 {{物流商名稱}} 出貨，物流單號 {{物流單號}}，可至會員中心查詢配送進度。'},
+  {id:2,name:'到店取件通知',ch:'sms',module:'物流管理',path:'物流管理 › 配送貨態資訊 › 物流商通知',trigger:'包裹送達取件門市時',enabled:true,updated:'2026/07/14 16:08',
+   vars:['{{會員姓名}}','{{訂單編號}}','{{取件門市}}','{{取件期限}}'],
+   content:'{{會員姓名}} 您好，您的訂單 {{訂單編號}} 已送達 {{取件門市}}，請於 {{取件期限}} 前持證件取件，逾期將退回。'},
+  {id:3,name:'退款完成通知',ch:'sms',module:'訂單管理',path:'訂單管理 › 退款作業 › 通知設定',trigger:'退款完成時',enabled:false,updated:'2026/06/30 10:12',
+   vars:['{{會員姓名}}','{{訂單編號}}','{{退款金額}}'],
+   content:'{{會員姓名}} 您好，訂單 {{訂單編號}} 的退款 {{退款金額}} 已完成，將於 3–5 個工作天內退回原付款帳戶。'},
+  {id:4,name:'訂單成立通知',ch:'inapp',module:'訂單管理',path:'訂單管理 › 通知設定',trigger:'買家成功下單時',enabled:true,updated:'2026/07/10 09:30',
+   vars:['{{會員姓名}}','{{訂單編號}}','{{訂單金額}}'],
+   content:'{{會員姓名}} 您好，您的訂單 {{訂單編號}} 已成立，訂單金額 {{訂單金額}}，我們將盡快為您安排出貨。'},
+  {id:5,name:'會員註冊歡迎',ch:'inapp',module:'會員管理',path:'會員管理 › 通知設定',trigger:'會員完成註冊時',enabled:true,updated:'2026/07/02 15:40',
+   vars:['{{會員姓名}}','{{商店名稱}}'],
+   content:'{{會員姓名}} 您好，歡迎加入 {{商店名稱}}！首次購物即可享新會員專屬優惠，快來逛逛直播間吧。'},
+  {id:6,name:'付款成功通知',ch:'email',module:'訂單管理',path:'訂單管理 › 通知設定',trigger:'訂單付款成功時',enabled:true,updated:'2026/07/08 11:05',
+   subject:'【{{商店名稱}}】訂單 {{訂單編號}} 付款成功',
+   vars:['{{會員姓名}}','{{訂單編號}}','{{訂單金額}}','{{商店名稱}}'],
+   content:'{{會員姓名}} 您好，\n\n您的訂單 {{訂單編號}}（金額 {{訂單金額}}）已完成付款，感謝您的購買。我們將盡快為您安排出貨，出貨後另行通知。\n\n{{商店名稱}} 敬上'},
+  {id:7,name:'優惠券到期提醒',ch:'email',module:'行銷活動',path:'行銷活動 › 優惠券 › 通知設定',trigger:'優惠券到期前 3 天',enabled:true,updated:'2026/07/05 18:22',
+   subject:'【{{商店名稱}}】您的優惠券即將到期',
+   vars:['{{會員姓名}}','{{優惠券名稱}}','{{到期日}}','{{商店名稱}}'],
+   content:'{{會員姓名}} 您好，\n\n您持有的「{{優惠券名稱}}」將於 {{到期日}} 到期，別忘了在直播間使用喔！\n\n{{商店名稱}} 敬上'},
+  {id:8,name:'生日禮金發放',ch:'line',module:'行銷活動',path:'行銷活動 › 會員回饋 › 通知設定',trigger:'會員生日當日',enabled:false,updated:'2026/06/20 09:00',
+   vars:['{{會員姓名}}','{{禮金金額}}','{{使用期限}}'],
+   content:'🎂 {{會員姓名}} 生日快樂！我們送上 {{禮金金額}} 生日禮金，使用期限至 {{使用期限}}，快來直播間挑選喜歡的商品吧！'},
+];
+
+/* ===================== 收件匣渲染 ===================== */
+let inboxCat='all', inboxUnreadOnly=false;
+function catTag(cat){const c=CAT[cat]||['—','secondary'];return `<span class="tag ${c[1]}">${c[0]}</span>`;}
+/* 收件匣時間省略年份（近期通知為主） */
+function shortTime(t){ return String(t||'').replace(/^\d{4}\//,''); }
+function nowStr(){const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+/** 置頂：由公司後台發送時勾選「置頂顯示」決定，不限則數，全部固定在最上方（新到舊） */
+function pinnedIds(){
+  return notifications.filter(n=>n.pinned)
+    .sort((a,b)=>b.time.localeCompare(a.time)).map(n=>n.id);
+}
+function renderInbox(){
+  const pins=pinnedIds();
+  let rows=notifications.filter(n=>inboxCat==='all'||n.cat===inboxCat);
+  if(inboxUnreadOnly)rows=rows.filter(n=>!n.read);
+  // 置頂優先，其餘按時間新到舊
+  rows.sort((a,b)=>{
+    const pa=pins.includes(a.id),pb=pins.includes(b.id);
+    if(pa!==pb)return pa?-1:1;
+    return b.time.localeCompare(a.time);
+  });
+  const tb=document.getElementById('inbox-rows');
+  tb.innerHTML = rows.length ? rows.map(n=>{
+    const pinned=pins.includes(n.id);
+    return `
+    <tr class="${n.read?'read':'unread'}" onclick="openNotif('${n.id}')">
+      <td>${catTag(n.cat)}</td>
+      <td>
+        <div style="font-weight:${n.read?'400':'600'};color:var(--text);display:flex;align-items:center;gap:6px;">
+          ${n.read?'':'<span class="udot" aria-label="未讀"></span>'}
+          ${pinned?'<i class="fa-solid fa-thumbtack attr-ic" title="置頂"></i>':''}
+          ${n.stores?'<span class="tag info" style="padding:1px 8px;">適用門市</span>':''}
+          <span>${n.title}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;">${n.body}</div>
+      </td>
+      <td style="font-size:12px;color:var(--text-2);">${shortTime(n.time)}</td>
+      <td>${n.read
+        ? '<span class="st off">已讀</span>'
+        : '<span class="st unread"><span class="sdot"></span>未讀</span>'}</td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="icobtn ${n.read?'muted':'read'}" data-tip="${n.read?'標示為未讀':'標示為已讀'}" onclick="event.stopPropagation();toggleRead('${n.id}')"><i class="fa-regular ${n.read?'fa-envelope-open':'fa-envelope'}"></i></button>
+      </div></td>
+    </tr>`;}).join('') : `<tr><td colspan="5" class="empty">目前沒有通知</td></tr>`;
+  document.getElementById('inbox-count').textContent=`每頁 10 筆 · 共 ${rows.length} 筆`;
+  refreshUnread();
+}
+function refreshUnread(){
+  const u=notifications.filter(n=>!n.read).length;
+  document.getElementById('tb-unread').textContent=u;
+  document.getElementById('nav-unread').textContent=u;
+  document.getElementById('tb-unread').style.display=u?'block':'none';
+  document.getElementById('nav-unread').style.display=u?'block':'none';
+  document.getElementById('cnt-all').textContent=notifications.length;
+  const bp=document.getElementById('bell-panel');
+  if(bp&&bp.classList.contains('open'))renderBellPanel();
+}
+/* ===================== 鈴鐺下拉面板 ===================== */
+function iconOf(cat){
+  const m={system:'fa-circle-info',maintenance:'fa-screwdriver-wrench',notice:'fa-circle-check',order:'fa-triangle-exclamation',customer:'fa-user'};
+  return `<i class="fa-solid ${m[cat]||'fa-circle'}"></i>`;
+}
+function renderBellPanel(){
+  const unread=notifications.filter(n=>!n.read);
+  document.getElementById('bp-count').textContent=unread.length+' 筆';
+  const body=document.getElementById('bp-body');
+  if(!unread.length){body.innerHTML='<div class="bp-empty">目前沒有未讀通知</div>';return;}
+  const groups={};
+  unread.forEach(n=>{(groups[n.cat]=groups[n.cat]||[]).push(n);});
+  body.innerHTML=Object.keys(groups).map(cat=>
+    `<div class="bp-sec">${CAT[cat][0]}</div>`+groups[cat].map(n=>`
+      <div class="bp-card" onclick="openFromBell('${n.id}')">
+        <span class="bp-circ">${iconOf(cat)}</span>
+        <div>
+          <div class="bp-title">${n.title}</div>
+          <div class="bp-sub">${n.body}</div>
+          <div class="bp-time">${n.time}</div>
+        </div>
+      </div>`).join('')
+  ).join('');
+}
+function toggleBell(){const p=document.getElementById('bell-panel');if(p.classList.toggle('open'))renderBellPanel();}
+function clearAllBell(){markAllRead();renderBellPanel();}
+function openFromBell(id){document.getElementById('bell-panel').classList.remove('open');openNotif(id);}
+function gotoInbox(){document.getElementById('bell-panel').classList.remove('open');navTo('inbox');}
+function openNotif(id){
+  const n=notifications.find(x=>String(x.id)===String(id)); if(!n)return; n.read=true;
+  document.getElementById('nt-cat').innerHTML=catTag(n.cat);
+  document.getElementById('nt-title').textContent=n.title;
+  document.getElementById('nt-time').textContent=n.time;
+  document.getElementById('nt-body').textContent=n.body;
+  document.getElementById('nt-stores').innerHTML = n.stores
+    ? `<div style="margin-top:12px;font-size:13px;"><span class="tag info">適用門市</span> <span style="color:var(--text-2);">${n.stores.join('、')}</span></div>` : '';
+  document.getElementById('nt-action').innerHTML = n.action?`<button class="btn outlined sm">${n.action.label} <i class="fa-solid fa-arrow-right"></i></button>`:'';
+  openDialog('dlg-notif'); renderInbox();
+}
+function markRead(id){const n=notifications.find(x=>String(x.id)===String(id));if(n)n.read=true;renderInbox();}
+function markAllRead(){notifications.forEach(n=>n.read=true);renderInbox();}
+/* 標示已讀 / 未讀 */
+function toggleRead(id){
+  const n=notifications.find(x=>String(x.id)===String(id));
+  if(n){ n.read=!n.read; renderInbox(); }
+}
+
+function renderInboxTabs(){
+  const bar=document.getElementById('inbox-tabs');
+  const cnt=c=>notifications.filter(n=>n.cat===c).length;
+  bar.innerHTML=`<button class="tab ${inboxCat==='all'?'active':''}" data-cat="all">全部 <span class="cnt" id="cnt-all">${notifications.length}</span></button>`+
+    catList().map(c=>`<button class="tab ${inboxCat===c.id?'active':''}" data-cat="${c.id}">${c.name} <span class="cnt">${cnt(c.id)}</span></button>`).join('');
+  bar.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    inboxCat=t.dataset.cat; renderInboxTabs(); renderInbox();
+  }));
+}
+document.getElementById('only-unread').addEventListener('change',e=>{inboxUnreadOnly=e.target.checked;renderInbox();});
+
+/* ===================== 多商店：總部預設 + 單店覆寫 ===================== */
+const stores={hq:'總部預設',s1:'好物直播間',s2:'潮流二號店'};
+let curStore='hq';
+/* 覆寫表：key = `${storeId}:${templateId}` → 該店自訂的 content / enabled / subject */
+const overrides={
+  's1:1':{content:'{{會員姓名}} 您好，好物直播間為您出貨囉！訂單 {{訂單編號}} 已由 {{物流商名稱}} 寄出（單號 {{物流單號}}），敬請留意配送通知。',enabled:true},
+  's2:8':{content:'🎉 {{會員姓名}} 生日快樂！潮流二號店送您 {{禮金金額}} 生日金，{{使用期限}} 前快來逛逛～',enabled:true},
+};
+const ovKey=(s,t)=>s+':'+t;
+/** 回傳目前範圍下的有效內容；overridden 表示本店是否已覆寫 */
+function effective(t){
+  if(curStore==='hq')return {content:t.content,subject:t.subject,enabled:t.enabled,overridden:false};
+  const o=overrides[ovKey(curStore,t.id)];
+  if(o)return {content:o.content,subject:(o.subject??t.subject),enabled:(o.enabled??t.enabled),overridden:true};
+  return {content:t.content,subject:t.subject,enabled:t.enabled,overridden:false};
+}
+
+/* ===================== 範本渲染 ===================== */
+let tplCh='all';
+function chTag(ch){const[l,s]=CH[ch];return `<span class="tag ${s}">${l}</span>`;}
+function stateTag(t){
+  if(curStore==='hq')return '<span class="tag primary">總部預設</span>';
+  return effective(t).overridden
+    ? '<span class="tag primary">已覆寫</span>'
+    : '<span class="tag secondary">沿用預設</span>';
+}
+function updateScopeHint(){
+  document.getElementById('scope-hint').textContent = curStore==='hq'
+    ? '編輯總部預設，儲存後套用到所有「沿用預設」的商店。'
+    : `編輯「${stores[curStore]}」；沿用預設的範本改動總部後會自動跟著更新，覆寫的則獨立。`;
+}
+function renderTpl(){
+  const rows=templates.filter(t=>tplCh==='all'||t.ch===tplCh);
+  updateScopeHint();
+  document.getElementById('tpl-rows').innerHTML = rows.length ? rows.map(t=>{
+    const eff=effective(t);
+    return `
+    <tr>
+      <td style="font-weight:500;">${t.name}</td>
+      <td>${chTag(t.ch)}</td>
+      <td class="module-path">${t.path}</td>
+      <td>${stateTag(t)}</td>
+      <td>
+        <label class="toggle"><input type="checkbox" ${eff.enabled?'checked':''} onchange="toggleTpl(${t.id},this.checked)"><span class="track"></span><span class="thumb"></span></label>
+      </td>
+      <td style="font-size:12px;color:var(--text-2);">${t.updated}</td>
+      <td><button class="icobtn edit" data-tip="編輯" aria-label="編輯" onclick="openDrawer(${t.id})"><i class="fa-regular fa-pen-to-square"></i></button></td>
+    </tr>`;}).join('') : `<tr><td colspan="7" class="empty">尚無符合條件的範本</td></tr>`;
+}
+/** 表格上的啟用開關：總部改預設；商店則寫入該店覆寫的 enabled */
+function toggleTpl(id,v){
+  const t=templates.find(x=>x.id===id);
+  if(curStore==='hq'){t.enabled=v;}
+  else{
+    const k=ovKey(curStore,id);
+    const o=overrides[k]||{content:t.content};
+    o.enabled=v; overrides[k]=o;
+  }
+  renderTpl();
+}
+document.getElementById('scope-select').addEventListener('change',e=>{curStore=e.target.value;renderTpl();});
+document.querySelectorAll('#tpl-tabs .tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#tpl-tabs .tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); tplCh=t.dataset.ch; renderTpl();
+}));
+
+/* ===================== Drawer 編輯器 ===================== */
+let curTpl=null;
+function openDrawer(id){
+  const t=templates.find(x=>x.id===id); curTpl=t;
+  const eff=effective(t); const isHq=curStore==='hq';
+  document.getElementById('dw-title').textContent=(isHq?'編輯總部預設 — ':'編輯範本 — ')+t.name+(isHq?'':`（${stores[curStore]}）`);
+  document.getElementById('dw-path').textContent=t.path;
+  document.getElementById('dw-name').value=t.name;
+  document.getElementById('dw-name').disabled=!isHq; // 名稱屬總部；商店唯讀
+  document.getElementById('dw-channel').value=CH[t.ch][0];
+  document.getElementById('dw-trigger').value=t.trigger;
+  const en=document.getElementById('dw-enabled'); en.checked=eff.enabled;
+  document.getElementById('dw-enabled-label').textContent=eff.enabled?'已啟用':'已停用';
+  // 資訊條
+  document.getElementById('dw-info-text').innerHTML = isHq
+    ? '此為<b>總部預設</b>，儲存後套用到所有「沿用預設」的商店；已覆寫的商店不受影響。'
+    : `目前編輯 <b>${stores[curStore]}</b>。名稱、通道、觸發時機由總部預設決定，本店僅能調整「是否啟用」與「內容」。`;
+  // Email 主旨欄位
+  const sf=document.getElementById('dw-subject-field');
+  if(t.ch==='email'){sf.style.display='flex';document.getElementById('dw-subject').value=eff.subject||'';}
+  else sf.style.display='none';
+  // 變數 chips
+  document.getElementById('dw-vars').innerHTML=t.vars.map(v=>`<span class="var-chip" onclick="insertVar('${v}')">${v}</span>`).join('');
+  document.getElementById('dw-content').value=eff.content;
+  // 套用方式（僅商店範圍顯示）
+  const applyRow=document.getElementById('dw-apply-row');
+  const custom=document.getElementById('dw-custom');
+  if(isHq){applyRow.style.display='none';custom.checked=true;}
+  else{applyRow.style.display='flex';custom.checked=eff.overridden;}
+  applyContentEditable();
+  updateSmsCount();
+  document.getElementById('tpl-drawer').classList.add('open');
+  document.getElementById('dw-mask').classList.add('open');
+}
+/** 依 總部/自訂 切換內容可編性、變數 chip、還原鈕 */
+function applyContentEditable(){
+  const isHq=curStore==='hq';
+  const custom=document.getElementById('dw-custom').checked;
+  const editable=isHq||custom;
+  document.getElementById('dw-content').disabled=!editable;
+  document.getElementById('dw-subject').disabled=!editable;
+  document.querySelectorAll('#dw-vars .var-chip').forEach(c=>{c.style.pointerEvents=editable?'auto':'none';c.style.opacity=editable?'1':'.45';});
+  if(!isHq){
+    document.getElementById('dw-custom-label').textContent=custom?'本店自訂':'沿用總部預設';
+    document.getElementById('dw-apply-hint').textContent=custom
+      ? '本店使用自訂內容，日後總部預設變動不影響本店。'
+      : '本店沿用總部預設；總部更新時自動跟著更新。切換為「本店自訂」即可修改內容。';
+  }
+  const overridden=!isHq&&!!overrides[ovKey(curStore,curTpl.id)];
+  document.getElementById('dw-restore').style.display=(!isHq&&(overridden||custom))?'inline-flex':'none';
+}
+function onCustomToggle(){
+  const custom=document.getElementById('dw-custom').checked;
+  if(!custom)document.getElementById('dw-content').value=curTpl.content; // 切回沿用→顯示預設
+  applyContentEditable(); updateSmsCount();
+}
+function restoreDefault(){
+  if(curStore==='hq'||!curTpl)return;
+  delete overrides[ovKey(curStore,curTpl.id)];
+  document.getElementById('dw-custom').checked=false;
+  document.getElementById('dw-content').value=curTpl.content;
+  applyContentEditable(); updateSmsCount();
+}
+function closeDrawer(){document.getElementById('tpl-drawer').classList.remove('open');document.getElementById('dw-mask').classList.remove('open');}
+function insertVar(v){
+  const ta=document.getElementById('dw-content');
+  const s=ta.selectionStart,e=ta.selectionEnd;
+  ta.value=ta.value.slice(0,s)+v+ta.value.slice(e);
+  ta.focus();ta.selectionStart=ta.selectionEnd=s+v.length;
+  updateSmsCount();
+}
+/* 預覽 + SMS 字數/則數 */
+const SAMPLE={'{{會員姓名}}':'王小明','{{訂單編號}}':'20260716-001','{{物流商名稱}}':'黑貓宅急便','{{物流單號}}':'8801234567','{{取件門市}}':'7-11 忠孝門市','{{取件期限}}':'2026/07/23','{{退款金額}}':'NT$ 1,280','{{訂單金額}}':'NT$ 2,480','{{商店名稱}}':'好物直播間','{{優惠券名稱}}':'夏季狂歡 9 折券','{{到期日}}':'2026/07/31','{{禮金金額}}':'NT$ 100','{{使用期限}}':'2026/08/15'};
+function renderSample(str){return str.replace(/\{\{[^}]+\}\}/g,m=>SAMPLE[m]||m);}
+function updateSmsCount(){
+  const raw=document.getElementById('dw-content').value;
+  const preview=renderSample(raw);
+  document.getElementById('dw-preview').textContent=preview;
+  const hint=document.getElementById('dw-count');
+  if(curTpl&&curTpl.ch==='sms'){
+    const len=[...preview].length; // 代入後估算
+    const seg=len<=70?1:Math.ceil(len/67);
+    hint.innerHTML=`代入範例後 ${len} 字，約 <b>${seg}</b> 則簡訊（中文 70 字/則，超過以 67 字分段計費）。`;
+  }else{
+    hint.textContent='';
+  }
+}
+document.getElementById('dw-enabled').addEventListener('change',e=>{
+  document.getElementById('dw-enabled-label').textContent=e.target.checked?'已啟用':'已停用';
+});
+function saveTpl(){
+  if(!curTpl)return;
+  const enabled=document.getElementById('dw-enabled').checked;
+  const content=document.getElementById('dw-content').value;
+  const subject=curTpl.ch==='email'?document.getElementById('dw-subject').value:undefined;
+  if(curStore==='hq'){
+    curTpl.name=document.getElementById('dw-name').value;
+    curTpl.content=content; curTpl.enabled=enabled;
+    if(subject!==undefined)curTpl.subject=subject;
+  }else{
+    const custom=document.getElementById('dw-custom').checked;
+    const k=ovKey(curStore,curTpl.id);
+    if(custom){overrides[k]={content,enabled,subject};}
+    else if(enabled!==curTpl.enabled){overrides[k]={content:curTpl.content,enabled};} // 沿用內容、僅本店停用
+    else{delete overrides[k];}
+  }
+  closeDrawer(); renderTpl();
+}
+
+/* ===================== 共用 ===================== */
+function openDialog(id){document.getElementById(id).classList.add('open');}
+function closeDialog(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mask').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+/* 頁面切換（側欄 + TopBar 鈴鐺） */
+function navTo(nav){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+nav).classList.add('active');
+  document.querySelectorAll('.sidebar [data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===nav));
+}
+document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>navTo(el.dataset.nav)));
+
+/* Sidebar 收合 */
+const sb=document.getElementById('sidebar'),cb=document.getElementById('collapse-btn'),st=document.getElementById('sys-title');
+cb.addEventListener('click',()=>{sb.classList.toggle('collapsed');cb.classList.toggle('rot');
+  st.style.display=sb.classList.contains('collapsed')?'none':'block';});
+
+/* 鈴鐺開關 + 點外部關閉 */
+document.getElementById('bell-btn').addEventListener('click',e=>{e.stopPropagation();toggleBell();});
+document.addEventListener('click',e=>{const p=document.getElementById('bell-panel');
+  if(p.classList.contains('open')&&!p.contains(e.target))p.classList.remove('open');});
+
+/* init */
+renderInboxTabs(); renderInbox(); renderTpl();
+
+/* 嵌入模式：?embed=1 藏側欄+TopBar；?page=template 直接開範本頁（供整合頁 iframe 使用） */
+(function(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('embed')==='1')document.body.classList.add('embed');
+  if(q.get('page')==='template')navTo('template');
+})();
+
+/* ===== 與公司後台連動：讀共享 store，映射成收件匣通知，即時更新 ===== */
+const CO_STORE_KEY='__xslCompanyNotifications';
+
+function pulseBell(){ const b=document.getElementById('bell-btn'); if(!b)return; b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); setTimeout(()=>b.classList.remove('pulse'),900); }
+function syncCompany(){
+  let store=[];
+  try{store=JSON.parse(localStorage.getItem(CO_STORE_KEY)||'[]');}catch(e){}
+  const active=store.filter(x=>x.status==='sent' && !(x.endTime && !x.noEnd && x.endTime<=nowStr())); // 僅「公告中」（未過期）同步
+  const prevUnread=notifications.filter(n=>!n.read).length;
+  const readMap={};
+  notifications.forEach(n=>{ if(String(n.id).indexOf('co-')===0) readMap[n.id]=n.read; });
+  for(let i=notifications.length-1;i>=0;i--){ if(String(notifications[i].id).indexOf('co-')===0) notifications.splice(i,1); }
+  active.forEach(x=>{
+    const id='co-'+x.id;
+    const cat=x.cat||'system'; // 公司端類別 id 即商家分類（兩端共用同一份清單）
+    const sev=(CAT[cat]&&CAT[cat][1])||'info';
+    notifications.push({id,cat,sev,title:x.title,body:x.body,read:(id in readMap)?readMap[id]:false,time:x.time,pinned:!!x.pinned,stores:(x.storeNames&&x.storeNames.length)?x.storeNames:null,action:null});
+  });
+  buildCAT(); renderInboxTabs();       // 分類清單可能被公司端更新
+  renderInbox();                       // renderInbox → refreshUnread：更新鈴鐺紅點數與下拉
+  if(notifications.filter(n=>!n.read).length>prevUnread) pulseBell();  // 有新未讀 → 鈴鐺晃動
+  checkPopups();                       // 有廣播公告 → 優先跳彈窗
+}
+/* ===== 廣播公告彈窗：公司端 popup=true 的通知優先跳窗，可「下次不顯示」 ===== */
+const POPUP_DISMISS_KEY='__xslPopupDismissed';
+function loadDismissed(){ try{return JSON.parse(localStorage.getItem(POPUP_DISMISS_KEY)||'[]');}catch(e){return [];} }
+function saveDismissed(a){ try{localStorage.setItem(POPUP_DISMISS_KEY,JSON.stringify(a));}catch(e){} }
+let currentAnnounce=null;
+function checkPopups(){
+  // 嵌入整合頁時，廣播彈窗交給商家後台外層顯示，避免重複跳兩次
+  if(document.body.classList.contains('embed'))return;
+  const dlg=document.getElementById('dlg-announce');
+  if(!dlg||dlg.classList.contains('open'))return;
+  let store=[];
+  try{store=JSON.parse(localStorage.getItem(CO_STORE_KEY)||'[]');}catch(e){}
+  const dismissed=loadDismissed();
+  const hit=store.find(x=>x.status==='sent'&&x.popup&&dismissed.indexOf(x.id)===-1);
+  if(!hit)return;
+  currentAnnounce=hit;
+  const cat=hit.cat||'system';
+  const sev=(CAT[cat]&&CAT[cat][1])||'info';
+  document.getElementById('an-cat').innerHTML=`<span class="tag ${sev}">${(CAT[cat]&&CAT[cat][0])||'公告'}</span>`;
+  document.getElementById('an-title').textContent=hit.title;
+  document.getElementById('an-time').textContent=hit.time;
+  document.getElementById('an-body').textContent=hit.body;
+  document.getElementById('an-noshow').checked=false;
+  dlg.classList.add('open');
+}
+function closeAnnounce(){
+  if(currentAnnounce&&document.getElementById('an-noshow').checked){
+    const d=loadDismissed();
+    if(d.indexOf(currentAnnounce.id)===-1){ d.push(currentAnnounce.id); saveDismissed(d); }
+  }
+  currentAnnounce=null;
+  document.getElementById('dlg-announce').classList.remove('open');
+  setTimeout(checkPopups,300); // 還有下一則就接著顯示
+}
+
+window.addEventListener('storage',e=>{ if(e.key===CO_STORE_KEY) syncCompany(); });
+if('BroadcastChannel' in window){ try{ const _bc=new BroadcastChannel('xsl-notify');
+  _bc.onmessage=e=>{ if(e&&e.data&&e.data.t==='reset'){ location.reload(); } else { syncCompany(); } };
+}catch(e){} }
+syncCompany();
+</script>
+</body>
+</html>
