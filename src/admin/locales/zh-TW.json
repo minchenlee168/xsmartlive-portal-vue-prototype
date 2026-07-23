@@ -3,6 +3,7 @@
     "app_name": "直播管家"
   },
   "nav": {
+    "notification_center": "通知中心",
     "live": "直播收單區",
     "live_order": "直播收單",
     "live_order_post": "貼文收單",
@@ -33,6 +34,7 @@
     }
   },
   "route": {
+    "notification_center": "通知中心",
     "live_order": "直播收單",
     "live_order_post": "貼文收單",
     "live_order_post_list": "貼文收單(列表式)",

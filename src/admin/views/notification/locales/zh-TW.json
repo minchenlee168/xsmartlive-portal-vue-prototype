@@ -1,0 +1,46 @@
+{
+  "notification": {
+    "center": {
+      "title": "通知中心",
+      "subtitle": "平台與系統發送給您的通知；點整列可查看完整內容。",
+      "tab_all": "全部",
+      "filter": {
+        "unread_only": "只看未讀"
+      },
+      "table": {
+        "column": {
+          "category": "通知類型",
+          "notification": "通知",
+          "time": "時間",
+          "status": "狀態",
+          "actions": "操作"
+        }
+      },
+      "status": {
+        "read": "已讀",
+        "unread": "未讀"
+      },
+      "action": {
+        "mark_read": "標示為已讀",
+        "mark_unread": "標示為未讀"
+      },
+      "badge": {
+        "pinned": "置頂"
+      },
+      "empty": "目前沒有通知",
+      "detail": {
+        "close": "關閉"
+      },
+      "bell": {
+        "title": "通知中心",
+        "count": "{count} 筆未讀",
+        "mark_all_read": "全部標為已讀",
+        "empty": "目前沒有未讀通知",
+        "view_all": "查看全部通知"
+      },
+      "toast": {
+        "action_mock": "Demo 版：此為導引動作示意，未接實際頁面"
+      }
+    }
+  }
+}

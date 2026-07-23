@@ -3,6 +3,7 @@
     "app_name": "Live Commerce Console"
   },
   "nav": {
+    "notification_center": "Notifications",
     "live": "Live Commerce",
     "live_order": "Live ordering",
     "live_order_post": "Post ordering",
@@ -29,6 +30,7 @@
     }
   },
   "route": {
+    "notification_center": "Notifications",
     "live_order": "Live ordering",
     "live_order_post": "Post ordering",
     "live_order_community": "Community ordering",

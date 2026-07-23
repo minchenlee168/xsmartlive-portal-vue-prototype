@@ -3,6 +3,8 @@ import DropdownMenu from '@/admin/components/portal-ui/DropdownMenu.vue';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 import { useConfigStore } from '@/admin/stores/config';
 import { useShopStore } from '@/admin/stores/shop';
+import { useNotificationStore, type AppNotification, type NotificationCategory } from '@/admin/stores/notification';
+import { RouteName } from '@/admin/router';
 import Logo from '@/admin/components/layout/Logo.vue';
 import LanguageSelector from '@/admin/components/layout/LanguageSelector.vue';
 import ThemeSwitcher from '@/admin/components/layout/ThemeSwitcher.vue';
@@ -10,12 +12,41 @@ import ThemeSwitcher from '@/admin/components/layout/ThemeSwitcher.vue';
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 const { t } = useI18n();
 const { showSuccess } = useGlobalToast();
 const configStore = useConfigStore();
 const shopStore = useShopStore();
 const { shops, currentShopId, currentShop } = storeToRefs(shopStore);
+
+/* ===== 通知鈴鐺（與「通知中心」收件匣頁共用 notification store）===== */
+const router = useRouter();
+const notificationStore = useNotificationStore();
+const bellPanel = ref<{ toggle: (e: Event) => void; hide: () => void } | null>(null);
+
+/** 未讀通知依類別分組（下拉快覽用）。 */
+const unreadGroups = computed<{ category: NotificationCategory; items: AppNotification[] }[]>(() => {
+  const groups: Record<string, AppNotification[]> = {};
+  notificationStore.items
+    .filter((n) => !n.read)
+    .forEach((n) => {
+      (groups[n.categoryId] ??= []).push(n);
+    });
+  return Object.entries(groups).map(([id, items]) => ({
+    category: notificationStore.categoryById(id),
+    items,
+  }));
+});
+
+function toggleBell(event: Event) {
+  bellPanel.value?.toggle(event);
+}
+
+function goToNotificationCenter() {
+  bellPanel.value?.hide();
+  router.push({ name: RouteName.NotificationCenter });
+}
 
 // 此 prototype 是 mock-only，shopStore 已有預設假資料，不需要 fetchAvailableShops。
 
@@ -229,6 +260,108 @@ const recentCommits = computed<CommitEntry[]>(() => {
         id="topbar-right-slot"
         class="inline-flex gap-4"
       />
+
+      <!-- 通知鈴鐺：未讀 badge + 下拉快覽（資料源為 notification store，與收件匣頁同步） -->
+      <div class="shrink-0">
+        <OverlayBadge
+          v-if="notificationStore.unreadCount > 0"
+          :value="notificationStore.unreadCount"
+          severity="danger"
+        >
+          <Button
+            rounded
+            size="small"
+            severity="secondary"
+            text
+            :aria-label="t('notification.center.bell.title')"
+            @click="toggleBell"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'bell']" />
+            </template>
+          </Button>
+        </OverlayBadge>
+        <Button
+          v-else
+          rounded
+          size="small"
+          severity="secondary"
+          text
+          :aria-label="t('notification.center.bell.title')"
+          @click="toggleBell"
+        >
+          <template #icon>
+            <FontAwesomeIcon :icon="['far', 'bell']" />
+          </template>
+        </Button>
+
+        <Popover ref="bellPanel">
+          <div class="w-[360px] max-w-[calc(100vw-32px)]">
+            <div class="flex items-center gap-2 pb-2 border-b border-surface">
+              <span class="font-bold">{{ t('notification.center.bell.title') }}</span>
+              <span class="text-xs text-surface-500 dark:text-surface-400">
+                {{ t('notification.center.bell.count', { count: notificationStore.unreadCount }) }}
+              </span>
+              <button
+                v-if="notificationStore.unreadCount > 0"
+                type="button"
+                class="ml-auto text-sm text-surface-500 dark:text-surface-400 hover:text-primary"
+                @click="notificationStore.markAllRead()"
+              >
+                {{ t('notification.center.bell.mark_all_read') }}
+              </button>
+            </div>
+
+            <div class="max-h-[400px] overflow-y-auto py-2">
+              <div
+                v-if="notificationStore.unreadCount === 0"
+                class="py-8 text-center text-sm text-surface-500 dark:text-surface-400"
+              >
+                {{ t('notification.center.bell.empty') }}
+              </div>
+              <template
+                v-for="group in unreadGroups"
+                :key="group.category.id"
+              >
+                <div class="px-1 pt-2 pb-1 text-xs text-surface-500 dark:text-surface-400">
+                  {{ group.category.name }}
+                </div>
+                <button
+                  v-for="item in group.items"
+                  :key="item.id"
+                  type="button"
+                  class="mb-1 flex w-full items-start gap-2 rounded-md p-2 text-left transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  @click="goToNotificationCenter"
+                >
+                  <Tag
+                    :value="group.category.name"
+                    :severity="group.category.severity"
+                    class="mt-1 shrink-0"
+                  />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium text-surface-700 dark:text-surface-100">
+                      {{ item.title }}
+                    </span>
+                    <span class="mt-1 block text-xs text-surface-400 dark:text-surface-500">
+                      {{ item.time }}
+                    </span>
+                  </span>
+                </button>
+              </template>
+            </div>
+
+            <div class="pt-2 border-t border-surface text-center">
+              <Button
+                text
+                size="small"
+                :label="t('notification.center.bell.view_all')"
+                @click="goToNotificationCenter"
+              />
+            </div>
+          </div>
+        </Popover>
+      </div>
+
       <ThemeSwitcher />
       <LanguageSelector />
       <DropdownMenu

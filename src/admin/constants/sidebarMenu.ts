@@ -26,6 +26,12 @@ export interface MenuItem {
  * 客服管理 / 會員管理 / 設定…）暫不列入。
  */
 export const sidebarMenu: MenuItem[] = [
+  // 通知中心：帳號級收件匣（頂層項），平台與系統發送給商家的通知
+  {
+    labelKey: 'nav.notification_center',
+    icon: ['far', 'bell'],
+    to: RouteName.NotificationCenter,
+  },
   /* 直播收單區暫時隱藏（先隱藏，日後恢復移除此註解即可）
   {
     labelKey: 'nav.live',

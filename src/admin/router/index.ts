@@ -12,6 +12,7 @@ import {
 import { orderRoutes, OrderRouteName } from './routes/orderRoutes'
 import { invoiceRoutes, InvoiceRouteName } from './routes/invoiceRoutes'
 import { productRoutes, ProductRouteName } from './routes/productRoutes'
+import { notificationRoutes, NotificationRouteName } from './routes/notificationRoutes'
 
 export { lotteryFullscreenRoutes }
 
@@ -28,6 +29,7 @@ export const RouteName = {
   ...OrderRouteName,
   ...InvoiceRouteName,
   ...ProductRouteName,
+  ...NotificationRouteName,
 } as const
 
 export { registerTitleGuard } from './guards/titleGuard'
@@ -47,4 +49,5 @@ export const adminChildRoutes: RouteRecordRaw[] = [
   ...orderRoutes,
   ...invoiceRoutes,
   ...productRoutes,
+  ...notificationRoutes,
 ]
