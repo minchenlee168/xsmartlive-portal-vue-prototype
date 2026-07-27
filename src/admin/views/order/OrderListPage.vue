@@ -150,16 +150,6 @@ const trackingStatusOptions: FilterOption[] = [
   { label: '已取號', value: 'taken' },
   { label: '未取號', value: 'untaken' },
 ]
-const channelOptions: FilterOption[] = [
-  { label: '全部',         value: '' },
-  { label: '商城',         value: 'shop' },
-  { label: 'Facebook',     value: 'facebook' },
-  { label: 'LINE',         value: 'line' },
-  { label: 'Instagram',    value: 'instagram' },
-  { label: 'YouTube Live', value: 'youtube' },
-  { label: '蝦皮',         value: 'shopee' },
-  { label: 'PChome',       value: 'pchome' },
-]
 const orderSourceOptions: FilterOption[] = [
   { label: '直播', value: 'live' },
   { label: '商城', value: 'shop' },
@@ -200,7 +190,6 @@ const filterShippingStatus = ref('')
 const filterCarrier = ref('')
 const filterPaymentMethod = ref('')
 const filterTracking = ref('')
-const filterChannel = ref('')
 const filterOrderSource = ref('')
 const filterSocialPlatform = ref('')
 const filterMultiCart = ref('')
@@ -220,7 +209,7 @@ const advancedFilterExpanded = ref(false)
 const appliedAdvancedCount = computed<number>(() => {
   return [
     filterShipping.value, filterPayment.value, filterShippingStatus.value,
-    filterCarrier.value, filterPaymentMethod.value, filterTracking.value, filterChannel.value,
+    filterCarrier.value, filterPaymentMethod.value, filterTracking.value,
     filterOrderSource.value, filterSocialPlatform.value, filterMultiCart.value, filterSessionName.value,
     filterPrecisionValue.value.trim(),
   ].filter(Boolean).length
@@ -233,7 +222,6 @@ function clearAdvancedFilters(): void {
   filterCarrier.value = ''
   filterPaymentMethod.value = ''
   filterTracking.value = ''
-  filterChannel.value = ''
   filterOrderSource.value = ''
   filterSocialPlatform.value = ''
   filterMultiCart.value = ''
@@ -245,11 +233,9 @@ function clearAdvancedFilters(): void {
 type QuickFilter = 'all' | 'pending' | 'preparing' | 'shipping' | 'arrived' | 'paid' | 'unpaid'
 const quickFilter = ref<QuickFilter>('all')
 const quickFilters: Array<{ value: QuickFilter; label: string }> = [
-  { value: 'all',       label: '全部' },
   { value: 'pending',   label: '待出貨' },
   { value: 'preparing', label: '備貨中' },
   { value: 'shipping',  label: '出貨中' },
-  { value: 'arrived',   label: '待收貨' },
   { value: 'paid',      label: '已付款' },
   { value: 'unpaid',    label: '待付款' },
 ]
@@ -1082,12 +1068,11 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           <!-- 既有 Select 群 -->
           <div class="flex items-center gap-2 flex-wrap">
           <Select v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="出貨方式" class="!w-[140px]" show-clear />
-          <Select v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" class="!w-[140px]" show-clear />
           <Select v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" class="!w-[140px]" show-clear />
           <Select v-model="filterCarrier"       :options="carrierOptions"        option-label="label" option-value="value" placeholder="物流商"   class="!w-[140px]" scroll-height="auto" show-clear />
           <Select v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" class="!w-[140px]" scroll-height="auto" show-clear />
+          <Select v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" class="!w-[140px]" show-clear />
           <Select v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" class="!w-[140px]" show-clear />
-          <Select v-model="filterChannel"       :options="channelOptions"        option-label="label" option-value="value" placeholder="購買通路" class="!w-[140px]" show-clear />
           <Select v-model="filterOrderSource"   :options="orderSourceOptions"    option-label="label" option-value="value" placeholder="訂單來源" class="!w-[140px]" show-clear />
           <Select v-model="filterSocialPlatform" :options="socialPlatformOptions" option-label="label" option-value="value" placeholder="社群平台" class="!w-[140px]" show-clear />
           <Select v-model="filterMultiCart"     :options="multiCartOptions"      option-label="label" option-value="value" placeholder="多購物車" class="!w-[140px]" show-clear />
@@ -1121,15 +1106,21 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
         <div class="flex items-center justify-between gap-3 px-5 py-2 flex-wrap">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-[13px] text-[var(--p-text-muted-color)] shrink-0 mr-1">快速篩選</span>
-            <button
-              v-for="q in quickFilters"
-              :key="q.value"
-              class="px-3 py-2 rounded-full text-[13px] border transition-colors"
-              :style="quickFilter === q.value
-                ? 'background: var(--p-primary-50); color: var(--p-primary-color); border-color: var(--p-primary-color)'
-                : 'background: var(--p-content-background); color: var(--p-text-muted-color); border-color: var(--p-content-border-color)'"
-              @click="quickFilter = q.value"
-            >{{ q.label }}</button>
+            <template v-for="q in quickFilters" :key="q.value">
+              <span
+                v-if="q.value === 'paid'"
+                class="w-px h-5 mx-1 shrink-0"
+                :style="{ background: 'var(--p-content-border-color)' }"
+                aria-hidden="true"
+              />
+              <button
+                class="px-3 py-2 rounded-full text-[13px] border transition-colors"
+                :style="quickFilter === q.value
+                  ? 'background: var(--p-primary-50); color: var(--p-primary-color); border-color: var(--p-primary-color)'
+                  : 'background: var(--p-content-background); color: var(--p-text-muted-color); border-color: var(--p-content-border-color)'"
+                @click="quickFilter = q.value"
+              >{{ q.label }}</button>
+            </template>
           </div>
           <span class="text-[13px] text-[var(--p-text-muted-color)]">
             共 <span class="text-[var(--p-text-color)] font-bold">{{ TOTAL_ORDERS }}</span> 筆訂單
