@@ -288,6 +288,20 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
     },
   })
 }
+
+/** 釘選＝設為預設購物車：清掉其他車的 locked、標記本車、並移到第一列（預設車須啟用） */
+function onSetDefault(c: MultiCartRecord): void {
+  if (c.locked) return
+  carts.value.forEach((x) => { x.locked = false })
+  c.locked = true
+  c.on = true
+  const idx = carts.value.indexOf(c)
+  if (idx > 0) {
+    carts.value.splice(idx, 1)
+    carts.value.unshift(c)
+  }
+  toast.add({ severity: 'success', summary: `已將「${c.name}」設為預設購物車`, life: 1800 })
+}
 </script>
 
 <template>
@@ -453,9 +467,30 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
             </template>
           </Column>
 
-          <Column header="操作" style="width: 110px" body-class="text-right" header-class="text-right">
+          <Column header="操作" style="width: 150px" body-class="text-right" header-class="text-right">
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
+                <Button
+                  v-if="data.locked"
+                  v-tooltip.top="'目前的預設購物車'"
+                  icon="pi pi-thumbtack"
+                  variant="text"
+                  rounded
+                  size="small"
+                  :aria-label="`${data.name} 為目前的預設購物車`"
+                  @click="onSetDefault(data)"
+                />
+                <Button
+                  v-else
+                  v-tooltip.top="'設為預設購物車'"
+                  icon="pi pi-thumbtack"
+                  severity="secondary"
+                  variant="text"
+                  rounded
+                  size="small"
+                  :aria-label="`將 ${data.name} 設為預設購物車`"
+                  @click="onSetDefault(data)"
+                />
                 <Button
                   v-tooltip.top="'編輯'"
                   icon="pi pi-pen-to-square"
@@ -543,6 +578,27 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
             <div class="flex items-center gap-2 pt-1">
               <span class="text-xs text-[var(--p-text-muted-color)]">{{ c.date }}</span>
               <div class="flex items-center gap-1 ml-auto">
+                <Button
+                  v-if="c.locked"
+                  v-tooltip.top="'目前的預設購物車'"
+                  icon="pi pi-thumbtack"
+                  variant="text"
+                  rounded
+                  size="small"
+                  :aria-label="`${c.name} 為目前的預設購物車`"
+                  @click="onSetDefault(c)"
+                />
+                <Button
+                  v-else
+                  v-tooltip.top="'設為預設購物車'"
+                  icon="pi pi-thumbtack"
+                  severity="secondary"
+                  variant="text"
+                  rounded
+                  size="small"
+                  :aria-label="`將 ${c.name} 設為預設購物車`"
+                  @click="onSetDefault(c)"
+                />
                 <Button
                   v-tooltip.top="'編輯'"
                   icon="pi pi-pen-to-square"

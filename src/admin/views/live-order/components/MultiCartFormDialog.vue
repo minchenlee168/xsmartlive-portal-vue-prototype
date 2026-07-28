@@ -98,7 +98,7 @@ const PAY_OPTIONS = [
   'LINE Pay',
   'iPASS MONEY',
   '貨到付款',
-  '自取',
+  '現金付款（限自取）',
 ]
 /** 物流方式；自取不計運費 */
 const LOGI_OPTIONS: Array<{ value: string; noFee?: boolean }> = [
