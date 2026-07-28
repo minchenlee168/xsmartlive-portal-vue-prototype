@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useShippingBatches, type OrderBatch } from '../composables/useShippingBatches'
 
 /**
  * 分批出貨作業 Dialog。
@@ -23,6 +24,8 @@ interface OrderLite {
   amount: number
   itemCount: number
   cartTag: { label: string; bg: string; color: string }
+  /** 分批數量（儲存時回寫，讓訂單列表「已分批 N 批」tag 同步） */
+  dispatchBatchCount?: number
 }
 interface Props {
   visible: boolean
@@ -31,6 +34,8 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:visible': [v: boolean]
+  /** 儲存並返回 → 父層關閉此彈窗並重新開啟訂單明細彈窗 */
+  save: []
 }>()
 
 interface ProductLine {
@@ -105,7 +110,8 @@ function createNewBatch(): void {
     note: '',
   })
   products.value.forEach(p => { pendingAllocation.value[p.id] = 0 })
-  currentBatchIdx.value = batches.value.length - 1
+  // 建立後留在主原始訂單，方便接著把剩餘商品繼續拆到下一批
+  currentBatchIdx.value = -1
 }
 
 function deleteBatch(idx: number): void {
@@ -118,6 +124,11 @@ const currentBatch = computed<Batch | null>(() =>
   currentBatchIdx.value >= 0 ? batches.value[currentBatchIdx.value] ?? null : null,
 )
 
+/** 點 Timeline 圓點 → 切換此批次的出貨狀態 */
+function setBatchStatus(status: BatchStatus): void {
+  if (currentBatch.value) currentBatch.value.status = status
+}
+
 function batchTotal(b: Batch): number {
   return b.items.reduce((s, it) => {
     const p = products.value.find(pr => pr.id === it.productId)
@@ -127,14 +138,14 @@ function batchTotal(b: Batch): number {
 const currentBatchTotal = computed(() => currentBatch.value ? batchTotal(currentBatch.value) : 0)
 
 /** 5 階段進度（Timeline items） */
-interface StepItem { key: BatchStatus; label: string; isCurrent: boolean; isPast: boolean }
+interface StepItem { key: BatchStatus; label: string; icon: string; isCurrent: boolean; isPast: boolean }
 const currentBatchSteps = computed<StepItem[]>(() => {
-  const flow: Array<{ key: BatchStatus; label: string }> = [
-    { key: 'pending',   label: '待出貨' },
-    { key: 'preparing', label: '備貨中' },
-    { key: 'shipping',  label: '已出貨' },
-    { key: 'arrived',   label: '已送達' },
-    { key: 'completed', label: '已完成' },
+  const flow: Array<{ key: BatchStatus; label: string; icon: string }> = [
+    { key: 'pending',   label: '待出貨', icon: 'pi pi-clock' },
+    { key: 'preparing', label: '備貨中', icon: 'pi pi-box' },
+    { key: 'shipping',  label: '已出貨', icon: 'pi pi-truck' },
+    { key: 'arrived',   label: '已送達', icon: 'pi pi-map-marker' },
+    { key: 'completed', label: '已完成', icon: 'pi pi-check-circle' },
   ]
   const currentIdx = currentBatch.value
     ? flow.findIndex(s => s.key === currentBatch.value!.status)
@@ -142,6 +153,7 @@ const currentBatchSteps = computed<StepItem[]>(() => {
   return flow.map((s, i) => ({
     key: s.key,
     label: s.label,
+    icon: s.icon,
     isCurrent: i === currentIdx,
     isPast: i < currentIdx,
   }))
@@ -176,7 +188,21 @@ const currentBatchTableRows = computed(() => {
   })
 })
 
-function saveAndClose(): void { emit('update:visible', false) }
+const { setBatches } = useShippingBatches()
+function saveAndClose(): void {
+  // 把彈窗內批次寫入共享狀態，供訂單明細「出貨管理」渲染分批版
+  const stored: OrderBatch[] = batches.value.map(b => ({
+    status: b.status,
+    note: b.note,
+    items: b.items.map((it) => {
+      const p = products.value.find(pr => pr.id === it.productId)
+      return { name: p?.name ?? '商品', spec: p?.spec, qty: it.qty, unitPrice: p?.unitPrice ?? 0 }
+    }),
+  }))
+  setBatches(props.order.orderNo, stored)
+  props.order.dispatchBatchCount = stored.length
+  emit('save')
+}
 function cancel(): void { emit('update:visible', false) }
 </script>
 
@@ -359,20 +385,32 @@ function cancel(): void { emit('update:visible', false) }
                 <Button label="配送設定" icon="pi pi-cog" size="small" />
               </div>
             </div>
-            <!-- 5 階段 Timeline（PrimeVue horizontal） -->
+            <!-- 5 階段 Timeline（PrimeVue horizontal）— 點圓點 / 標籤即切換此批狀態 -->
             <Timeline :value="currentBatchSteps" layout="horizontal" align="top" class="w-full">
               <template #marker="{ item }">
-                <span
-                  class="rounded-full inline-block shrink-0"
+                <button
+                  type="button"
+                  class="rounded-full inline-flex items-center justify-center shrink-0 cursor-pointer transition-transform hover:scale-110"
                   :style="{
-                    width: item.isCurrent ? '14px' : '10px',
-                    height: item.isCurrent ? '14px' : '10px',
-                    background: item.isPast || item.isCurrent ? 'var(--p-primary-color)' : 'var(--p-content-border-color)',
+                    width: item.isCurrent ? '32px' : '24px',
+                    height: item.isCurrent ? '32px' : '24px',
+                    background: item.isPast || item.isCurrent ? 'var(--p-primary-color)' : 'var(--p-content-hover-background)',
+                    color: item.isPast || item.isCurrent ? '#fff' : 'var(--p-text-muted-color)',
+                    border: item.isPast || item.isCurrent ? 'none' : '1px solid var(--p-content-border-color)',
                   }"
-                ></span>
+                  :aria-label="`切換至${item.label}`"
+                  @click="setBatchStatus(item.key)"
+                >
+                  <i :class="item.icon" class="text-xs"></i>
+                </button>
               </template>
               <template #content="{ item }">
-                <div class="flex flex-col items-center gap-1 pt-1 whitespace-nowrap">
+                <button
+                  type="button"
+                  class="flex flex-col items-center gap-1 pt-1 whitespace-nowrap cursor-pointer bg-transparent border-0 w-full"
+                  :aria-label="`切換至${item.label}`"
+                  @click="setBatchStatus(item.key)"
+                >
                   <span
                     class="text-xs"
                     :style="item.isCurrent
@@ -380,7 +418,7 @@ function cancel(): void { emit('update:visible', false) }
                       : 'color: var(--p-text-muted-color)'"
                   >{{ item.label }}</span>
                   <span class="text-xs text-[var(--p-text-muted-color)]">—</span>
-                </div>
+                </button>
               </template>
               <template #connector>
                 <span class="block h-px w-full" style="background: var(--p-content-border-color)"></span>

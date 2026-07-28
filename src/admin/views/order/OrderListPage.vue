@@ -7,9 +7,10 @@ import { useConfirm } from 'primevue/useconfirm'
 import OrderRowDetail from './components/OrderRowDetail.vue'
 import ShippingConfigDialog from './components/ShippingConfigDialog.vue'
 import IssueInvoiceDialog from './components/IssueInvoiceDialog.vue'
-import SplitShippingPage from './components/SplitShippingPage.vue'
+import SplitShippingDialog from './components/SplitShippingDialog.vue'
 import ShippingListPrintDialog from './components/ShippingListPrintDialog.vue'
 import DefaultShippingConfigDialog from './components/DefaultShippingConfigDialog.vue'
+import CancelOrderDialog from './components/CancelOrderDialog.vue'
 
 /**
  * 訂單管理 → 訂單列表頁。
@@ -396,6 +397,17 @@ function openDetailDialog(o: OrderRow): void {
   detailDialogVisible.value = true
 }
 
+/** 取消訂單彈窗：明細 footer「取消訂單」→ 選原因確認 → 該筆出貨狀態改「已取消」 */
+const cancelOrderDialogVisible = ref(false)
+function openCancelOrderDialog(): void {
+  if (detailDialogOrder.value) cancelOrderDialogVisible.value = true
+}
+function onCancelOrderConfirm(_reason: string): void {
+  if (!detailDialogOrder.value) return
+  detailDialogOrder.value.shippingStatus = 'cancelled'
+  detailDialogVisible.value = false
+}
+
 /** 付款狀態 inline 編輯：點 Tag → Select 模式；按打勾 commit 回 Tag */
 const paymentEditOptions = [
   { label: '已付款', value: 'paid' as const },
@@ -450,19 +462,28 @@ function onIssueInvoiceConfirm(payload: { number: string; time: string }): void 
 }
 
 /**
- * 分批出貨作業全頁模式：splitPageOrderId 有值時，主畫面改渲染 SplitShippingPage
- * 隱藏搜尋 / 日期 / 進階篩選 / 狀態 tabs（依規範第 9 節）
+ * 分批出貨作業彈窗：從訂單詳情點「分批出貨」→ 關閉詳情彈窗、開啟 SplitShippingDialog
  */
-const splitPageOrderId = ref<string | null>(null)
-const splitPageOrder = computed<OrderRow | null>(() =>
-  splitPageOrderId.value ? orders.value.find(o => o.id === splitPageOrderId.value) ?? null : null,
+const splitDialogOrderId = ref<string | null>(null)
+const splitDialogOrder = computed<OrderRow | null>(() =>
+  splitDialogOrderId.value ? orders.value.find(o => o.id === splitDialogOrderId.value) ?? null : null,
 )
+const splitDialogVisible = ref(false)
 function openSplitPage(orderId: string): void {
-  splitPageOrderId.value = orderId
+  splitDialogOrderId.value = orderId
   detailDialogVisible.value = false  // 關閉詳情彈窗
+  splitDialogVisible.value = true
 }
-function closeSplitPage(): void {
-  splitPageOrderId.value = null
+function onSplitDialogVisible(v: boolean): void {
+  splitDialogVisible.value = v
+  if (!v) splitDialogOrderId.value = null
+}
+/** 分批出貨「儲存並返回」→ 關閉分批彈窗、重新開啟該訂單的明細彈窗 */
+function onSplitSave(): void {
+  const o = splitDialogOrder.value
+  splitDialogVisible.value = false
+  splitDialogOrderId.value = null
+  if (o) openDetailDialog(o)
 }
 
 /** 頁首「預設配送設定」按鈕:開 DefaultShippingConfigDialog */
@@ -928,15 +949,6 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 <template>
   <div class="flex flex-col gap-4 flex-1 min-h-0">
 
-    <!-- 分批出貨全頁模式：訂單管理分頁改渲染 SplitShippingPage，隱藏搜尋 / 篩選 / 表格 -->
-    <SplitShippingPage
-      v-if="splitPageOrder"
-      :order="splitPageOrder"
-      @close="closeSplitPage"
-    />
-
-    <template v-else>
-
     <!-- ── 篩選 Card：標題 + 副標 + 右側批次操作 + 搜尋 / 篩選 — shrink-0 鎖內容高度，不隨 viewport 壓縮 ── -->
     <Card
       :pt="{
@@ -1324,8 +1336,11 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 
           <Column header="出貨狀態">
             <template #body="{ data }">
+              <!-- 已取消：只顯示 tag,不顯示進度條 -->
+              <Tag v-if="data.shippingStatus === 'cancelled'" value="已取消" severity="danger" />
               <!-- PrimeVue Timeline 顯示 5 階段,水平排列,目前階段主色加粗 -->
               <Timeline
+                v-else
                 :value="progressItemsFor(data.shippingStatus)"
                 layout="horizontal"
                 align="top"
@@ -1466,8 +1481,6 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       </template>
     </Card>
 
-    </template>
-
     <!-- 「查看更多」彈窗：點訂單列眼睛 icon 開啟，顯示 OrderRowDetail 完整資訊 -->
     <Dialog
       v-model:visible="detailDialogVisible"
@@ -1481,7 +1494,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       <!-- footer：取消訂單獨立靠左（destructive 動作分區）；右側維持取消/儲存 -->
       <template #footer>
         <div class="flex items-center justify-between gap-2 w-full">
-          <Button label="取消訂單" icon="pi pi-ban" severity="danger" variant="outlined" />
+          <Button label="取消訂單" icon="pi pi-ban" severity="danger" variant="outlined" @click="openCancelOrderDialog" />
           <div class="flex items-center gap-2">
             <Button label="取消" severity="secondary" variant="outlined" @click="detailDialogVisible = false" />
             <Button label="儲存" @click="detailDialogVisible = false" />
@@ -1489,6 +1502,24 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
         </div>
       </template>
     </Dialog>
+
+    <!-- 取消訂單確認彈窗 -->
+    <CancelOrderDialog
+      v-if="detailDialogOrder"
+      v-model:visible="cancelOrderDialogVisible"
+      :order-no="detailDialogOrder.orderNo"
+      :amount="detailDialogOrder.amount"
+      @confirm="onCancelOrderConfirm"
+    />
+
+    <!-- 分批出貨作業彈窗：從訂單詳情「分批出貨」開啟 -->
+    <SplitShippingDialog
+      v-if="splitDialogOrder"
+      :visible="splitDialogVisible"
+      :order="splitDialogOrder"
+      @update:visible="onSplitDialogVisible"
+      @save="onSplitSave"
+    />
 
     <!-- 表格「設定配送」共用彈窗 -->
     <ShippingConfigDialog

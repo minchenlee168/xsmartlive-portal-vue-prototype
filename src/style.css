@@ -92,6 +92,22 @@
    - 若真的要更大目標區，用 size="large" 而非全域覆蓋 */
 .qty-stepper .p-inputnumber-input { min-height: 0; }
 
+/* PrimeVue 水平 Timeline：讓階段文字落在圓點正下方。
+   Aura 預設把圓點靠事件左緣、連接線往右填滿，文字卻置中於整個事件寬度，
+   導致文字偏在「兩圓點之間」而非圓點下方。改法：
+   - separator 內圓點置中（連接線抽離 flow 後只剩圓點）
+   - 連接線改絕對定位、由圓點中心往右畫到下一個圓點中心（最後一個事件本就無連接線）
+   - 圓點疊在連接線之上，避免線穿過圓點 */
+.p-timeline-horizontal .p-timeline-event-separator { position: relative; justify-content: center; }
+.p-timeline-horizontal .p-timeline-event-separator > :first-child { position: relative; z-index: 1; }
+.p-timeline-horizontal .p-timeline-event-separator > :nth-child(2) {
+  position: absolute; top: 50%; left: 50%; width: 100%; z-index: 0;
+}
+/* 各階段等寬 → 連接線精準落在下一圓點中心；最後一階段（無連接線）不會有多餘尾線 overshoot 壓到旁邊欄位 */
+.p-timeline-horizontal .p-timeline-event { flex: 1 1 0; }
+/* 彈窗內的水平 timeline 收斂總寬，避免階段間連接線過長 */
+.p-dialog .p-timeline-horizontal { max-width: 460px; }
+
 /* 視窗縮到手機寬時，所有 PrimeVue Dialog 對齊 viewport 寬（保留 PrimeVue 自身的置中 transform，
    只覆寫 max-width 讓寬的彈窗自動縮到 viewport - 32px，原本就比 viewport 窄的彈窗不受影響）。 */
 @media (max-width: 768px) {

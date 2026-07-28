@@ -4,6 +4,7 @@ import ShippingConfigDialog from './ShippingConfigDialog.vue'
 import IssueInvoiceDialog from './IssueInvoiceDialog.vue'
 import DiffAdjDialog, { type DiffAdjPayload } from './DiffAdjDialog.vue'
 import ShippingListPrintDialog from './ShippingListPrintDialog.vue'
+import { useShippingBatches, type BatchShippingStatus, type OrderBatch } from '../composables/useShippingBatches'
 
 /**
  * 訂單列表 row expansion 展開內容。
@@ -48,7 +49,7 @@ interface Props {
 }
 const props = defineProps<Props>()
 const emit = defineEmits<{
-  /** 觸發全頁分批出貨作業（父層負責關閉詳情彈窗 + 切換頁面模式） */
+  /** 觸發分批出貨作業（父層負責關閉詳情彈窗 + 開啟分批出貨彈窗） */
   'open-split-page': [orderId: string]
 }>()
 
@@ -264,7 +265,81 @@ function onShippingConfigConfirm(payload: { carrierName: string; method: string;
   props.order.trackingStatus = payload.trackingNo
 }
 
-/** 分批出貨作業：改為全頁模式 — 點按鈕發事件通知父層切換頁面 */
+// ─────────────────────────────────────────────────────────────
+// 分批出貨版「出貨管理」：訂單已分批時（共享批次狀態有資料）改渲染分批版
+// ─────────────────────────────────────────────────────────────
+const { getBatches } = useShippingBatches()
+const batches = computed<OrderBatch[]>(() => getBatches(props.order.orderNo))
+const isBatched = computed<boolean>(() => batches.value.length > 0)
+
+const CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+const batchLabel = (i: number): string => `批次${CN_NUM[i] ?? String(i + 1)}`
+
+/** 批次狀態 → Tag（走與訂單相同的語意色） */
+function batchStatusBadge(s: BatchShippingStatus): { label: string; severity: TagSeverity } {
+  const map: Record<BatchShippingStatus, { label: string; severity: TagSeverity }> = {
+    pending:   { label: '待出貨', severity: 'warn' },
+    preparing: { label: '備貨中', severity: 'info' },
+    shipping:  { label: '已出貨', severity: 'warn' },
+    arrived:   { label: '已送達', severity: 'success' },
+    completed: { label: '已完成', severity: 'secondary' },
+  }
+  return map[s]
+}
+
+/** 單一批次的 5 階段貨態（供每張批次卡的 Timeline 使用） */
+const BATCH_FLOW: Array<{ key: BatchShippingStatus; label: string; icon: string }> = [
+  { key: 'pending',   label: '待出貨', icon: 'pi pi-clock' },
+  { key: 'preparing', label: '備貨中', icon: 'pi pi-box' },
+  { key: 'shipping',  label: '已出貨', icon: 'pi pi-truck' },
+  { key: 'arrived',   label: '已送達', icon: 'pi pi-map-marker' },
+  { key: 'completed', label: '已完成', icon: 'pi pi-check-circle' },
+]
+function batchSteps(status: BatchShippingStatus): StepItem[] {
+  const idx = BATCH_FLOW.findIndex(s => s.key === status)
+  return BATCH_FLOW.map((s, i) => ({
+    key: s.key, label: s.label, icon: s.icon,
+    isCurrent: i === idx, isPast: i < idx, time: '—',
+  }))
+}
+/** 點某批次的貨態圓點 → 直接切換該批狀態 */
+function setBatchStatus(batch: OrderBatch, status: BatchShippingStatus): void {
+  batch.status = status
+}
+
+/** 整單層級配送物流聚合摘要（分批模式下取代單一「配送物流」列） */
+const batchCarrierSummary = computed<string>(() => {
+  const total = batches.value.length
+  const done = batches.value.filter(b => b.carrier).length
+  if (done === 0) return `${total} 批皆尚未指派物流`
+  if (done === total) return `${total} 批皆已指派物流`
+  return `${total} 批中 ${done} 批已指派物流、${total - done} 批待設定`
+})
+
+/** 每批「設定配送 / 修改」：委派 ShippingConfigDialog，confirm 後寫回該批 carrier */
+const batchConfigIdx = ref<number | null>(null)
+const batchConfigDialogVisible = ref(false)
+const batchConfigOrder = computed(() => {
+  const b = batchConfigIdx.value != null ? batches.value[batchConfigIdx.value] : null
+  return {
+    orderNo: props.order.orderNo,
+    buyerName: props.order.buyerName,
+    carrierStatus: (b?.carrier ? 'configured' : 'unconfigured') as 'configured' | 'unconfigured',
+    carrierName: b?.carrier?.name,
+    trackingStatus: b?.carrier?.tracking ?? null,
+  }
+})
+function openBatchConfig(i: number): void {
+  batchConfigIdx.value = i
+  batchConfigDialogVisible.value = true
+}
+function onBatchConfigConfirm(payload: { carrierName: string; method: string; trackingNo: string | null }): void {
+  if (batchConfigIdx.value == null) return
+  const b = batches.value[batchConfigIdx.value]
+  if (b) b.carrier = { name: payload.carrierName, tracking: payload.trackingNo, method: payload.method }
+}
+
+/** 分批出貨作業：點按鈕發事件通知父層關閉詳情彈窗、開啟分批出貨彈窗 */
 function openSplitPage(): void {
   emit('open-split-page', props.order.id)
 }
@@ -465,6 +540,9 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         <i class="pi pi-clipboard text-[var(--p-primary-color)]"></i>
         <span class="text-sm font-bold text-[var(--p-text-color)]">出貨管理</span>
       </div>
+
+      <!-- ── 未分批：原本的整單出貨管理（動作列 + 配送/發票 + 出貨進度 + 備註） ── -->
+      <template v-if="!isBatched">
       <!-- 動作按鈕列 -->
       <div class="flex items-center gap-2 flex-wrap">
         <Button label="設定配送" icon="pi pi-cog" size="small" @click="shippingConfigDialogVisible = true" />
@@ -490,8 +568,8 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         />
       </div>
 
-      <!-- 左：配送物流 / 發票 / 出貨進度 Timeline；右：出貨單備註 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- 左：配送物流 / 發票 / 出貨進度 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
+      <div class="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4">
         <div class="flex flex-col gap-4 min-w-0">
           <div class="flex items-center gap-2 text-[13px]">
             <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
@@ -571,6 +649,160 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           <Textarea placeholder="輸入出貨相關備註...（將同步顯示於出貨單）" rows="5" class="w-full resize-none" />
         </div>
       </div>
+      </template>
+
+      <!-- ── 已分批：改渲染分批版（動作列 + 聚合狀態 + 每批一張卡 + 整單備註） ── -->
+      <template v-else>
+        <!-- 動作按鈕列（取消訂單改由明細彈窗 footer 統一提供） -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <Button label="管理分批出貨" icon="pi pi-th-large" size="small" @click="openSplitPage" />
+          <Button label="列印出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="printDialogVisible = true" />
+          <Button label="列印標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" />
+          <Button
+            :label="order.invoiceNumber ? '已開立發票' : '開立發票'"
+            icon="pi pi-file" severity="secondary" variant="outlined" size="small"
+            @click="issueInvoiceDialogVisible = true"
+          />
+          <Button label="列印發票" icon="pi pi-file-check" severity="secondary" variant="outlined" size="small" />
+        </div>
+
+        <!-- 整單層級狀態：配送物流（聚合摘要）+ 發票 -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
+            <span class="inline-flex items-center gap-1 text-[var(--p-text-color)]">
+              <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+              {{ batchCarrierSummary }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">發票</span>
+            <span v-if="order.invoiceNumber" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
+              <i class="pi pi-id-card text-[var(--p-primary-color)] text-[13px]"></i>
+              <span class="font-medium">{{ order.invoiceNumber }}</span>
+            </span>
+            <span v-else class="inline-flex items-center gap-1 text-[#CA8A04]">
+              <i class="pi pi-exclamation-circle text-[13px]"></i>
+              尚未開立
+            </span>
+          </div>
+        </div>
+
+        <!-- 已分批 N 批 -->
+        <div class="pt-2 border-t border-[var(--p-content-border-color)]">
+          <span class="text-sm font-bold text-[var(--p-text-color)]">已分批 {{ batches.length }} 批</span>
+        </div>
+
+        <!-- 批次卡清單 -->
+        <div class="flex flex-col gap-3">
+          <div
+            v-for="(b, i) in batches"
+            :key="i"
+            class="rounded-md border border-[var(--p-content-border-color)] p-4 flex flex-col gap-3"
+          >
+            <!-- 卡頭 row1：批次序號 + 狀態 tag；右：編輯分批 -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <Tag :value="batchLabel(i)" :style="{ background: 'var(--p-primary-100)', color: 'var(--p-primary-700)' }" />
+                <Tag :value="batchStatusBadge(b.status).label" :severity="batchStatusBadge(b.status).severity" />
+              </div>
+              <Button
+                icon="pi pi-pencil" severity="secondary" text rounded size="small"
+                v-tooltip.top="'編輯分批內容'" aria-label="編輯分批內容"
+                @click="openSplitPage"
+              />
+            </div>
+
+            <!-- 卡頭 row2：物流資訊 + 設定配送/修改 -->
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span v-if="b.carrier" class="inline-flex items-center gap-1 text-[13px] text-[var(--p-text-color)] min-w-0">
+                <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+                <span class="font-medium">{{ b.carrier.name }}</span>
+                <template v-if="b.carrier.tracking"><span class="text-[var(--p-text-muted-color)]">·</span> 取號 {{ b.carrier.tracking }}</template>
+                <span class="text-[var(--p-text-muted-color)]">·</span> {{ b.carrier.method }}
+              </span>
+              <span v-else class="inline-flex items-center gap-1 text-[13px] text-[#CA8A04] min-w-0">
+                <i class="pi pi-exclamation-circle text-[13px]"></i>
+                尚未指派物流商
+              </span>
+              <Button
+                :label="b.carrier ? '修改' : '設定配送'"
+                icon="pi pi-cog" severity="secondary" variant="outlined" size="small" class="shrink-0"
+                @click="openBatchConfig(i)"
+              />
+            </div>
+
+            <!-- 卡身：左 商品明細 + 貨態 Timeline（55%）；右 出貨單備註（45%） -->
+            <div class="grid grid-cols-1 md:grid-cols-[11fr_9fr] gap-4">
+              <div class="flex flex-col gap-3 min-w-0">
+                <div class="flex flex-col gap-2">
+                  <span class="text-[13px] text-[var(--p-text-color)]">商品明細（{{ b.items.reduce((s, it) => s + it.qty, 0) }} 件）</span>
+                  <div class="rounded-md bg-[var(--p-content-hover-background)] p-3 flex flex-col gap-1">
+                    <div v-for="(it, j) in b.items" :key="j" class="flex items-center justify-between gap-2 text-[13px]">
+                      <span class="text-[var(--p-text-color)] min-w-0">· {{ it.name }}</span>
+                      <span class="text-[var(--p-text-muted-color)] shrink-0">× {{ it.qty }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-xs text-[var(--p-text-muted-color)]">貨態</span>
+                  <Timeline :value="batchSteps(b.status)" layout="horizontal" align="top" class="w-full">
+                    <template #marker="{ item }">
+                      <button
+                        type="button"
+                        v-tooltip.top="`切換為「${item.label}」`"
+                        class="rounded-full inline-flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                        :style="{
+                          width: item.isCurrent ? '32px' : '24px',
+                          height: item.isCurrent ? '32px' : '24px',
+                          background: item.isCurrent || item.isPast ? 'var(--p-primary-color)' : 'var(--p-content-hover-background)',
+                          color: item.isCurrent || item.isPast ? '#fff' : 'var(--p-text-muted-color)',
+                          border: item.isCurrent || item.isPast ? 'none' : '1px solid var(--p-content-border-color)',
+                        }"
+                        :aria-label="`切換為「${item.label}」`"
+                        @click="setBatchStatus(b, item.key as BatchShippingStatus)"
+                      >
+                        <i :class="item.icon" class="text-xs"></i>
+                      </button>
+                    </template>
+                    <template #content="{ item }">
+                      <button
+                        type="button"
+                        class="flex flex-col items-center gap-1 pt-1 whitespace-nowrap cursor-pointer bg-transparent border-0 w-full"
+                        :aria-label="`切換為「${item.label}」`"
+                        @click="setBatchStatus(b, item.key as BatchShippingStatus)"
+                      >
+                        <span class="text-xs" :style="item.isCurrent ? 'color: var(--p-primary-color); font-weight: 600' : 'color: var(--p-text-muted-color)'">{{ item.label }}</span>
+                        <span class="text-xs text-[var(--p-text-muted-color)]">—</span>
+                      </button>
+                    </template>
+                    <template #connector>
+                      <span class="block h-px w-full" style="background: var(--p-content-border-color)"></span>
+                    </template>
+                  </Timeline>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註</span>
+                <Textarea v-model="b.note" placeholder="輸入此批次的出貨單備註..." rows="4" class="w-full resize-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 整單層級出貨單備註 -->
+        <div class="flex flex-col gap-2 pt-2 border-t border-[var(--p-content-border-color)]">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註（整單）</span>
+            <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
+              <Checkbox binary />
+              <span>同步顯示於出貨單</span>
+            </label>
+          </div>
+          <Textarea placeholder="輸入出貨相關備註...（將同步顯示於出貨單）" rows="4" class="w-full resize-none" />
+        </div>
+      </template>
     </div>
 
     <!-- 商品明細（單一扁平商品表 + 用戶備註 + 訂單總計） -->
@@ -703,6 +935,13 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       v-model:visible="shippingConfigDialogVisible"
       :order="order"
       @confirm="onShippingConfigConfirm"
+    />
+
+    <!-- 每批次「設定配送 / 修改」Dialog（分批版用） -->
+    <ShippingConfigDialog
+      v-model:visible="batchConfigDialogVisible"
+      :order="batchConfigOrder"
+      @confirm="onBatchConfigConfirm"
     />
 
     <!-- 開立發票 Dialog（共用元件） -->
