@@ -474,16 +474,14 @@ function openSplitPage(orderId: string): void {
   detailDialogVisible.value = false  // 關閉詳情彈窗
   splitDialogVisible.value = true
 }
+/** 分批彈窗關閉（儲存並返回 / 取消 / X）一律回到該訂單的明細彈窗 */
 function onSplitDialogVisible(v: boolean): void {
   splitDialogVisible.value = v
-  if (!v) splitDialogOrderId.value = null
-}
-/** 分批出貨「儲存並返回」→ 關閉分批彈窗、重新開啟該訂單的明細彈窗 */
-function onSplitSave(): void {
-  const o = splitDialogOrder.value
-  splitDialogVisible.value = false
-  splitDialogOrderId.value = null
-  if (o) openDetailDialog(o)
+  if (!v) {
+    const o = splitDialogOrder.value
+    splitDialogOrderId.value = null
+    if (o) openDetailDialog(o)
+  }
 }
 
 /** 頁首「預設配送設定」按鈕:開 DefaultShippingConfigDialog */
@@ -1518,7 +1516,6 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       :visible="splitDialogVisible"
       :order="splitDialogOrder"
       @update:visible="onSplitDialogVisible"
-      @save="onSplitSave"
     />
 
     <!-- 表格「設定配送」共用彈窗 -->

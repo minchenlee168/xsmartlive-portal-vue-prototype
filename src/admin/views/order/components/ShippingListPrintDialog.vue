@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 /**
  * 出貨單列印 Dialog（依規範第 4 節「出貨單列印格式」）。
@@ -32,8 +32,10 @@ interface OrderLite {
 interface Props {
   visible: boolean
   order: OrderLite | null
+  /** 列印範圍：'all' = 全部商品（合併單）；數字 = 只印該批次。由呼叫端（列印下拉）決定 */
+  scope?: 'all' | number
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { scope: 'all' })
 const emit = defineEmits<{
   'update:visible': [v: boolean]
 }>()
@@ -73,16 +75,12 @@ const couponDiscount = computed(() => props.order?.couponDiscount ?? 0)
 const pointsDiscount = computed(() => props.order?.pointsDiscount ?? 0)
 const total = computed(() => subtotal.value + shippingFee - couponDiscount.value - pointsDiscount.value)
 
-/** 批次選項：全部商品 + 每個批次 */
 const batchCount = computed(() => props.order?.dispatchBatchCount ?? 0)
-const printScopeOptions = computed(() => {
-  const opts = [{ label: '全部商品', value: 'all' }]
-  for (let i = 1; i <= batchCount.value; i++) {
-    opts.push({ label: `第 ${i} 批`, value: `batch_${i}` })
-  }
-  return opts
+/** 標頭範圍 tag 文字 */
+const scopeLabel = computed(() => {
+  if (batchCount.value === 0) return '全部商品'
+  return props.scope === 'all' ? `全部商品（含 ${batchCount.value} 批）` : `批次 ${props.scope}`
 })
-const printScope = ref<string>('all')
 
 /** 批次 mock：dispatchBatchCount > 0 時，切訂購件數為多批（示意） */
 interface BatchMock { index: number; itemQty: number; carrierDiff?: string; trackingDiff?: string }
@@ -96,13 +94,10 @@ const batchMocks = computed<BatchMock[]>(() => {
     itemQty: i === n - 1 ? rem : per,
   }))
 })
-/** 依選擇的 scope 決定要印哪幾個批次 */
+/** 依 scope 決定要印哪幾個批次 */
 const printedBatches = computed<BatchMock[]>(() => {
-  if (printScope.value === 'all') return batchMocks.value
-  const m = printScope.value.match(/^batch_(\d+)$/)
-  if (!m) return []
-  const idx = Number(m[1])
-  return batchMocks.value.filter(b => b.index === idx)
+  if (props.scope === 'all') return batchMocks.value
+  return batchMocks.value.filter(b => b.index === props.scope)
 })
 
 function doPrint(): void {
@@ -128,18 +123,8 @@ function doPrint(): void {
         <span class="text-base font-bold text-[var(--p-text-color)]">
           出貨單預覽<span v-if="order"> — {{ order.orderNo }}</span>
         </span>
-        <!-- 批次時可切換範圍;無批次時單顯示「全部商品」tag -->
-        <template v-if="batchCount > 0">
-          <SelectButton
-            v-model="printScope"
-            :options="printScopeOptions"
-            option-label="label"
-            option-value="value"
-            :allow-empty="false"
-            size="small"
-          />
-        </template>
-        <Tag v-else value="全部商品" severity="info" />
+        <!-- 範圍由呼叫端（列印下拉）決定，此處只顯示 tag -->
+        <Tag :value="scopeLabel" severity="info" />
       </div>
     </template>
 
@@ -212,29 +197,50 @@ function doPrint(): void {
       </section>
 
       <!-- ─── 本批出貨明細(有批次時另附) ─── -->
-      <section
-        v-for="b in printedBatches"
-        :key="b.index"
-        class="p-5 border-t border-dashed border-[var(--p-content-border-color)] flex flex-col gap-3"
-      >
-        <div class="flex items-center justify-between">
-          <span class="font-bold text-[var(--p-text-color)]">本批出貨明細 — 第 {{ b.index }} 批</span>
-          <span class="text-xs text-[var(--p-text-muted-color)]">本批出貨件數：<span class="font-bold text-[var(--p-text-color)]">{{ b.itemQty }} 件</span></span>
+      <template v-if="printedBatches.length">
+        <!-- 分隔：本批出貨明細 · 共 N 批 -->
+        <div class="px-5 py-3 border-t border-dashed border-[var(--p-content-border-color)] flex justify-center">
+          <span class="inline-flex items-center gap-2 rounded-full bg-[var(--p-content-hover-background)] px-3 py-1 text-xs text-[var(--p-text-muted-color)]">
+            <i class="pi pi-box" style="font-size: 12px"></i>
+            本批出貨明細<template v-if="scope === 'all'"> · 共 {{ batchCount }} 批</template>
+          </span>
         </div>
-        <div class="text-sm text-[var(--p-text-color)]">收件資訊：同原始出貨單</div>
-        <DataTable :value="products" show-gridlines data-key="name" size="small">
-          <Column field="name" header="商品名稱" />
-          <Column field="spec" header="規格" />
-          <Column header="數量" header-class="text-right" body-class="text-right" style="width: 100px">
-            <template #body>{{ b.itemQty }}</template>
-          </Column>
-        </DataTable>
-      </section>
+
+        <section class="px-5 pb-5 flex flex-col gap-4">
+          <div
+            v-for="b in printedBatches"
+            :key="b.index"
+            class="rounded-lg border border-[var(--p-content-border-color)] p-4 flex flex-col gap-3"
+          >
+            <div class="flex items-center gap-2">
+              <i class="pi pi-box text-[var(--p-primary-color)]" style="font-size: 14px"></i>
+              <span class="font-bold text-[var(--p-text-color)]">本批出貨單</span>
+              <Tag :value="`批次${b.index}`" severity="info" class="ml-auto" />
+            </div>
+            <div class="flex items-center gap-1 text-xs text-[var(--p-text-muted-color)]">
+              <i class="pi pi-link" style="font-size: 11px"></i>
+              收件、配送、付款資訊 — 同原始出貨單（本批無差異）
+            </div>
+            <DataTable :value="products" show-gridlines data-key="name" size="small">
+              <Column field="name" header="商品名稱" />
+              <Column field="spec" header="規格" />
+              <Column header="數量" header-class="text-right" body-class="text-right" style="width: 100px">
+                <template #body>{{ b.itemQty }}</template>
+              </Column>
+            </DataTable>
+            <div class="flex items-center justify-between pt-1">
+              <span class="text-xs text-[var(--p-text-muted-color)]">本批出貨件數</span>
+              <span class="text-sm font-bold text-[#2563EB]">{{ b.itemQty }} 件</span>
+            </div>
+          </div>
+        </section>
+      </template>
     </div>
 
     <template #footer>
-      <div class="print:hidden flex items-center justify-end">
-        <Button label="列印" @click="doPrint" />
+      <div class="print:hidden flex items-center justify-end gap-2">
+        <Button label="關閉" severity="secondary" variant="outlined" @click="emit('update:visible', false)" />
+        <Button label="列印" icon="pi pi-print" @click="doPrint" />
       </div>
     </template>
   </Dialog>

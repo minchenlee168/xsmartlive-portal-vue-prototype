@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useShippingBatches, type OrderBatch } from '../composables/useShippingBatches'
+import { useShippingBatches, type OrderBatch, type BatchCarrier } from '../composables/useShippingBatches'
 
 /**
  * 分批出貨作業 Dialog。
@@ -34,8 +34,6 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:visible': [v: boolean]
-  /** 儲存並返回 → 父層關閉此彈窗並重新開啟訂單明細彈窗 */
-  save: []
 }>()
 
 interface ProductLine {
@@ -53,12 +51,16 @@ interface Batch {
   items: Array<{ productId: number; qty: number }>
   status: BatchStatus
   note: string
+  /** 明細層級設定的配送物流；在此彈窗不編輯，僅隨批次保留、儲存時回寫 */
+  carrier?: BatchCarrier
 }
 const batches = ref<Batch[]>([])
 /** -1 = 主原始訂單；≥0 = 對應 batches 索引 */
 const currentBatchIdx = ref<number>(-1)
 /** 主原始訂單視圖 stepper 值：productId → qty（下一次建立新批次時使用） */
 const pendingAllocation = ref<Record<number, number>>({})
+
+const { setBatches, getBatches } = useShippingBatches()
 
 watch(() => [props.visible, props.order], () => {
   if (!props.visible) return
@@ -70,7 +72,15 @@ watch(() => [props.visible, props.order], () => {
     unitPrice,
     ordered: props.order.itemCount,
   }]
-  batches.value = []
+  // 已分批：從共享狀態還原批次，讓「管理分批出貨」開啟時看到已建好的批次；否則從空白開始
+  const stored = getBatches(props.order.orderNo)
+  batches.value = stored.map((b, i) => ({
+    name: `第 ${i + 1} 批`,
+    items: b.items.map(it => ({ productId: 1, qty: it.qty })),
+    status: b.status,
+    note: b.note,
+    carrier: b.carrier,
+  }))
   currentBatchIdx.value = -1
   pendingAllocation.value = {}
   products.value.forEach(p => { pendingAllocation.value[p.id] = 0 })
@@ -188,12 +198,12 @@ const currentBatchTableRows = computed(() => {
   })
 })
 
-const { setBatches } = useShippingBatches()
 function saveAndClose(): void {
-  // 把彈窗內批次寫入共享狀態，供訂單明細「出貨管理」渲染分批版
+  // 把彈窗內批次寫入共享狀態，供訂單明細「出貨管理」渲染分批版（保留各批已設定的物流）
   const stored: OrderBatch[] = batches.value.map(b => ({
     status: b.status,
     note: b.note,
+    carrier: b.carrier,
     items: b.items.map((it) => {
       const p = products.value.find(pr => pr.id === it.productId)
       return { name: p?.name ?? '商品', spec: p?.spec, qty: it.qty, unitPrice: p?.unitPrice ?? 0 }
@@ -201,7 +211,7 @@ function saveAndClose(): void {
   }))
   setBatches(props.order.orderNo, stored)
   props.order.dispatchBatchCount = stored.length
-  emit('save')
+  emit('update:visible', false)
 }
 function cancel(): void { emit('update:visible', false) }
 </script>

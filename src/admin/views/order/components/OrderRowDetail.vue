@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import type { MenuItem } from 'primevue/menuitem'
 import ShippingConfigDialog from './ShippingConfigDialog.vue'
 import IssueInvoiceDialog from './IssueInvoiceDialog.vue'
-import DiffAdjDialog, { type DiffAdjPayload } from './DiffAdjDialog.vue'
+import { type DiffAdjPayload } from './DiffAdjDialog.vue'
 import ShippingListPrintDialog from './ShippingListPrintDialog.vue'
 import { useShippingBatches, type BatchShippingStatus, type OrderBatch } from '../composables/useShippingBatches'
 
@@ -137,28 +139,6 @@ const diffAdjAmount = computed<number>(() => {
   return 0
 })
 const total = computed(() => subtotal.value + shippingFee - couponDiscount.value - pointsDiscount.value + diffAdjAmount.value)
-
-/** 差額調整 Dialog */
-const diffAdjDialogVisible = ref(false)
-function onDiffAdjConfirm(payload: DiffAdjPayload): void {
-  props.order.diffAdj = payload
-}
-function onDiffAdjRemove(): void {
-  props.order.diffAdj = undefined
-}
-/** 差額調整顯示文字 */
-const diffAdjSettleLabel = computed(() => {
-  const d = props.order.diffAdj
-  if (!d) return ''
-  if (d.settleType === 'absorb') return '商家自行吸收'
-  if (d.settleType === 'charge') return '向客戶補收'
-  if (d.settleType === 'refund') {
-    if (d.refundMethod === 'refund') return '退款（退刷）'
-    if (d.refundMethod === 'coupon') return '退回優惠券'
-    if (d.refundMethod === 'points') return '退回紅利點數'
-  }
-  return ''
-})
 
 /** 配送資訊卡整卡編輯：點筆 icon → 出貨方式 Select + 姓名/電話/地址 InputText；按打勾 commit */
 const shippingMethodOptions = [
@@ -337,6 +317,45 @@ function onBatchConfigConfirm(payload: { carrierName: string; method: string; tr
   if (batchConfigIdx.value == null) return
   const b = batches.value[batchConfigIdx.value]
   if (b) b.carrier = { name: payload.carrierName, tracking: payload.trackingNo, method: payload.method }
+}
+
+// ── 分批後：列印出貨單 / 列印標籤 改為下拉（全部 + 各批次） ──
+const toast = useToast()
+interface PopoverApi { toggle: (event: Event) => void }
+interface BatchMenuItem extends MenuItem { batchStatus?: BatchShippingStatus }
+const batchQty = (b: OrderBatch): number => b.items.reduce((s, it) => s + it.qty, 0)
+
+/** 列印出貨單下拉：全部商品（合併單）+ 各批次（附件數與狀態）→ 開出貨單預覽彈窗 */
+const printSheetMenuRef = ref<PopoverApi | null>(null)
+function togglePrintSheetMenu(event: Event): void { printSheetMenuRef.value?.toggle(event) }
+const printSheetScope = ref<'all' | number>('all')
+const printSheetMenuItems = computed<BatchMenuItem[]>(() => [
+  { label: '全部商品（合併單）', icon: 'pi pi-copy', command: () => openPrintSheet('all') },
+  ...batches.value.map((b, i) => ({
+    label: `${batchLabel(i)}（${batchQty(b)} 件）`,
+    icon: 'pi pi-box',
+    batchStatus: b.status,
+    command: () => openPrintSheet(i + 1),
+  })),
+])
+function openPrintSheet(scope: 'all' | number): void {
+  printSheetScope.value = scope
+  printDialogVisible.value = true
+}
+
+/** 列印標籤下拉：全部批次 + 各批次（附件數） */
+const labelMenuRef = ref<PopoverApi | null>(null)
+function toggleLabelMenu(event: Event): void { labelMenuRef.value?.toggle(event) }
+const labelMenuItems = computed<BatchMenuItem[]>(() => [
+  { label: '全部批次', icon: 'pi pi-copy', command: () => printLabel('全部批次') },
+  ...batches.value.map((b, i) => ({
+    label: `${batchLabel(i)}（${batchQty(b)} 件）`,
+    icon: 'pi pi-box',
+    command: () => printLabel(`${batchLabel(i)}`),
+  })),
+])
+function printLabel(scope: string): void {
+  toast.add({ severity: 'success', summary: `列印標籤（${scope}）`, life: 1800 })
 }
 
 /** 分批出貨作業：點按鈕發事件通知父層關閉詳情彈窗、開啟分批出貨彈窗 */
@@ -656,8 +675,39 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         <!-- 動作按鈕列（取消訂單改由明細彈窗 footer 統一提供） -->
         <div class="flex items-center gap-2 flex-wrap">
           <Button label="管理分批出貨" icon="pi pi-th-large" size="small" @click="openSplitPage" />
-          <Button label="列印出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="printDialogVisible = true" />
-          <Button label="列印標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" />
+          <!-- 列印出貨單：分批後改下拉（全部商品合併單 + 各批次） -->
+          <Button
+            label="列印出貨單" icon="pi pi-chevron-down" icon-pos="right"
+            severity="secondary" variant="outlined" size="small"
+            aria-haspopup="true" @click="togglePrintSheetMenu"
+          />
+          <Menu ref="printSheetMenuRef" :model="printSheetMenuItems" :popup="true">
+            <template #item="{ item, props }">
+              <a v-bind="props.action" class="flex items-center gap-2">
+                <i :class="item.icon" class="text-[var(--p-text-muted-color)]"></i>
+                <span class="flex-1">{{ item.label }}</span>
+                <Tag
+                  v-if="(item as BatchMenuItem).batchStatus"
+                  :value="batchStatusBadge((item as BatchMenuItem).batchStatus!).label"
+                  :severity="batchStatusBadge((item as BatchMenuItem).batchStatus!).severity"
+                />
+              </a>
+            </template>
+          </Menu>
+          <!-- 列印標籤：分批後改下拉（全部批次 + 各批次） -->
+          <Button
+            label="列印標籤" icon="pi pi-chevron-down" icon-pos="right"
+            severity="secondary" variant="outlined" size="small"
+            aria-haspopup="true" @click="toggleLabelMenu"
+          />
+          <Menu ref="labelMenuRef" :model="labelMenuItems" :popup="true">
+            <template #item="{ item, props }">
+              <a v-bind="props.action" class="flex items-center gap-2">
+                <i :class="item.icon" class="text-[var(--p-text-muted-color)]"></i>
+                <span class="flex-1">{{ item.label }}</span>
+              </a>
+            </template>
+          </Menu>
           <Button
             :label="order.invoiceNumber ? '已開立發票' : '開立發票'"
             icon="pi pi-file" severity="secondary" variant="outlined" size="small"
@@ -847,58 +897,10 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             <span class="text-[var(--p-text-muted-color)]">紅利折抵</span>
             <span class="text-[#DC2626]">-${{ pointsDiscount.toLocaleString() }}</span>
           </div>
-          <!-- 差額調整（只有 charge / refund_method=refund 影響訂單總計） -->
-          <div v-if="diffAdjAmount !== 0" class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">差額調整</span>
-            <span :class="diffAdjAmount > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'">
-              {{ diffAdjAmount > 0 ? '+' : '' }}${{ Math.abs(diffAdjAmount).toLocaleString() }}
-            </span>
-          </div>
           <div class="flex items-center justify-between pt-2 border-t border-[var(--p-content-border-color)]">
             <span class="font-medium text-[var(--p-text-color)]">訂單總計</span>
             <span class="text-base font-bold text-[var(--p-primary-color)]">${{ total.toLocaleString() }}</span>
           </div>
-          <!-- 差額調整入口 + 已設定摘要 -->
-          <div v-if="order.diffAdj" class="mt-2 rounded-md border border-[var(--p-content-border-color)] p-3 flex flex-col gap-2 bg-[var(--p-content-hover-background)]">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-[var(--p-text-color)]">差額調整</span>
-              <Button
-                v-tooltip.top="'編輯'"
-                icon="pi pi-pencil"
-                severity="secondary"
-                variant="text"
-                size="small"
-                rounded
-                @click="diffAdjDialogVisible = true"
-              />
-            </div>
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-[var(--p-text-muted-color)]">結算方式</span>
-              <span class="text-[var(--p-text-color)]">{{ diffAdjSettleLabel }}</span>
-            </div>
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-[var(--p-text-muted-color)]">金額</span>
-              <span class="text-[var(--p-text-color)] font-medium">${{ order.diffAdj.amount.toLocaleString() }}</span>
-            </div>
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-[var(--p-text-muted-color)]">狀態</span>
-              <Tag :value="order.diffAdj.status" severity="warn" />
-            </div>
-            <div v-if="order.diffAdj.reason" class="flex items-start justify-between text-xs gap-2">
-              <span class="text-[var(--p-text-muted-color)] shrink-0">事由</span>
-              <span class="text-[var(--p-text-color)] text-right">{{ order.diffAdj.reason }}</span>
-            </div>
-          </div>
-          <Button
-            v-else
-            label="差額調整"
-            icon="pi pi-dollar"
-            severity="secondary"
-            variant="outlined"
-            size="small"
-            class="mt-2"
-            @click="diffAdjDialogVisible = true"
-          />
         </div>
       </div>
     </div>
@@ -951,15 +953,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       @confirm="onInvoiceIssued"
     />
 
-    <!-- 差額調整 Dialog -->
-    <DiffAdjDialog
-      v-model:visible="diffAdjDialogVisible"
-      :initial="order.diffAdj ?? null"
-      @confirm="onDiffAdjConfirm"
-      @remove="onDiffAdjRemove"
-    />
-
     <!-- 出貨單列印 Dialog -->
-    <ShippingListPrintDialog v-model:visible="printDialogVisible" :order="order" />
+    <ShippingListPrintDialog v-model:visible="printDialogVisible" :order="order" :scope="printSheetScope" />
   </div>
 </template>
