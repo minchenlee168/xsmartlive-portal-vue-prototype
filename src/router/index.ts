@@ -15,7 +15,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: AdminApp,
-      redirect: { name: AdminRouteName.LiveOrder },
+      redirect: { name: AdminRouteName.ProductList },
       children: adminChildRoutes,
     },
     // 直播大螢幕抽獎頁（全螢幕、無 admin 殼層）
