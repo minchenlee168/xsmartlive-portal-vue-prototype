@@ -38,6 +38,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { scope: 'all' })
 const emit = defineEmits<{
   'update:visible': [v: boolean]
+  /** 按下「列印」時通知父層記錄一次出貨單列印 */
+  printed: []
 }>()
 
 /** 商品明細:依 cartTag 對應到一組候選商品,再依 itemCount 拆成多列(prototype 展示用)。 */
@@ -101,6 +103,7 @@ const printedBatches = computed<BatchMock[]>(() => {
 })
 
 function doPrint(): void {
+  emit('printed')
   // 用瀏覽器 print — CSS @media print 隱藏非列印區塊（style.css 需一併加規則）
   window.print()
 }

@@ -57,8 +57,6 @@ interface OrderRow {
   invoiceNumber?: string
   /** 發票開立時間（欄位字典 invoiceIssued.time） */
   invoiceIssuedAt?: string
-  /** 差額調整（欄位字典 order.diffAdj） */
-  diffAdj?: DiffAdj
   /** 收件地址(合併訂單判斷同址依據;沒填則不參與合併) */
   receiverAddress?: string
   /** 交易 ID(合併訂單清單顯示用) */
@@ -80,20 +78,6 @@ export interface MergeOrderGroup {
   temperature: string
   orders: OrderRow[]
   total: number
-}
-
-/** 差額調整（欄位字典第 4 節） */
-export interface DiffAdj {
-  amount: number
-  settleType: 'absorb' | 'charge' | 'refund'
-  payMethod?: 'link' | 'atm' | 'cod'
-  refundMethod?: 'refund' | 'coupon' | 'points'
-  reason?: string
-  invoiceMode?: 'auto' | 'manual'
-  validity?: '90' | '180' | '365' | 'none'
-  faceValue?: number
-  status: string
-  at: number
 }
 
 // 篩選欄位「草稿」狀態：使用者調整 UI 控件即時更新；只有按下「搜尋」才會 commit 到 applied。
@@ -774,10 +758,8 @@ const mergeGroups = computed<MergeOrderGroup[]>(() => {
   })
   return groups
 })
-/** 可合併訂單總數(給 header badge 顯示;image 15 示意 badge 為 4;此處算所有 group 的 order 總和) */
-const mergeableOrderCount = computed(() =>
-  mergeGroups.value.reduce((s, g) => s + g.orders.length, 0),
-)
+/** header badge：有幾組需要合併的訂單（＝可合併群組數，非各群組訂單總數） */
+const mergeableOrderCount = computed(() => mergeGroups.value.length)
 const mergeDialogVisible = ref(false)
 /** 合併彈窗分兩步:'list' 選擇要合併的訂單、'editor' 進入合併編輯表單 */
 const mergeStep = ref<'list' | 'editor'>('list')
@@ -963,6 +945,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               <h1 class="text-2xl font-bold text-[var(--p-text-color)]">訂單管理</h1>
               <button
                 v-tooltip.top="'手動刷新訂單資訊'"
+                aria-label="手動刷新訂單資訊"
                 class="size-[28px] flex items-center justify-center rounded-full hover:bg-[var(--p-primary-50)]"
                 style="color: var(--p-primary-color)"
                 @click="onRefresh"
@@ -1173,13 +1156,6 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <Button
-                :label="allSelectableSelected ? '取消全選' : '全選可選'"
-                severity="secondary"
-                variant="outlined"
-                :disabled="batchSelectableCount === 0"
-                @click="toggleSelectAllSelectable"
-              />
-              <Button
                 :label="activeBatchConfig.nextStepLabel"
                 :disabled="selectedForBatch.size === 0"
                 @click="openBatchConfirmDialog"
@@ -1258,6 +1234,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                   <span class="font-medium text-[var(--p-text-color)]">{{ data.orderNo }}</span>
                   <Button
                     v-tooltip.top="'複製'"
+                    :aria-label="`複製訂單編號 ${data.orderNo}`"
                     icon="pi pi-copy"
                     severity="secondary"
                     variant="text"
@@ -1312,8 +1289,8 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                   size="small"
                   class="!w-[100px]"
                 />
-                <Button v-tooltip.top="'確認'" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitPayment(data, $event)" />
-                <Button v-tooltip.top="'取消'" icon="pi pi-times" severity="secondary" variant="text" size="small" rounded @click="cancelEditPayment" />
+                <Button v-tooltip.top="'確認'" aria-label="確認付款狀態" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitPayment(data, $event)" />
+                <Button v-tooltip.top="'取消'" aria-label="取消編輯" icon="pi pi-times" severity="secondary" variant="text" size="small" rounded @click="cancelEditPayment" />
               </span>
               <!-- 檢視模式：Tag 可直接點按進編輯 -->
               <button
@@ -1321,6 +1298,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 type="button"
                 class="inline-flex items-center gap-1 cursor-pointer"
                 v-tooltip.top="'點擊修改'"
+                aria-label="修改付款狀態"
                 @click="startEditPayment(data, $event)"
               >
                 <Tag
@@ -1400,6 +1378,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               <div class="flex items-center justify-end gap-1">
                 <button
                   v-tooltip.top="'出貨單列印'"
+                  aria-label="出貨單列印"
                   class="size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
                   @click="openPrintDialog(data, $event)"
                 >
@@ -1407,6 +1386,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 </button>
                 <button
                   v-tooltip.top="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
+                  :aria-label="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
                   class="relative size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
                   @click="onPrintLabel(data, $event)"
                 >
@@ -1419,6 +1399,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 </button>
                 <button
                   v-tooltip.top="data.invoiceNumber ? `已開立：${data.invoiceNumber}` : '開立發票'"
+                  :aria-label="data.invoiceNumber ? `已開立發票：${data.invoiceNumber}` : '開立發票'"
                   class="size-[32px] flex items-center justify-center rounded-md hover:bg-[var(--p-content-hover-background)]"
                   :class="data.invoiceNumber ? 'text-[#16A34A]' : 'text-[var(--p-text-color)]'"
                   @click="openIssueInvoice(data, $event)"
@@ -1427,6 +1408,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 </button>
                 <button
                   v-tooltip.top="'查看更多'"
+                  aria-label="查看訂單詳情"
                   class="size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
                   @click="openDetailDialog(data)"
                 >
@@ -1707,7 +1689,13 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             <div class="flex items-center gap-2 flex-wrap text-sm text-[var(--p-text-color)]">
               <span>{{ mergeSelectedOrders[0]?.shippingMethod === '常溫宅配' ? '宅配' : mergeSelectedOrders[0]?.shippingMethod }}</span>
               <Tag value="未指派物流商" severity="warn" />
-              <a class="text-xs text-[#2563EB] hover:underline cursor-pointer">指派物流商</a>
+              <Button
+                v-if="mergeSelectedOrders[0]"
+                label="指派物流商"
+                link
+                size="small"
+                @click="openShippingConfig(mergeSelectedOrders[0], $event)"
+              />
             </div>
           </div>
           <!-- 訂購人(鎖 + tooltip) -->

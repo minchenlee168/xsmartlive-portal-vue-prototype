@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useConfirm } from 'primevue/useconfirm'
 import { useShippingBatches, type OrderBatch, type BatchCarrier } from '../composables/useShippingBatches'
 
 /**
@@ -134,9 +135,22 @@ const currentBatch = computed<Batch | null>(() =>
   currentBatchIdx.value >= 0 ? batches.value[currentBatchIdx.value] ?? null : null,
 )
 
-/** 點 Timeline 圓點 → 切換此批次的出貨狀態 */
+/** 點 Timeline 圓點 → 二次確認後切換此批次的出貨狀態 */
+const confirm = useConfirm()
 function setBatchStatus(status: BatchStatus): void {
-  if (currentBatch.value) currentBatch.value.status = status
+  const b = currentBatch.value
+  if (!b || b.status === status) return
+  const from = statusMeta(b.status).label
+  const to = statusMeta(status).label
+  confirm.require({
+    header: '切換批次貨態',
+    message: `確定要將此批貨態由「${from}」切換為「${to}」嗎？`,
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '確定切換',
+    rejectLabel: '取消',
+    defaultFocus: 'reject',
+    accept: () => { b.status = status },
+  })
 }
 
 function batchTotal(b: Batch): number {
@@ -390,10 +404,7 @@ function cancel(): void { emit('update:visible', false) }
                 <i :class="statusMeta(currentBatch.status).icon" class="text-sm"></i>
                 {{ statusMeta(currentBatch.status).label }}
               </span>
-              <div class="flex items-center gap-2">
-                <Button label="切換狀態" icon="pi pi-sync" severity="secondary" variant="outlined" size="small" />
-                <Button label="配送設定" icon="pi pi-cog" size="small" />
-              </div>
+              <span class="text-xs text-[var(--p-text-muted-color)]">點下方圓點可切換此批貨態</span>
             </div>
             <!-- 5 階段 Timeline（PrimeVue horizontal）— 點圓點 / 標籤即切換此批狀態 -->
             <Timeline :value="currentBatchSteps" layout="horizontal" align="top" class="w-full">
