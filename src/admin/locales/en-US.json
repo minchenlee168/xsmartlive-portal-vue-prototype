@@ -23,6 +23,7 @@
     "marketing": "Marketing",
     "bid_gift_lottery": "Bid Gift Lottery",
     "keyword_lottery": "Keyword Lottery",
+    "notification_center": "Notification Center",
     "merchant_management": {
       "merchant_management": "Merchant Management",
       "store_management": "Store Management"
@@ -42,6 +43,7 @@
     "bid_gift_lottery_list": "Bid Gift Lottery",
     "bid_gift_lottery_draw": "Bid Gift Lottery Draw",
     "keyword_lottery_list": "Keyword Lottery",
+    "notification_center": "Notification Center",
     "merchant_management": {
       "store_management": "Store Management"
     }

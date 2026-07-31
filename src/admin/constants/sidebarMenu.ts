@@ -131,6 +131,12 @@ export const sidebarMenu: MenuItem[] = [
       },
     ],
   },
+  // 通知中心：帳號級收件匣（頂層項，放在行銷活動之後）
+  {
+    labelKey: 'nav.notification_center',
+    icon: ['far', 'bell'],
+    to: RouteName.NotificationCenter,
+  },
 ]
 
 /**

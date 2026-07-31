@@ -27,6 +27,7 @@
     "marketing": "行銷活動",
     "bid_gift_lottery": "得標禮抽獎",
     "keyword_lottery": "關鍵字抽獎",
+    "notification_center": "通知中心",
     "merchant_management": {
       "merchant_management": "商家管理",
       "store_management": "商店管理"
@@ -49,6 +50,7 @@
     "bid_gift_lottery_list": "得標禮抽獎",
     "bid_gift_lottery_draw": "得標禮抽獎開獎",
     "keyword_lottery_list": "關鍵字抽獎",
+    "notification_center": "通知中心",
     "merchant_management": {
       "store_management": "商店管理"
     }
