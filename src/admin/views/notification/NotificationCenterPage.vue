@@ -243,14 +243,13 @@ function toggleRead(n: Notification): void {
       modal
       :draggable="false"
       :style="{ width: 'min(560px, calc(100vw - 32px))' }"
+      :pt="{ header: { class: 'pb-0 justify-end' } }"
     >
-      <template #header>
-        <div v-if="detailNotif" class="flex flex-col gap-2">
-          <Tag :value="categoryOf(detailNotif.cat).name" :severity="categoryOf(detailNotif.cat).severity" />
+      <div v-if="detailNotif" class="flex flex-col gap-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <Tag :value="categoryOf(detailNotif.cat).name" :severity="categoryOf(detailNotif.cat).severity" class="shrink-0" />
           <span class="text-lg font-bold text-[var(--p-text-color)]">{{ detailNotif.title }}</span>
         </div>
-      </template>
-      <div v-if="detailNotif" class="flex flex-col gap-3">
         <p class="text-xs text-[var(--p-text-muted-color)] m-0">{{ detailNotif.time }}</p>
         <p class="text-sm leading-relaxed text-[var(--p-text-color)] m-0">{{ detailNotif.body }}</p>
         <div v-if="detailNotif.stores" class="text-sm flex items-center gap-2">
