@@ -953,7 +953,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 <i class="pi pi-sync" style="font-size: 15px"></i>
               </button>
             </div>
-            <p class="text-[13px] text-[var(--p-text-muted-color)]">
+            <p class="text-sm text-[var(--p-text-muted-color)]">
               查看與管理所有來自商城與直播的訂單，可篩選狀態、查詢訂單編號或買家姓名。
             </p>
           </div>
@@ -962,6 +962,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               label="批次作業"
               icon="pi pi-chevron-down"
               icon-pos="right"
+              severity="secondary"
               variant="outlined"
               aria-haspopup="true"
               aria-controls="batch-menu"
@@ -988,7 +989,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 class="ml-2"
               />
             </Button>
-            <Button label="預設配送設定" variant="outlined" @click="defaultShippingConfigDialogVisible = true" />
+            <Button label="預設配送設定" severity="secondary" variant="outlined" @click="defaultShippingConfigDialogVisible = true" />
             <Button
               label="匯出 CSV"
               icon="pi pi-file-export"
@@ -1044,7 +1045,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
         <div class="px-5 py-2 flex items-center gap-3">
           <button
             type="button"
-            class="inline-flex items-center gap-2 text-[13px] text-[var(--p-text-color)] hover:text-[var(--p-primary-color)]"
+            class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)] hover:text-[var(--p-primary-color)]"
             @click="advancedFilterExpanded = !advancedFilterExpanded"
           >
             <span class="font-medium">進階篩選</span>
@@ -1098,7 +1099,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
         <!-- 快速篩選 chips + 搜尋按鈕 + 總筆數 -->
         <div class="flex items-center justify-between gap-3 px-5 py-2 flex-wrap">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-[13px] text-[var(--p-text-muted-color)] shrink-0 mr-1">快速篩選</span>
+            <span class="text-sm text-[var(--p-text-muted-color)] shrink-0 mr-1">快速篩選</span>
             <template v-for="q in quickFilters" :key="q.value">
               <span
                 v-if="q.value === 'paid'"
@@ -1107,7 +1108,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 aria-hidden="true"
               />
               <button
-                class="px-3 py-2 rounded-full text-[13px] border transition-colors"
+                class="px-3 py-2 rounded-full text-sm border transition-colors"
                 :style="quickFilter === q.value
                   ? 'background: var(--p-primary-50); color: var(--p-primary-color); border-color: var(--p-primary-color)'
                   : 'background: var(--p-content-background); color: var(--p-text-muted-color); border-color: var(--p-content-border-color)'"
@@ -1115,7 +1116,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
               >{{ q.label }}</button>
             </template>
           </div>
-          <span class="text-[13px] text-[var(--p-text-muted-color)]">
+          <span class="text-sm text-[var(--p-text-muted-color)]">
             共 <span class="text-[var(--p-text-color)] font-bold">{{ TOTAL_ORDERS }}</span> 筆訂單
           </span>
         </div>
@@ -1139,7 +1140,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[var(--p-content-background)]/85 backdrop-blur-sm rounded-lg"
           >
             <ProgressSpinner style="width: 48px; height: 48px" stroke-width="4" animation-duration=".9s" />
-            <span class="text-[13px] text-[var(--p-text-muted-color)]">載入中…</span>
+            <span class="text-sm text-[var(--p-text-muted-color)]">載入中…</span>
           </div>
 
           <!-- 批次作業模式 banner(取號/印標共用):提示已選/可選數 + 全選/下一步/取消 -->
@@ -1351,7 +1352,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             <template #body="{ data }">
               <!-- 已設定：只顯示物流商名稱（取號另在「取號狀態」欄顯示）；未設定：設定配送按鈕 -->
               <span v-if="data.carrierStatus === 'configured'" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-                <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+                <i class="pi pi-truck text-[var(--p-primary-color)] text-sm"></i>
                 <span class="font-medium">{{ data.carrierName }}</span>
               </span>
               <Button v-else label="設定配送" icon="pi pi-truck" size="small" @click="openShippingConfig(data, $event)" />
@@ -1376,44 +1377,60 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           >
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
-                <button
+                <Button
                   v-tooltip.top="'出貨單列印'"
                   aria-label="出貨單列印"
-                  class="size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+                  icon="pi pi-print"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  rounded
                   @click="openPrintDialog(data, $event)"
-                >
-                  <i class="pi pi-print" style="font-size: 15.75px"></i>
-                </button>
-                <button
-                  v-tooltip.top="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
-                  :aria-label="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
-                  class="relative size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
-                  @click="onPrintLabel(data, $event)"
-                >
-                  <i class="pi pi-tag" style="font-size: 15.75px"></i>
+                />
+                <span class="relative inline-flex">
+                  <Button
+                    v-tooltip.top="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
+                    :aria-label="labelPrintedIds.has(data.id) ? '標籤已列印（可重印）' : '標籤列印'"
+                    icon="pi pi-tag"
+                    severity="secondary"
+                    variant="text"
+                    size="small"
+                    rounded
+                    @click="onPrintLabel(data, $event)"
+                  />
                   <i
                     v-if="labelPrintedIds.has(data.id)"
-                    class="pi pi-check-circle absolute -top-1 -right-1 text-[#16A34A]"
+                    class="pi pi-check-circle absolute -top-0.5 -right-0.5 text-green-600 dark:text-green-400 pointer-events-none"
                     style="font-size: 13px; background: var(--p-content-background); border-radius: 9999px"
                   ></i>
-                </button>
-                <button
-                  v-tooltip.top="data.invoiceNumber ? `已開立：${data.invoiceNumber}` : '開立發票'"
-                  :aria-label="data.invoiceNumber ? `已開立發票：${data.invoiceNumber}` : '開立發票'"
-                  class="size-[32px] flex items-center justify-center rounded-md hover:bg-[var(--p-content-hover-background)]"
-                  :class="data.invoiceNumber ? 'text-[#16A34A]' : 'text-[var(--p-text-color)]'"
-                  @click="openIssueInvoice(data, $event)"
-                >
-                  <i class="pi pi-file" style="font-size: 15.75px"></i>
-                </button>
-                <button
+                </span>
+                <span class="relative inline-flex">
+                  <Button
+                    v-tooltip.top="data.invoiceNumber ? `已開立：${data.invoiceNumber}` : '開立發票'"
+                    :aria-label="data.invoiceNumber ? `已開立發票：${data.invoiceNumber}` : '開立發票'"
+                    icon="pi pi-file"
+                    :severity="data.invoiceNumber ? 'success' : 'secondary'"
+                    variant="text"
+                    size="small"
+                    rounded
+                    @click="openIssueInvoice(data, $event)"
+                  />
+                  <i
+                    v-if="data.invoiceNumber"
+                    class="pi pi-check-circle absolute -top-0.5 -right-0.5 text-green-600 dark:text-green-400 pointer-events-none"
+                    style="font-size: 13px; background: var(--p-content-background); border-radius: 9999px"
+                  ></i>
+                </span>
+                <Button
                   v-tooltip.top="'查看更多'"
                   aria-label="查看訂單詳情"
-                  class="size-[32px] flex items-center justify-center rounded-md text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+                  icon="pi pi-eye"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  rounded
                   @click="openDetailDialog(data)"
-                >
-                  <i class="pi pi-eye" style="font-size: 15.75px"></i>
-                </button>
+                />
               </div>
             </template>
           </Column>
@@ -1877,7 +1894,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       <div class="flex flex-col">
         <!-- 說明 banner(綠色成功語意) -->
         <div class="px-5 py-3 border-b border-[var(--p-content-border-color)] bg-[#DCFCE7] flex items-center gap-2">
-          <i class="pi pi-info-circle text-[#16A34A]" style="font-size: 14px"></i>
+          <i class="pi pi-info-circle text-green-600 dark:text-green-400" style="font-size: 14px"></i>
           <span class="text-sm text-[var(--p-text-color)]">
             {{ activeBatchConfig.confirmDescription(selectedForBatchOrders.length) }}
           </span>
@@ -1925,18 +1942,18 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
   height: 12px !important;
   width: 12px !important;
   -webkit-appearance: none !important;
-  background: #f1f5f9 !important;
+  background: var(--p-surface-100) !important;
 }
 :deep(.p-datatable-table-container::-webkit-scrollbar-track) {
-  background: #f1f5f9 !important;
+  background: var(--p-surface-100) !important;
   border-radius: 6px !important;
 }
 :deep(.p-datatable-table-container::-webkit-scrollbar-thumb) {
-  background: #94a3b8 !important;
+  background: var(--p-surface-400) !important;
   border-radius: 6px !important;
-  border: 2px solid #f1f5f9 !important;
+  border: 2px solid var(--p-surface-100) !important;
 }
 :deep(.p-datatable-table-container::-webkit-scrollbar-thumb:hover) {
-  background: #64748b !important;
+  background: var(--p-surface-500) !important;
 }
 </style>

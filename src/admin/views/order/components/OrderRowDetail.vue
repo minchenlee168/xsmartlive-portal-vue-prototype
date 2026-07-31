@@ -445,12 +445,12 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
 
         <!-- 檢視模式 -->
         <template v-if="!editingShipping">
-          <div class="flex items-center gap-2 text-[13px] text-[var(--p-text-color)]">
-            <i class="pi pi-truck text-[13px] text-[var(--p-text-muted-color)]"></i>
+          <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
+            <i class="pi pi-truck text-sm text-[var(--p-text-muted-color)]"></i>
             {{ order.shippingMethod }}
           </div>
-          <div class="flex items-start gap-2 text-[13px] text-[var(--p-text-color)]">
-            <i class="pi pi-map-marker mt-1 text-[13px] text-[var(--p-text-muted-color)]"></i>
+          <div class="flex items-start gap-2 text-sm text-[var(--p-text-color)]">
+            <i class="pi pi-map-marker mt-1 text-sm text-[var(--p-text-muted-color)]"></i>
             <div class="flex flex-col gap-1">
               <span>{{ order.buyerName }} / {{ order.buyerPhone }}</span>
               <span class="text-xs text-[var(--p-text-muted-color)]">{{ shippingAddress }}</span>
@@ -458,41 +458,53 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           </div>
         </template>
 
-        <!-- 編輯模式：出貨方式 Select + 姓名/電話/地址 InputText -->
+        <!-- 編輯模式：出貨方式 Select + 姓名/電話/地址 InputText（label 常駐可見） -->
         <template v-else>
-          <Select
-            v-model="editShippingMethod"
-            :options="shippingMethodOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-          />
-          <InputText v-model="editBuyerName" placeholder="收件人姓名" class="w-full" size="small" />
-          <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
-          <InputText v-model="shippingAddress" placeholder="收件地址" class="w-full" size="small" />
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-[var(--p-text-muted-color)]">出貨方式</label>
+            <Select
+              v-model="editShippingMethod"
+              :options="shippingMethodOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-[var(--p-text-muted-color)]">收件人</label>
+            <InputText v-model="editBuyerName" placeholder="收件人姓名" class="w-full" size="small" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-[var(--p-text-muted-color)]">電話</label>
+            <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-[var(--p-text-muted-color)]">收件地址</label>
+            <InputText v-model="shippingAddress" placeholder="收件地址" class="w-full" size="small" />
+          </div>
         </template>
       </div>
 
       <!-- 訂單來源（原「購買通路」card，改回訂單來源標題以符合使用者偏好） -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
         <span class="text-sm font-bold text-[var(--p-text-color)]">訂單來源</span>
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">購買通路</span>
           <span class="font-medium text-[var(--p-text-color)]">{{ order.channel }}</span>
         </div>
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">訂單來源</span>
           <span class="text-[var(--p-text-color)]">{{ sourceLabel }}</span>
         </div>
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">多購物車</span>
           <Tag
             :value="cartLabel"
             :pt="{ root: { style: { background: order.cartTag.bg, color: order.cartTag.color } } }"
           />
         </div>
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">場次名稱</span>
           <span class="text-[var(--p-text-color)]">{{ sessionLabel }}</span>
         </div>
@@ -526,7 +538,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           />
         </div>
 
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">付款狀態</span>
           <Tag
             v-if="!editingPayment"
@@ -544,7 +556,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             :pt="{ label: { class: '!whitespace-nowrap !overflow-visible' } }"
           />
         </div>
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">付款方式</span>
           <span v-if="!editingPayment" class="text-[var(--p-text-color)]">{{ paymentMethodLabel }}</span>
           <Select
@@ -558,7 +570,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             :pt="{ label: { class: '!whitespace-nowrap !overflow-visible' } }"
           />
         </div>
-        <div class="flex items-center justify-between text-[13px]">
+        <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">應付金額</span>
           <span class="font-bold text-[var(--p-primary-color)]">${{ order.amount.toLocaleString() }}</span>
         </div>
@@ -567,12 +579,12 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       <!-- 發票資訊（唯讀，依規範不加編輯） -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
         <span class="text-sm font-bold text-[var(--p-text-color)]">發票資訊</span>
-        <div class="flex items-center gap-2 text-[13px] text-[var(--p-text-color)]">
-          <i class="pi pi-id-card text-[13px] text-[var(--p-text-muted-color)]"></i>
+        <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
+          <i class="pi pi-id-card text-sm text-[var(--p-text-muted-color)]"></i>
           電子發票（會員載具）
         </div>
         <!-- 已開立：顯示發票號碼 + 開立時間；未開立：橘字提示 -->
-        <div v-if="order.invoiceNumber" class="flex flex-col gap-1 pt-2 border-t border-[var(--p-content-border-color)] text-[13px]">
+        <div v-if="order.invoiceNumber" class="flex flex-col gap-1 pt-2 border-t border-[var(--p-content-border-color)] text-sm">
           <div class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">發票號碼</span>
             <span class="font-medium text-[var(--p-text-color)]">{{ order.invoiceNumber }}</span>
@@ -583,8 +595,8 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           </div>
         </div>
         <div v-else class="pt-2 border-t border-[var(--p-content-border-color)]">
-          <span class="inline-flex items-center gap-1 text-xs text-[#CA8A04]">
-            <i class="pi pi-exclamation-circle text-[13px]"></i>
+          <span class="inline-flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
+            <i class="pi pi-exclamation-circle text-sm"></i>
             尚未開立
           </span>
         </div>
@@ -631,18 +643,18 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       <!-- 左：配送物流 / 發票 / 出貨進度 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
       <div class="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4">
         <div class="flex flex-col gap-4 min-w-0">
-          <div class="flex items-center gap-2 text-[13px]">
+          <div class="flex items-center gap-2 text-sm">
             <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
             <span v-if="order.carrierStatus === 'configured'" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-              <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+              <i class="pi pi-truck text-[var(--p-primary-color)] text-sm"></i>
               <span class="font-medium">{{ order.carrierName }}</span>
               <template v-if="order.trackingStatus">
                 <span class="text-[var(--p-text-muted-color)]">·</span>
                 <span>取號 {{ order.trackingStatus }}</span>
               </template>
             </span>
-            <span v-else class="inline-flex items-center gap-1 text-[#CA8A04]">
-              <i class="pi pi-exclamation-circle text-[13px]"></i>
+            <span v-else class="inline-flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+              <i class="pi pi-exclamation-circle text-sm"></i>
               尚未指定物流商與取號
             </span>
           </div>
@@ -684,7 +696,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between">
-            <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註</span>
+            <span class="text-sm text-[var(--p-text-color)]">出貨單備註</span>
             <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
               <Checkbox binary />
               <span>同步顯示於出貨單</span>
@@ -743,10 +755,10 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         </div>
 
         <!-- 整單層級配送物流聚合摘要（發票資訊由右上卡呈現，不重複） -->
-        <div class="flex items-center gap-2 text-[13px]">
+        <div class="flex items-center gap-2 text-sm">
           <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
           <span class="inline-flex items-center gap-1 text-[var(--p-text-color)]">
-            <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+            <i class="pi pi-truck text-[var(--p-primary-color)] text-sm"></i>
             {{ batchCarrierSummary }}
           </span>
         </div>
@@ -766,7 +778,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             <!-- 卡頭 row1：批次序號 + 狀態 tag；右：編輯分批 -->
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2 flex-wrap">
-                <Tag :value="batchLabel(i)" :style="{ background: 'var(--p-primary-100)', color: 'var(--p-primary-700)' }" />
+                <Tag :value="batchLabel(i)" severity="secondary" />
                 <Tag :value="batchStatusBadge(b.status).label" :severity="batchStatusBadge(b.status).severity" />
               </div>
               <Button
@@ -778,14 +790,14 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
 
             <!-- 卡頭 row2：物流資訊 + 設定配送/修改 -->
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <span v-if="b.carrier" class="inline-flex items-center gap-1 text-[13px] text-[var(--p-text-color)] min-w-0">
-                <i class="pi pi-truck text-[var(--p-primary-color)] text-[13px]"></i>
+              <span v-if="b.carrier" class="inline-flex items-center gap-1 text-sm text-[var(--p-text-color)] min-w-0">
+                <i class="pi pi-truck text-[var(--p-primary-color)] text-sm"></i>
                 <span class="font-medium">{{ b.carrier.name }}</span>
                 <template v-if="b.carrier.tracking"><span class="text-[var(--p-text-muted-color)]">·</span> 取號 {{ b.carrier.tracking }}</template>
                 <span class="text-[var(--p-text-muted-color)]">·</span> {{ b.carrier.method }}
               </span>
-              <span v-else class="inline-flex items-center gap-1 text-[13px] text-[#CA8A04] min-w-0">
-                <i class="pi pi-exclamation-circle text-[13px]"></i>
+              <span v-else class="inline-flex items-center gap-1 text-sm text-yellow-600 dark:text-yellow-400 min-w-0">
+                <i class="pi pi-exclamation-circle text-sm"></i>
                 尚未指派物流商
               </span>
               <Button
@@ -799,9 +811,9 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             <div class="grid grid-cols-1 md:grid-cols-[11fr_9fr] gap-4">
               <div class="flex flex-col gap-3 min-w-0">
                 <div class="flex flex-col gap-2">
-                  <span class="text-[13px] text-[var(--p-text-color)]">商品明細（{{ b.items.reduce((s, it) => s + it.qty, 0) }} 件）</span>
+                  <span class="text-sm text-[var(--p-text-color)]">商品明細（{{ b.items.reduce((s, it) => s + it.qty, 0) }} 件）</span>
                   <div class="rounded-md bg-[var(--p-content-hover-background)] p-3 flex flex-col gap-1">
-                    <div v-for="(it, j) in b.items" :key="j" class="flex items-center justify-between gap-2 text-[13px]">
+                    <div v-for="(it, j) in b.items" :key="j" class="flex items-center justify-between gap-2 text-sm">
                       <span class="text-[var(--p-text-color)] min-w-0">· {{ it.name }}</span>
                       <span class="text-[var(--p-text-muted-color)] shrink-0">× {{ it.qty }}</span>
                     </div>
@@ -847,7 +859,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
               </div>
 
               <div class="flex flex-col gap-2">
-                <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註</span>
+                <span class="text-sm text-[var(--p-text-color)]">出貨單備註</span>
                 <Textarea v-model="b.note" placeholder="輸入此批次的出貨單備註..." rows="4" class="w-full resize-none" />
               </div>
             </div>
@@ -857,7 +869,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         <!-- 整單層級出貨單備註 -->
         <div class="flex flex-col gap-2 pt-2 border-t border-[var(--p-content-border-color)]">
           <div class="flex items-center justify-between">
-            <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註（整單）</span>
+            <span class="text-sm text-[var(--p-text-color)]">出貨單備註（整單）</span>
             <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
               <Checkbox binary />
               <span>同步顯示於出貨單</span>
@@ -889,7 +901,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       </DataTable>
 
       <div class="flex items-start justify-end gap-4 pt-2">
-        <div class="flex flex-col gap-2 text-[13px] min-w-[200px]">
+        <div class="flex flex-col gap-2 text-sm min-w-[200px]">
           <div class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">商品總額</span>
             <span class="text-[var(--p-text-color)]">${{ subtotal.toLocaleString() }}</span>
@@ -900,11 +912,11 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           </div>
           <div v-if="couponDiscount > 0" class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">優惠券折抵</span>
-            <span class="text-[#DC2626]">-${{ couponDiscount.toLocaleString() }}</span>
+            <span class="text-red-600 dark:text-red-400">-${{ couponDiscount.toLocaleString() }}</span>
           </div>
           <div v-if="pointsDiscount > 0" class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">紅利折抵</span>
-            <span class="text-[#DC2626]">-${{ pointsDiscount.toLocaleString() }}</span>
+            <span class="text-red-600 dark:text-red-400">-${{ pointsDiscount.toLocaleString() }}</span>
           </div>
           <div class="flex items-center justify-between pt-2 border-t border-[var(--p-content-border-color)]">
             <span class="font-medium text-[var(--p-text-color)]">訂單總計</span>

@@ -170,7 +170,7 @@ function doPrint(): void {
         </DataTable>
 
         <!-- 訂單共 N 件(連結色) -->
-        <div class="text-right text-xs text-[#2563EB]">訂單共 {{ order.itemCount }} 件</div>
+        <div class="text-right text-xs text-[var(--p-text-muted-color)]">訂單共 {{ order.itemCount }} 件</div>
 
         <!-- 訂單金額 -->
         <div class="flex justify-end">
@@ -233,7 +233,7 @@ function doPrint(): void {
             </DataTable>
             <div class="flex items-center justify-between pt-1">
               <span class="text-xs text-[var(--p-text-muted-color)]">本批出貨件數</span>
-              <span class="text-sm font-bold text-[#2563EB]">{{ b.itemQty }} 件</span>
+              <span class="text-sm font-bold text-[var(--p-text-color)]">{{ b.itemQty }} 件</span>
             </div>
           </div>
         </section>

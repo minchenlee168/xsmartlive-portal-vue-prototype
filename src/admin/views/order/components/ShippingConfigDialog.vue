@@ -97,7 +97,7 @@ function confirm(): void {
 
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-2">
-        <label class="text-[13px] font-medium text-[var(--p-text-color)]">
+        <label class="text-sm font-medium text-[var(--p-text-color)]">
           選擇已啟用物流商 <span class="text-[#DC2626]">*</span>
         </label>
         <Select
@@ -111,7 +111,7 @@ function confirm(): void {
       </div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-[13px] font-medium text-[var(--p-text-color)]">採用的物流方式</label>
+        <label class="text-sm font-medium text-[var(--p-text-color)]">採用的物流方式</label>
         <InputText
           :model-value="selectedCarrierMethod"
           placeholder="↑ 選擇物流商後自動帶入"
@@ -121,7 +121,7 @@ function confirm(): void {
       </div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-[13px] font-medium text-[var(--p-text-color)]">
+        <label class="text-sm font-medium text-[var(--p-text-color)]">
           物流取號 <span class="text-xs text-[var(--p-text-muted-color)]">（選填）</span>
         </label>
         <div class="flex items-stretch gap-2">
@@ -134,7 +134,8 @@ function confirm(): void {
           <Button
             label="取號"
             icon="pi pi-hashtag"
-            severity="contrast"
+            severity="secondary"
+            variant="outlined"
             :disabled="!selectedCarrier"
             @click="generateTrackingNo"
           />

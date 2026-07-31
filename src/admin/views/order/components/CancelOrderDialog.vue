@@ -47,8 +47,8 @@ function confirm(): void {
   >
     <template #header>
       <div class="flex items-center gap-3">
-        <div class="size-10 shrink-0 rounded-full bg-[#FEE2E2] flex items-center justify-center">
-          <i class="pi pi-ban text-[#DC2626] text-lg"></i>
+        <div class="size-10 shrink-0 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
+          <i class="pi pi-ban text-red-600 dark:text-red-400 text-lg"></i>
         </div>
         <div class="flex flex-col gap-1">
           <span class="text-base font-bold text-[var(--p-text-color)]">取消訂單</span>
@@ -69,14 +69,14 @@ function confirm(): void {
       </div>
 
       <!-- 不可復原警示 -->
-      <div class="rounded-md border border-[#FECACA] bg-[#FEE2E2] px-3 py-2 flex items-center gap-2 text-xs text-[#DC2626]">
+      <div class="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
         <i class="pi pi-exclamation-triangle"></i>
         <span>一旦取消將無法復原，請確認後再執行。</span>
       </div>
 
       <!-- 取消原因 -->
       <div class="flex flex-col gap-2">
-        <label class="text-[13px] font-medium text-[var(--p-text-color)]">
+        <label class="text-sm font-medium text-[var(--p-text-color)]">
           取消原因 <span class="text-[#DC2626]">*</span>
         </label>
         <Select

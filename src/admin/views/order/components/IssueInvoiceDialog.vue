@@ -77,9 +77,9 @@ function confirm(): void {
       <!-- 已開立提示 -->
       <div
         v-if="alreadyIssued"
-        class="rounded-md border border-[#CA8A04] bg-[#FEF9C3] px-3 py-2 flex items-start gap-2 text-[13px] text-[var(--p-text-color)]"
+        class="rounded-md border border-yellow-400 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950/40 px-3 py-2 flex items-start gap-2 text-sm text-[var(--p-text-color)]"
       >
-        <i class="pi pi-info-circle text-[#CA8A04] mt-1 text-[13px]"></i>
+        <i class="pi pi-info-circle text-yellow-600 dark:text-yellow-400 mt-1 text-sm"></i>
         <div class="flex flex-col gap-1">
           <span>此訂單已開立發票：<span class="font-bold">{{ order?.invoiceNumber }}</span></span>
           <span class="text-xs text-[var(--p-text-muted-color)]">開立時間：{{ order?.invoiceIssuedAt }}</span>
@@ -88,20 +88,20 @@ function confirm(): void {
 
       <!-- 發票類型（唯讀，依欄位字典 order.invoice） -->
       <div class="flex flex-col gap-2">
-        <label class="text-[13px] font-medium text-[var(--p-text-color)]">發票類型</label>
-        <div class="rounded-md border border-[var(--p-content-border-color)] px-3 py-2 flex items-center gap-2 text-[13px] text-[var(--p-text-color)]">
-          <i class="pi pi-id-card text-[13px] text-[var(--p-text-muted-color)]"></i>
+        <label class="text-sm font-medium text-[var(--p-text-color)]">發票類型</label>
+        <div class="rounded-md border border-[var(--p-content-border-color)] px-3 py-2 flex items-center gap-2 text-sm text-[var(--p-text-color)]">
+          <i class="pi pi-id-card text-sm text-[var(--p-text-muted-color)]"></i>
           {{ invoiceType }}
         </div>
       </div>
 
       <!-- 金額（唯讀） -->
-      <div class="flex items-center justify-between text-[13px]">
+      <div class="flex items-center justify-between text-sm">
         <span class="text-[var(--p-text-muted-color)]">開立金額</span>
         <span class="font-bold text-[var(--p-primary-color)]">${{ order?.amount.toLocaleString() ?? 0 }}</span>
       </div>
 
-      <p v-if="!alreadyIssued" class="text-[13px] text-[var(--p-text-color)] leading-snug">
+      <p v-if="!alreadyIssued" class="text-sm text-[var(--p-text-color)] leading-snug">
         確定要為此訂單開立電子發票嗎？系統將產生發票號碼並紀錄開立時間。
       </p>
     </div>

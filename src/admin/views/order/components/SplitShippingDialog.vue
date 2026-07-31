@@ -183,15 +183,15 @@ const currentBatchSteps = computed<StepItem[]>(() => {
   }))
 })
 
-/** 批次狀態 → Tag severity（走 Design.md 語意色） */
+/** 批次狀態 → Tag severity（走 Design.md 語意色）；textClass 為深色成對的語意文字色 */
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
-function statusMeta(s: BatchStatus): { label: string; severity: TagSeverity; icon: string; color: string } {
-  const map: Record<BatchStatus, { label: string; severity: TagSeverity; icon: string; color: string }> = {
-    pending:   { label: '尚未配送', severity: 'warn',      icon: 'pi pi-truck',        color: '#CA8A04' },
-    preparing: { label: '備貨中',   severity: 'info',      icon: 'pi pi-box',          color: '#2563EB' },
-    shipping:  { label: '已出貨',   severity: 'warn',      icon: 'pi pi-truck',        color: '#CA8A04' },
-    arrived:   { label: '已送達',   severity: 'success',   icon: 'pi pi-map-marker',   color: '#16A34A' },
-    completed: { label: '已完成',   severity: 'secondary', icon: 'pi pi-check-circle', color: '#334155' },
+function statusMeta(s: BatchStatus): { label: string; severity: TagSeverity; icon: string; textClass: string } {
+  const map: Record<BatchStatus, { label: string; severity: TagSeverity; icon: string; textClass: string }> = {
+    pending:   { label: '尚未配送', severity: 'warn',      icon: 'pi pi-truck',        textClass: 'text-yellow-600 dark:text-yellow-400' },
+    preparing: { label: '備貨中',   severity: 'info',      icon: 'pi pi-box',          textClass: 'text-blue-600 dark:text-blue-400' },
+    shipping:  { label: '已出貨',   severity: 'warn',      icon: 'pi pi-truck',        textClass: 'text-yellow-600 dark:text-yellow-400' },
+    arrived:   { label: '已送達',   severity: 'success',   icon: 'pi pi-map-marker',   textClass: 'text-green-600 dark:text-green-400' },
+    completed: { label: '已完成',   severity: 'secondary', icon: 'pi pi-check-circle', textClass: 'text-surface-700 dark:text-surface-100' },
   }
   return map[s]
 }
@@ -254,7 +254,7 @@ function cancel(): void { emit('update:visible', false) }
     <div class="flex gap-4 p-4 bg-[var(--p-content-hover-background)]">
       <!-- 左：分批結構 -->
       <div class="w-[240px] shrink-0 flex flex-col gap-2">
-        <span class="text-[13px] font-medium text-[var(--p-text-muted-color)] px-1">分批結構</span>
+        <span class="text-sm font-medium text-[var(--p-text-muted-color)] px-1">分批結構</span>
         <button
           type="button"
           class="text-left rounded-md border p-3 flex flex-col gap-2 transition-colors"
@@ -264,8 +264,8 @@ function cancel(): void { emit('update:visible', false) }
           @click="currentBatchIdx = -1"
         >
           <div class="flex items-center justify-between gap-2">
-            <span class="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--p-text-color)]">
-              <i class="pi pi-box text-[13px]"></i>
+            <span class="inline-flex items-center gap-2 text-sm font-medium text-[var(--p-text-color)]">
+              <i class="pi pi-box text-sm"></i>
               主原始訂單
             </span>
             <Tag
@@ -289,8 +289,8 @@ function cancel(): void { emit('update:visible', false) }
           @click="currentBatchIdx = i"
         >
           <div class="flex items-center justify-between gap-2">
-            <span class="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--p-text-color)]">
-              <i class="pi pi-inbox text-[13px]"></i>
+            <span class="inline-flex items-center gap-2 text-sm font-medium text-[var(--p-text-color)]">
+              <i class="pi pi-inbox text-sm"></i>
               {{ b.name }}
             </span>
             <Tag
@@ -314,7 +314,7 @@ function cancel(): void { emit('update:visible', false) }
               severity="warn"
             />
           </div>
-          <p class="text-[13px] text-[var(--p-text-muted-color)]">
+          <p class="text-sm text-[var(--p-text-muted-color)]">
             設定每項商品的分配數量，建立新批次或一鍵全部待出。
           </p>
 
@@ -324,7 +324,7 @@ function cancel(): void { emit('update:visible', false) }
               :key="p.id"
               class="py-3 flex items-center gap-3"
             >
-              <span class="size-2 rounded-full bg-[#CA8A04] shrink-0"></span>
+              <span class="size-2 rounded-full bg-yellow-500 dark:bg-yellow-400 shrink-0"></span>
               <div class="flex-1 min-w-0 flex flex-col gap-1">
                 <span class="text-sm font-medium text-[var(--p-text-color)]">{{ p.name }}</span>
                 <span class="text-xs text-[var(--p-text-muted-color)]">
@@ -344,13 +344,13 @@ function cancel(): void { emit('update:visible', false) }
                 input-class="!w-[50px] text-center"
               />
             </div>
-            <div v-if="products.length === 0" class="py-12 text-center text-[13px] text-[var(--p-text-muted-color)]">
+            <div v-if="products.length === 0" class="py-12 text-center text-sm text-[var(--p-text-muted-color)]">
               沒有商品
             </div>
           </div>
 
           <div class="flex items-center justify-between gap-3 pt-2 border-t border-[var(--p-content-border-color)]">
-            <span class="text-[13px] text-[var(--p-text-muted-color)]">
+            <span class="text-sm text-[var(--p-text-muted-color)]">
               原始總額 <span class="text-[var(--p-text-color)] font-bold">${{ originalTotal.toLocaleString() }}</span>
               <span class="mx-2">·</span>
               預計分配 <span class="text-[var(--p-text-color)] font-bold">{{ Object.values(pendingAllocation).reduce((s, v) => s + v, 0) }}</span> 件
@@ -399,7 +399,7 @@ function cancel(): void { emit('update:visible', false) }
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <span
                 class="inline-flex items-center gap-2 text-sm font-medium"
-                :style="{ color: statusMeta(currentBatch.status).color }"
+                :class="statusMeta(currentBatch.status).textClass"
               >
                 <i :class="statusMeta(currentBatch.status).icon" class="text-sm"></i>
                 {{ statusMeta(currentBatch.status).label }}
@@ -449,7 +449,7 @@ function cancel(): void { emit('update:visible', false) }
 
           <!-- 已分配商品：DataTable + 小計 / 總額 footer row -->
           <div class="flex flex-col gap-2">
-            <span class="text-[13px] text-[var(--p-text-color)]">已分配商品</span>
+            <span class="text-sm text-[var(--p-text-color)]">已分配商品</span>
             <DataTable
               :value="currentBatchTableRows"
               data-key="productId"
@@ -478,11 +478,11 @@ function cancel(): void { emit('update:visible', false) }
             </DataTable>
             <!-- 小計 / 本批總額（Table 下方） -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--p-content-border-color)]">
-              <div class="flex items-center justify-between text-[13px]">
+              <div class="flex items-center justify-between text-sm">
                 <span class="text-[var(--p-text-color)]">商品小計</span>
                 <span class="font-medium text-[var(--p-text-color)]">${{ currentBatchTotal.toLocaleString() }}</span>
               </div>
-              <div class="flex items-center justify-between text-[13px]">
+              <div class="flex items-center justify-between text-sm">
                 <span class="font-medium text-[var(--p-text-color)]">本批總額</span>
                 <span class="text-base font-bold text-[var(--p-primary-color)]">${{ currentBatchTotal.toLocaleString() }}</span>
               </div>
@@ -491,7 +491,7 @@ function cancel(): void { emit('update:visible', false) }
 
           <!-- 出貨單備註 -->
           <div class="flex flex-col gap-2">
-            <span class="text-[13px] text-[var(--p-text-color)]">出貨單備註</span>
+            <span class="text-sm text-[var(--p-text-color)]">出貨單備註</span>
             <Textarea v-model="currentBatch.note" rows="3" placeholder="輸入此批次出貨單備註..." class="w-full resize-none" />
           </div>
         </template>
@@ -502,9 +502,9 @@ function cancel(): void { emit('update:visible', false) }
       <div class="flex items-center justify-between w-full gap-3">
         <span
           v-if="unallocatedCount > 0"
-          class="inline-flex items-center gap-2 text-[13px] text-[#CA8A04]"
+          class="inline-flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400"
         >
-          <i class="pi pi-info-circle text-[13px]"></i>
+          <i class="pi pi-info-circle text-sm"></i>
           尚有 <span class="font-bold">{{ unallocatedCount }}</span> 件商品未分配至任何批次
         </span>
         <span v-else></span>

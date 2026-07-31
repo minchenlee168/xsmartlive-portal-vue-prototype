@@ -70,7 +70,7 @@ const sections = computed<Section[]>(() => [
 
         <!-- 明細：尚未列印 or 列印紀錄表 -->
         <span v-if="s.records.length === 0" class="text-xs text-[var(--p-text-muted-color)]">尚未列印</span>
-        <div v-else class="flex flex-col gap-1 text-[13px]">
+        <div v-else class="flex flex-col gap-1 text-sm">
           <div class="grid grid-cols-[64px_1fr_1fr] gap-2 text-xs text-[var(--p-text-muted-color)] pb-1">
             <span>次別</span>
             <span>列印時間</span>
