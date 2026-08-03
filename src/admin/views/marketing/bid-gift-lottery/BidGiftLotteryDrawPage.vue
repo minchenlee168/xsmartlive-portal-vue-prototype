@@ -60,45 +60,147 @@ watch(stage, (next, prev) => {
   if (next === 'drawing') startCycling();
   else if (prev === 'drawing') stopCycling();
 
-  // 進入 result 後，揭曉動畫播完前禁止再抽一位
-  if (next === 'result') isAwaitingReveal.value = true;
+  // 進入 result：先鎖住「再抽」；禮物盒展開（winner-revealed）後才淡出、切成中獎名單並逐一填入
+  if (next === 'result') {
+    isAwaitingReveal.value = true;
+    revealStarted = false;
+    showWinnerPanel.value = false; // 先顯示禮物盒開箱
+    if (revealFallback !== null) clearTimeout(revealFallback);
+    // 保險：若 iframe 沒回 winner-revealed，仍在 3.5s 後啟動揭曉，避免卡在等待態
+    revealFallback = window.setTimeout(beginRoundReveal, 3500);
+  }
 });
 
-// result.html 在得獎圓框展開後會 postMessage 'winner-revealed'：揭曉煙火，同時把 pending 併入名單
+// result.html 在禮物盒展開後會 postMessage 'winner-revealed'：觸發背景煙火，
+// 讓開箱瞬間先被看到，再切換成中獎名單面板並逐一填入
 function handleStageMessage(event: MessageEvent) {
   if (event.data !== 'winner-revealed') return;
   backgroundFrame.value?.contentWindow?.postMessage('celebrate', '*');
-  if (pendingWinner.value) {
-    winners.value.push(pendingWinner.value);
-    pendingWinner.value = null;
-  }
-  isAwaitingReveal.value = false;
+  window.setTimeout(beginRoundReveal, 500);
 }
 
 const stageSrc = computed(() => {
   const base = STAGE_SRC[stage.value];
-  if (stage.value !== 'result' || latestWinner.value === null) return base;
-  const params = new URLSearchParams({ name: latestWinner.value.name, avatar: latestWinner.value.avatar });
-  return `${base}?${params.toString()}`;
+  if (stage.value !== 'result') return base;
+  // 單抽（N=1）：圓框揭曉該位；連抽（N>1）：不放特定人，僅播機台掀蓋 + 煙火慶祝
+  if (roundWinners.value.length === 1) {
+    const only = roundWinners.value[0];
+    const params = new URLSearchParams({ name: only.name, avatar: only.avatar });
+    return `${base}?${params.toString()}`;
+  }
+  return base;
 });
 
 // 每輪重建 iframe，避免 result.html 重用造成動畫不重播
 const stageFrameKey = computed(() => `${stage.value}-${round.value}`);
-const stageLabel = computed(() => `bid_gift_lottery_draw.status.${stage.value}`);
+const stageLabel = computed(() => (
+  stage.value === 'result' && showWinnerPanel.value
+    ? 'bid_gift_lottery_draw.status.winlist'
+    : `bid_gift_lottery_draw.status.${stage.value}`
+));
 
 // 完整抽獎名單（原型階段：mock 120 位以驗證高人數分級顯示）
 const candidateList = ref(generateCandidates(120));
 
-// 累積得獎者；逐輪抽，每輪扣除已抽中者；底部以頭像格陣顯示全部剩餘候選人
-// pendingWinner：停下時即決定但尚未在圓框揭曉，揭曉後（winner-revealed）才併入 winners 計入名單
-const winners = ref<Array<{ name: string; avatar: string }>>([]);
-const pendingWinner = ref<{ name: string; avatar: string } | null>(null);
+type Person = { name: string; avatar: string };
+
+// 累積得獎者（跨輪，供頂部「得獎名單」Dialog 檢視）
+const winners = ref<Person[]>([]);
+// 本輪抽出的 N 位：停下時一次決定，隨後在「本輪得獎名單顯示區」逐一揭曉、揭曉時併入 winners
+const roundWinners = ref<Person[]>([]);
+// 本輪顯示區的 N 個位置；locked 前為「抽選中…」，逐一 lock 後填入得主
+const roundSlots = ref<Array<{ winner: Person | null; locked: boolean }>>([]);
 const remainingCandidates = computed(() => (
   candidateList.value.filter((person) => (
-    !winners.value.includes(person) && person !== pendingWinner.value
+    !winners.value.includes(person) && !roundWinners.value.includes(person)
   ))
 ));
-const latestWinner = computed(() => pendingWinner.value ?? winners.value.at(-1) ?? null);
+
+// 連抽數量（方案 A）：預設 10，範圍 1..剩餘人數；抽獎中 / 揭曉中不可調整
+const drawCount = ref(10);
+const maxDraw = computed(() => Math.max(1, remainingCandidates.value.length));
+watch(maxDraw, (max) => {
+  if (drawCount.value > max) drawCount.value = max;
+});
+function stepDraw(delta: number) {
+  drawCount.value = Math.min(maxDraw.value, Math.max(1, drawCount.value + delta));
+}
+function onDrawCountChange(event: Event) {
+  const parsed = parseInt((event.target as HTMLInputElement).value, 10);
+  drawCount.value = Number.isNaN(parsed) || parsed < 1
+    ? 1
+    : Math.min(maxDraw.value, parsed);
+}
+
+// 本輪揭曉：於 winner-revealed（圓框展開高潮）啟動，逐一 lock；N=1 即與圓框同步
+const REVEAL_INTERVAL = 250;
+let revealStarted = false;
+let revealFallback: number | null = null;
+const revealTimers: number[] = [];
+// 抽完後：禮物盒展開慶祝一下即淡出，改顯示可捲動的中獎名單面板
+const showWinnerPanel = ref(false);
+const winlistGridEl = useTemplateRef<HTMLDivElement>('winlistGridEl');
+// 每 lock 一位就把名單捲到最新一位，保持在視野內
+function scrollRoundToLatest() {
+  nextTick(() => {
+    const grid = winlistGridEl.value;
+    if (grid) grid.scrollTo({ top: grid.scrollHeight, behavior: 'smooth' });
+  });
+}
+const latestLockedIndex = computed(() => {
+  let idx = -1;
+  roundSlots.value.forEach((slot, i) => {
+    if (slot.locked) idx = i;
+  });
+  return idx;
+});
+
+function clearRevealTimers() {
+  revealTimers.forEach((id) => clearTimeout(id));
+  revealTimers.length = 0;
+}
+
+function lockSlot(i: number) {
+  const slot = roundSlots.value[i];
+  if (!slot || slot.locked) return;
+  slot.winner = roundWinners.value[i];
+  slot.locked = true;
+  winners.value.push(roundWinners.value[i]);
+  scrollRoundToLatest();
+  if (roundSlots.value.every((s) => s.locked)) isAwaitingReveal.value = false;
+}
+
+function beginRoundReveal() {
+  if (revealStarted) return;
+  revealStarted = true;
+  showWinnerPanel.value = true; // 禮物盒 → 中獎名單面板
+  if (revealFallback !== null) {
+    clearTimeout(revealFallback);
+    revealFallback = null;
+  }
+  roundSlots.value.forEach((_, i) => {
+    revealTimers.push(window.setTimeout(() => lockSlot(i), i * REVEAL_INTERVAL));
+  });
+}
+
+// 空白鍵/提前結束：跳過剩餘揭曉節奏，立即鎖定本輪全部得主
+function revealAllRemaining() {
+  clearRevealTimers();
+  if (revealFallback !== null) {
+    clearTimeout(revealFallback);
+    revealFallback = null;
+  }
+  revealStarted = true;
+  showWinnerPanel.value = true;
+  roundSlots.value.forEach((slot, i) => {
+    if (slot.locked) return;
+    slot.winner = roundWinners.value[i];
+    slot.locked = true;
+    winners.value.push(roundWinners.value[i]);
+  });
+  scrollRoundToLatest();
+  isAwaitingReveal.value = false;
+}
 
 // 候選人格陣採雙層景深：後排（小、模糊）+ 前排（清晰、輪動），多出來摺成右上「+X 人」
 // 內容收在 1000px 中央後一排放不下原本 22 / 30 顆頭像 → 收成單排上限，避免換行
@@ -159,11 +261,6 @@ function stopCycling() {
     clearInterval(cycleTimer);
     cycleTimer = null;
   }
-  // 從剩餘名單隨機挑一位作為本輪得獎者（暫存 pending，圓框揭曉後才併入 winners）
-  if (remainingCandidates.value.length > 0) {
-    const randomIndex = Math.floor(Math.random() * remainingCandidates.value.length);
-    pendingWinner.value = remainingCandidates.value[randomIndex];
-  }
   activeSlotIndex.value = null;
 }
 
@@ -178,16 +275,32 @@ const startButtonLabelKey = computed(() => (
   winners.value.length === 0 ? 'bid_gift_lottery_draw.button.start' : 'bid_gift_lottery_draw.button.draw_again'
 ));
 const canStop = computed(() => stage.value === 'drawing');
-const canSubmit = computed(() => stage.value === 'result');
-const canCopy = computed(() => stage.value === 'result');
+const canSubmit = computed(() => stage.value === 'result' && !isAwaitingReveal.value);
+const canCopy = computed(() => stage.value === 'result' && !isAwaitingReveal.value);
+// 連抽數量選擇器：抽獎中與揭曉中不可調整（避免直播中誤觸改到數量）
+const isDrawingOrRevealing = computed(() => stage.value === 'drawing' || isAwaitingReveal.value);
 
 function handleStart() {
   if (!canStart.value) return;
+  // 清空上一輪顯示區，待機/滾動期間收合不占版面
+  roundSlots.value = [];
+  roundWinners.value = [];
+  showWinnerPanel.value = false;
   stage.value = 'drawing';
 }
 
 function handleStop() {
   if (!canStop.value) return;
+  // 停下即一次決定本輪 N 位得主（N 受剩餘人數上限約束）
+  const count = Math.min(drawCount.value, remainingCandidates.value.length);
+  const pool = remainingCandidates.value.slice();
+  const picked: Person[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(randomIndex, 1)[0]);
+  }
+  roundWinners.value = picked;
+  roundSlots.value = picked.map(() => ({ winner: null, locked: false }));
   stage.value = 'result';
 }
 
@@ -222,6 +335,8 @@ function handleKeydown(event: KeyboardEvent) {
   event.preventDefault();
   if (stage.value === 'drawing') {
     handleStop();
+  } else if (stage.value === 'result' && isAwaitingReveal.value) {
+    revealAllRemaining();
   } else if (canStart.value) {
     handleStart();
   }
@@ -235,6 +350,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('message', handleStageMessage);
   stopCycling();
+  clearRevealTimers();
+  if (revealFallback !== null) clearTimeout(revealFallback);
 });
 </script>
 
@@ -283,13 +400,65 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="lottery-draw__stage">
+        <!-- 待機/滾動/開箱：iframe 動畫；抽完禮物盒淡出，改成可捲動的中獎名單面板 -->
         <iframe
+          v-if="!showWinnerPanel"
           :key="stageFrameKey"
           class="lottery-draw__stage-frame"
           :src="stageSrc"
           title="lottery-stage"
           scrolling="no"
         />
+        <div
+          v-else
+          class="lottery-draw__winlist"
+        >
+          <div
+            ref="winlistGridEl"
+            class="lottery-draw__winlist-grid"
+            tabindex="0"
+            role="group"
+            :aria-label="$t('bid_gift_lottery_draw.round.track_aria')"
+          >
+            <div
+              v-for="(slot, index) in roundSlots"
+              :key="index"
+              class="lottery-draw__winrow"
+              :class="{
+                'lottery-draw__winrow--pending': !slot.locked,
+                'lottery-draw__winrow--latest': slot.locked && index === latestLockedIndex,
+              }"
+            >
+              <span class="lottery-draw__winrow-num">{{ index + 1 }}</span>
+              <img
+                v-if="slot.locked && slot.winner"
+                class="lottery-draw__winrow-avatar"
+                :src="slot.winner.avatar"
+                :alt="slot.winner.name"
+              >
+              <span
+                v-else
+                class="lottery-draw__winrow-avatar lottery-draw__winrow-avatar--pending"
+                aria-hidden="true"
+              >?</span>
+              <span class="lottery-draw__winrow-name">
+                {{ slot.locked && slot.winner ? slot.winner.name : $t('bid_gift_lottery_draw.round.selecting') }}
+              </span>
+              <span
+                class="lottery-draw__winrow-emoji"
+                aria-hidden="true"
+              >🎉</span>
+            </div>
+          </div>
+          <button
+            v-if="isAwaitingReveal"
+            type="button"
+            class="lottery-draw__winlist-skip"
+            @click="revealAllRemaining"
+          >
+            {{ $t('bid_gift_lottery_draw.button.skip_reveal') }}
+          </button>
+        </div>
         <p class="lottery-draw__stage-label">
           {{ $t(stageLabel) }}
         </p>
@@ -342,43 +511,82 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="lottery-draw__actions">
-        <Button
-          :label="$t(startButtonLabelKey)"
-          severity="info"
-          rounded
-          size="large"
-          class="lottery-draw__action"
-          :disabled="!canStart"
-          @click="handleStart"
-        />
-        <Button
-          :label="$t('bid_gift_lottery_draw.button.stop')"
-          severity="danger"
-          rounded
-          size="large"
-          class="lottery-draw__action"
-          :class="{ 'lottery-draw__action--pulse': canStop }"
-          :disabled="!canStop"
-          @click="handleStop"
-        />
-        <Button
-          :label="$t('bid_gift_lottery_draw.button.submit')"
-          severity="success"
-          rounded
-          size="large"
-          class="lottery-draw__action"
-          :disabled="!canSubmit"
-          @click="handleSubmit"
-        />
-        <Button
-          :label="$t('bid_gift_lottery_draw.button.copy')"
-          severity="help"
-          rounded
-          size="large"
-          class="lottery-draw__action"
-          :disabled="!canCopy"
-          @click="handleCopy"
-        />
+        <!-- 連抽數量 stepper 手刻（非用 PrimeVue InputNumber），以沿用本頁半透明玻璃視覺；邏輯與無障礙自行補齊 -->
+        <div
+          class="lottery-draw__count"
+          :class="{ 'lottery-draw__count--disabled': isDrawingOrRevealing }"
+          role="group"
+          :aria-label="$t('bid_gift_lottery_draw.draw_count.aria')"
+        >
+          <span class="lottery-draw__count-label">{{ $t('bid_gift_lottery_draw.draw_count.label') }}</span>
+          <button
+            type="button"
+            class="lottery-draw__count-step"
+            :aria-label="$t('bid_gift_lottery_draw.draw_count.decrease')"
+            :disabled="isDrawingOrRevealing || drawCount <= 1"
+            @click="stepDraw(-1)"
+          >−</button>
+          <input
+            class="lottery-draw__count-input"
+            type="number"
+            inputmode="numeric"
+            :min="1"
+            :max="maxDraw"
+            :value="drawCount"
+            :disabled="isDrawingOrRevealing"
+            :aria-label="$t('bid_gift_lottery_draw.draw_count.aria')"
+            @change="onDrawCountChange"
+            @focus="($event.target as HTMLInputElement).select()"
+          >
+          <button
+            type="button"
+            class="lottery-draw__count-step"
+            :aria-label="$t('bid_gift_lottery_draw.draw_count.increase')"
+            :disabled="isDrawingOrRevealing || drawCount >= maxDraw"
+            @click="stepDraw(1)"
+          >+</button>
+          <span class="lottery-draw__count-unit">{{ $t('bid_gift_lottery_draw.draw_count.unit') }}</span>
+        </div>
+
+        <div class="lottery-draw__action-group">
+          <Button
+            :label="$t(startButtonLabelKey)"
+            severity="info"
+            rounded
+            size="large"
+            class="lottery-draw__action"
+            :disabled="!canStart"
+            @click="handleStart"
+          />
+          <Button
+            :label="$t('bid_gift_lottery_draw.button.stop')"
+            severity="danger"
+            rounded
+            size="large"
+            class="lottery-draw__action"
+            :class="{ 'lottery-draw__action--pulse': canStop }"
+            :disabled="!canStop"
+            @click="handleStop"
+          />
+          <Button
+            :label="$t('bid_gift_lottery_draw.button.submit')"
+            severity="success"
+            rounded
+            size="large"
+            class="lottery-draw__action"
+            :disabled="!canSubmit"
+            @click="handleSubmit"
+          />
+          <Button
+            :label="$t('bid_gift_lottery_draw.button.copy')"
+            severity="help"
+            rounded
+            size="large"
+            class="lottery-draw__action"
+            :disabled="!canCopy"
+            @click="handleCopy"
+          />
+        </div>
       </div>
 
       <p class="lottery-draw__hint">
@@ -477,6 +685,8 @@ onBeforeUnmount(() => {
   max-width: 1040px;
   margin: 0 auto;
   padding: 1.25rem 1.5rem 2rem;
+  /* 矮螢幕（如 720p）result 階段多出名單條時，保底可捲動，避免底部按鈕被裁出畫面 */
+  overflow-y: auto;
 }
 
 .lottery-draw__topbar {
@@ -577,6 +787,150 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+/* ===== 中獎名單面板（抽完後取代禮物盒）===== */
+.lottery-draw__winlist {
+  width: 100%;
+  max-width: 830px;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  animation: winlistIn 0.4s ease;
+}
+
+/* 跳過動畫：名單右側，逐一揭曉中才出現，點了立即補齊全部 */
+.lottery-draw__winlist-skip {
+  flex-shrink: 0;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.lottery-draw__winlist-skip:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.lottery-draw__winlist-skip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-primary-color);
+}
+
+@keyframes winlistIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.lottery-draw__winlist-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: min-content;
+  gap: 0.55rem 0.9rem;
+  max-height: 390px; /* 超過此高度才出現捲軸；未滿則貼齊內容不留空 */
+  overflow-y: auto;
+  padding: 0.75rem;
+  border-radius: 18px;
+  background: rgba(18, 13, 46, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+}
+
+.lottery-draw__winlist-grid:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-primary-color);
+}
+
+.lottery-draw__winlist-grid::-webkit-scrollbar {
+  width: 7px;
+}
+
+.lottery-draw__winlist-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+}
+
+.lottery-draw__winrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.4rem;
+  border-radius: 9999px;
+  background: rgba(42, 34, 92, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  min-height: 3rem;
+}
+
+.lottery-draw__winrow--pending {
+  opacity: 0.5;
+}
+
+.lottery-draw__winrow--latest {
+  border-color: rgba(247, 209, 91, 0.85);
+  box-shadow: 0 0 0 1px rgba(247, 209, 91, 0.6), 0 0 14px 1px rgba(247, 209, 91, 0.3);
+}
+
+.lottery-draw__winrow:not(.lottery-draw__winrow--pending) {
+  animation: roundPop 0.3s ease;
+}
+
+.lottery-draw__winrow-num {
+  flex-shrink: 0;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #f7d15b, #e3a72f);
+  color: #5c3a00;
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.lottery-draw__winrow-avatar {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.lottery-draw__winrow-avatar--pending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 800;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.lottery-draw__winrow-name {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lottery-draw__winrow-emoji {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
 .lottery-draw__stage-label {
   font-size: 1rem;
   color: #fff;
@@ -671,12 +1025,254 @@ onBeforeUnmount(() => {
 
 .lottery-draw__actions {
   display: flex;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  /* 設定群（stepper）與執行群（四鈕）之間留較大間距，降低直播中誤觸 */
+  gap: 2rem;
   margin-bottom: 0.5rem;
+}
+
+.lottery-draw__action-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
 }
 
 .lottery-draw__action {
   min-width: 9rem;
+}
+
+/* 連抽數量 stepper：沿用膠囊的半透明白視覺 */
+.lottery-draw__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: #fff;
+  transition: opacity 0.15s ease;
+}
+
+.lottery-draw__count--disabled {
+  opacity: 0.45;
+}
+
+.lottery-draw__count-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.lottery-draw__count-step {
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.lottery-draw__count-step:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.lottery-draw__count-step:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-primary-color);
+}
+
+.lottery-draw__count-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lottery-draw__count-input {
+  width: 3rem;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px dashed rgba(255, 255, 255, 0.6);
+  padding: 0.1rem 0;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.lottery-draw__count-input::-webkit-outer-spin-button,
+.lottery-draw__count-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.lottery-draw__count-input:focus {
+  border-bottom-color: #fff;
+}
+
+.lottery-draw__count-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-primary-color);
+  border-radius: 4px;
+}
+
+.lottery-draw__count-input:disabled {
+  opacity: 0.75;
+}
+
+.lottery-draw__count-unit {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+/* 本輪得獎名單：固定單排高度的水平跑馬燈條 */
+.lottery-draw__round {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  min-height: 3rem;
+}
+
+.lottery-draw__round-lead {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.lottery-draw__round-track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+}
+
+.lottery-draw__round-track:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-primary-color);
+  border-radius: 9999px;
+}
+
+.lottery-draw__round-track::-webkit-scrollbar {
+  height: 5px;
+}
+
+.lottery-draw__round-track::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+}
+
+.lottery-draw__round-item {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.35rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  opacity: 0.55;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.lottery-draw__round-item--locked {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.16);
+  animation: roundPop 0.3s ease;
+}
+
+.lottery-draw__round-item--latest {
+  border-color: var(--p-primary-color);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--p-primary-color) 55%, transparent),
+    0 0 14px 2px color-mix(in srgb, var(--p-primary-color) 45%, transparent);
+}
+
+@keyframes roundPop {
+  0% { transform: scale(0.85); }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.lottery-draw__round-idx {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lottery-draw__round-item--latest .lottery-draw__round-idx {
+  background-color: var(--p-primary-color);
+}
+
+.lottery-draw__round-avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.lottery-draw__round-avatar--pending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 800;
+  font-size: 0.9rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.lottery-draw__round-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* 最新一位除主色外框外，另加文字標記，不單靠顏色承載語意 */
+.lottery-draw__round-tag {
+  flex-shrink: 0;
+  padding: 0.05rem 0.4rem;
+  border-radius: 9999px;
+  background-color: var(--p-primary-color);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
 }
 
 .lottery-draw__action--pulse {

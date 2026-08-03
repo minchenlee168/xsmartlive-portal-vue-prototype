@@ -43,17 +43,32 @@
     "status": {
       "idle": "Ready to draw",
       "drawing": "Drawing…",
-      "result": "Winner"
+      "result": "Winner",
+      "winlist": "Winners"
     },
     "button": {
-      "start": "Start",
-      "draw_again": "Draw Another",
+      "start": "Start Draw",
+      "draw_again": "Continue Draw",
       "stop": "Stop!",
       "submit": "Submit Result",
       "copy": "Copy Winner Info",
       "back_to_list": "Back to list",
       "winner_list": "Winners",
-      "candidate_list": "Candidates"
+      "candidate_list": "Candidates",
+      "skip_reveal": "Skip"
+    },
+    "draw_count": {
+      "label": "Draw",
+      "unit": "winners",
+      "aria": "Number to draw",
+      "decrease": "Decrease",
+      "increase": "Increase"
+    },
+    "round": {
+      "lead": "This round: {count}",
+      "selecting": "Selecting…",
+      "latest": "New",
+      "track_aria": "This round's winners, scroll horizontally"
     },
     "hint": {
       "spacebar": "Press Space to start/stop the draw"
