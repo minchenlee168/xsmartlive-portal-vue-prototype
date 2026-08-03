@@ -154,41 +154,33 @@ function handleDelete(_row: BidGiftLotteryRow) {
         <div class="flex items-center gap-1">
           <Button
             v-tooltip.top="$t('bid_gift_lottery.button.draw')"
+            :aria-label="$t('bid_gift_lottery.button.draw')"
+            icon="pi pi-play"
             rounded
             text
             size="small"
             severity="success"
             @click="handleDraw(data)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'shuffle']" />
-            </template>
-          </Button>
-
+          />
           <Button
             v-tooltip.top="$t('bid_gift_lottery.button.edit')"
+            :aria-label="$t('bid_gift_lottery.button.edit')"
+            icon="pi pi-pen-to-square"
             rounded
             text
             size="small"
             @click="handleEdit(data)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'pen']" />
-            </template>
-          </Button>
-
+          />
           <Button
             v-tooltip.top="$t('bid_gift_lottery.button.delete')"
+            :aria-label="$t('bid_gift_lottery.button.delete')"
+            icon="pi pi-trash"
             rounded
             text
             size="small"
             severity="danger"
             @click="handleDelete(data)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'trash']" />
-            </template>
-          </Button>
+          />
         </div>
       </template>
     </PaginationTable>

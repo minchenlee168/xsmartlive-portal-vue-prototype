@@ -151,45 +151,37 @@ function handleDelete(_row: KeywordLotteryRow) {
       </template>
 
       <template #actions="{ data }">
-        <!-- 操作 icon button：改用線框樣式（rounded + outlined）統一視覺 -->
-        <div class="flex items-center gap-2">
+        <!-- 操作 icon button（§7.5）：PrimeIcons、text 無底色、tooltip + aria-label -->
+        <div class="flex items-center gap-1">
           <Button
             v-tooltip.top="$t('keyword_lottery.button.draw')"
+            :aria-label="$t('keyword_lottery.button.draw')"
+            icon="pi pi-play"
             rounded
             text
             size="small"
             severity="success"
             @click="handleDraw(data)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['far', 'shuffle']" />
-            </template>
-          </Button>
-
+          />
           <Button
             v-tooltip.top="$t('keyword_lottery.button.edit')"
+            :aria-label="$t('keyword_lottery.button.edit')"
+            icon="pi pi-pen-to-square"
             rounded
             text
             size="small"
             @click="handleEdit(data)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['far', 'pen']" />
-            </template>
-          </Button>
-
+          />
           <Button
             v-tooltip.top="$t('keyword_lottery.button.delete')"
+            :aria-label="$t('keyword_lottery.button.delete')"
+            icon="pi pi-trash"
             rounded
             text
             size="small"
             severity="danger"
             @click="handleDelete(data)"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['far', 'trash']" />
-            </template>
-          </Button>
+          />
         </div>
       </template>
     </PaginationTable>

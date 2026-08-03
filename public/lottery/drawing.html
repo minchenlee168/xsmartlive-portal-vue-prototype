@@ -16,7 +16,7 @@
 
     .robot {
       position: absolute;
-      left: 214px;
+      left: 210px;
       bottom: 0;
       height: 420px;
       width: auto;
@@ -25,9 +25,26 @@
       -webkit-user-drag: none;
     }
 
+    /* 手疊在右側舉起處（對齊本體被擦掉的手）；抽獎時以手腕為支點擺動 */
+    .robot-hand {
+      position: absolute;
+      left: 393px;
+      top: 232px;
+      width: 72px;
+      height: auto;
+      transform-origin: 20% 88%;
+      animation: robotWave 0.5s ease-in-out infinite;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    @keyframes robotWave {
+      0%, 100% { transform: rotate(-14deg); }
+      50% { transform: rotate(12deg); }
+    }
+
     .gift {
       position: absolute;
-      left: 452px;
+      left: 424px;
       bottom: 60px;
       width: 232px;
       height: 208px;
@@ -183,6 +200,7 @@
 <body>
   <div class="wrapper">
     <img class="robot" src="robot.png" alt="">
+    <img class="robot-hand" src="robot-hand.png" alt="">
     <div class="gift">
       <div class="gift__glow"></div>
       <div class="gift__shadow"></div>

@@ -450,8 +450,13 @@ onBeforeUnmount(() => {
               >🎉</span>
             </div>
           </div>
+        </div>
+        <div class="lottery-draw__stage-labelrow">
+          <p class="lottery-draw__stage-label">
+            {{ $t(stageLabel) }}
+          </p>
           <button
-            v-if="isAwaitingReveal"
+            v-if="showWinnerPanel && isAwaitingReveal"
             type="button"
             class="lottery-draw__winlist-skip"
             @click="revealAllRemaining"
@@ -459,9 +464,6 @@ onBeforeUnmount(() => {
             {{ $t('bid_gift_lottery_draw.button.skip_reveal') }}
           </button>
         </div>
-        <p class="lottery-draw__stage-label">
-          {{ $t(stageLabel) }}
-        </p>
       </div>
 
       <div class="lottery-draw__pool">
@@ -511,6 +513,8 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="lottery-draw__actions">
+        <!-- 第一行：連抽數量 + 開始抽獎 + 停止 -->
+        <div class="lottery-draw__actions-row">
         <!-- 連抽數量 stepper 手刻（非用 PrimeVue InputNumber），以沿用本頁半透明玻璃視覺；邏輯與無障礙自行補齊 -->
         <div
           class="lottery-draw__count"
@@ -548,26 +552,29 @@ onBeforeUnmount(() => {
           <span class="lottery-draw__count-unit">{{ $t('bid_gift_lottery_draw.draw_count.unit') }}</span>
         </div>
 
-        <div class="lottery-draw__action-group">
-          <Button
-            :label="$t(startButtonLabelKey)"
-            severity="info"
-            rounded
-            size="large"
-            class="lottery-draw__action"
-            :disabled="!canStart"
-            @click="handleStart"
-          />
-          <Button
-            :label="$t('bid_gift_lottery_draw.button.stop')"
-            severity="danger"
-            rounded
-            size="large"
-            class="lottery-draw__action"
-            :class="{ 'lottery-draw__action--pulse': canStop }"
-            :disabled="!canStop"
-            @click="handleStop"
-          />
+        <Button
+          :label="$t(startButtonLabelKey)"
+          severity="info"
+          rounded
+          size="large"
+          class="lottery-draw__action"
+          :disabled="!canStart"
+          @click="handleStart"
+        />
+        <Button
+          :label="$t('bid_gift_lottery_draw.button.stop')"
+          severity="danger"
+          rounded
+          size="large"
+          class="lottery-draw__action"
+          :class="{ 'lottery-draw__action--pulse': canStop }"
+          :disabled="!canStop"
+          @click="handleStop"
+        />
+        </div>
+
+        <!-- 第二行：送出 + 複製 -->
+        <div class="lottery-draw__actions-row">
           <Button
             :label="$t('bid_gift_lottery_draw.button.submit')"
             severity="success"
@@ -790,11 +797,16 @@ onBeforeUnmount(() => {
 /* ===== 中獎名單面板（抽完後取代禮物盒）===== */
 .lottery-draw__winlist {
   width: 100%;
-  max-width: 830px;
+  max-width: 720px;
+  display: flex;
+  animation: winlistIn 0.4s ease;
+}
+
+/* 「中獎名單」標題列：標題 + 右側「跳過動畫」按鈕 */
+.lottery-draw__stage-labelrow {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  animation: winlistIn 0.4s ease;
+  gap: 0.75rem;
 }
 
 /* 跳過動畫：名單右側，逐一揭曉中才出現，點了立即補齊全部 */
@@ -1025,15 +1037,14 @@ onBeforeUnmount(() => {
 
 .lottery-draw__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  /* 設定群（stepper）與執行群（四鈕）之間留較大間距，降低直播中誤觸 */
-  gap: 2rem;
+  gap: 1rem;
   margin-bottom: 0.5rem;
 }
 
-.lottery-draw__action-group {
+/* 每一行操作鈕（第一行：連抽+開始+停止；第二行：送出+複製） */
+.lottery-draw__actions-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
