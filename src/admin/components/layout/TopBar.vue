@@ -56,13 +56,13 @@ function handleLogout() {
   showSuccess({ detail: t('topbar.logout_mock') });
 }
 
-/** ISO 字串 → 「YYYY/MM/DD HH:mm」 */
+/** ISO 字串 → 「YYYY-MM-DD HH:mm」 */
 function formatCommitTime(iso: string): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   const pad = (n: number): string => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 const prototypeUpdateTime = computed(() => {

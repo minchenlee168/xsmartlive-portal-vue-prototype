@@ -81,8 +81,8 @@ function onSave(): void {
         selection-mode="range"
         show-time
         hour-format="24"
-        date-format="yy/mm/dd"
-        placeholder="YYYY/MM/DD HH:mm - YYYY/MM/DD HH:mm"
+        date-format="yy-mm-dd"
+        placeholder="YYYY-MM-DD HH:mm - YYYY-MM-DD HH:mm"
         class="w-full"
       />
       <p class="text-xs text-[var(--p-text-muted-color)]">留空 = 未設結單。設定開始時間後，系統會在時間到時自動切換為收單中。</p>

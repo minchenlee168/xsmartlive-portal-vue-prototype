@@ -903,8 +903,8 @@ function onBatchDelete(productIds: number[]): void {
 
 // ── 場次 ─────────────────────────────────────────
 const sessions = ref<LiveSession[]>([
-  { id: 1, name: '春季首播',   date: '2025/05/13', products: [], sources: [] },
-  { id: 2, name: '母親節特賣', date: '2025/05/10', products: [], sources: [] },
+  { id: 1, name: '春季首播',   date: '2025-05-13', products: [], sources: [] },
+  { id: 2, name: '母親節特賣', date: '2025-05-10', products: [], sources: [] },
 ])
 const currentSession = ref<LiveSession | null>(null)
 
@@ -916,7 +916,7 @@ const currentSession = ref<LiveSession | null>(null)
 const postSession = ref<LiveSession>({
   id: -1,
   name: '貼文收單',
-  date: new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
+  date: new Date().toISOString().slice(0, 10),
   products: [],
   sources: [],
 })
@@ -946,7 +946,7 @@ const postCollections = ref<PostCollection[]>([
   },
   {
     id: 8002,
-    name: '2/14 日韓零食團',
+    name: '2-14 日韓零食團',
     kind: 'community',
     pendingCount: 9,
     updateNote: '2 分鐘前更新',
@@ -1663,7 +1663,7 @@ function askEndAllPostOrder(): void {
   if (isEarly) {
     const d = endAt as Date
     const pad = (n: number): string => String(n).padStart(2, '0')
-    const display = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    const display = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
     confirm.require({
       header: '提前結束收單',
       message: `此${collectionNoun.value}設定的收單結束時間為 ${display},是否要提前結束收單?`,

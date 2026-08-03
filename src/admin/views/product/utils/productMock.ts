@@ -125,7 +125,7 @@ export const managedProducts: ManagedProduct[] = reactive([
     enableCoupon: true,
     weight: 250,
     description: '輕薄透氣材質，適合日常與直播鏡頭呈現。',
-    remark: '6/22 補貨 200 件',
+    remark: '6-22 補貨 200 件',
     promotes: [
       { quantity: 2, discountType: 'percent', discountValue: 10 },
       { quantity: 5, discountType: 'amount',  discountValue: 100 },

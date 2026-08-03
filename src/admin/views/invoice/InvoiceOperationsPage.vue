@@ -31,7 +31,7 @@ interface MonthlyRow {
   m3: number
   remaining: number
 }
-const monthlyHeaders = ['2026/03', '2026/04', '2026/05']
+const monthlyHeaders = ['2026-03', '2026-04', '2026-05']
 const monthlyRows: MonthlyRow[] = [
   { taxId: '12345678', companyName: '直播管家股份有限公司', m1: 256_800, m2: 312_450, m3: 188_900, remaining: 1_245 },
   { taxId: '87654321', companyName: '示範分公司',           m1:  98_500, m2: 110_200, m3:  74_300, remaining: 35 },
@@ -151,11 +151,11 @@ interface InvoiceRow {
   rowStatus: RowStatus
 }
 const rows = ref<InvoiceRow[]>([
-  { id: '1', createdAt: '2026/05/12 09:21', cart: '主購物車', orderNo: 'LV202605120001', buyerName: '王小明',  amount: 1280, paymentMethod: '轉帳匯款',   shippingMethod: '宅配',     itemCount: 3, invoiceKind: '紙本發票',         rowStatus: 'unsorted' },
-  { id: '2', createdAt: '2026/05/12 11:08', cart: '主購物車', orderNo: 'LV202605120002', buyerName: '陳怡君',  amount: 2480, paymentMethod: '信用卡一次',  shippingMethod: '7-11 取貨', itemCount: 5, invoiceKind: '會員載具',         rowStatus: 'unsorted' },
-  { id: '3', createdAt: '2026/05/12 14:32', cart: '副購物車', orderNo: 'LV202605120003', buyerName: '林志豪',  amount:  890, paymentMethod: 'LINE Pay',    shippingMethod: '全家取貨', itemCount: 1, invoiceKind: '手機條碼',         rowStatus: 'unsorted' },
-  { id: '4', createdAt: '2026/05/13 09:55', cart: '主購物車', orderNo: 'LV202605130001', buyerName: '黃曉萱',  amount: 3650, paymentMethod: 'Apple Pay',   shippingMethod: '宅配',     itemCount: 4, invoiceKind: '統一編號（公司）', rowStatus: 'unsorted' },
-  { id: '5', createdAt: '2026/05/13 16:40', cart: '主購物車', orderNo: 'LV202605130002', buyerName: '張庭瑋',  amount:  590, paymentMethod: '貨到付款',    shippingMethod: '宅配',     itemCount: 1, invoiceKind: '紙本發票',         rowStatus: 'unsorted' },
+  { id: '1', createdAt: '2026-05-12 09:21', cart: '主購物車', orderNo: 'LV202605120001', buyerName: '王小明',  amount: 1280, paymentMethod: '轉帳匯款',   shippingMethod: '宅配',     itemCount: 3, invoiceKind: '紙本發票',         rowStatus: 'unsorted' },
+  { id: '2', createdAt: '2026-05-12 11:08', cart: '主購物車', orderNo: 'LV202605120002', buyerName: '陳怡君',  amount: 2480, paymentMethod: '信用卡一次',  shippingMethod: '7-11 取貨', itemCount: 5, invoiceKind: '會員載具',         rowStatus: 'unsorted' },
+  { id: '3', createdAt: '2026-05-12 14:32', cart: '副購物車', orderNo: 'LV202605120003', buyerName: '林志豪',  amount:  890, paymentMethod: 'LINE Pay',    shippingMethod: '全家取貨', itemCount: 1, invoiceKind: '手機條碼',         rowStatus: 'unsorted' },
+  { id: '4', createdAt: '2026-05-13 09:55', cart: '主購物車', orderNo: 'LV202605130001', buyerName: '黃曉萱',  amount: 3650, paymentMethod: 'Apple Pay',   shippingMethod: '宅配',     itemCount: 4, invoiceKind: '統一編號（公司）', rowStatus: 'unsorted' },
+  { id: '5', createdAt: '2026-05-13 16:40', cart: '主購物車', orderNo: 'LV202605130002', buyerName: '張庭瑋',  amount:  590, paymentMethod: '貨到付款',    shippingMethod: '宅配',     itemCount: 1, invoiceKind: '紙本發票',         rowStatus: 'unsorted' },
 ])
 const selectedIds = ref<Set<string>>(new Set())
 function isSelected(id: string): boolean { return selectedIds.value.has(id) }
@@ -304,7 +304,7 @@ function quickClassifyToIssue(): void {
               v-model="filterDateRange"
               selection-mode="range"
               show-icon
-              date-format="yy/mm/dd"
+              date-format="yy-mm-dd"
               placeholder="年 / 月 / 日  至  年 / 月 / 日"
             />
             <Select v-model="filterCarrier" :options="carrierOptions" option-label="label" option-value="value" placeholder="所有載具類型" />

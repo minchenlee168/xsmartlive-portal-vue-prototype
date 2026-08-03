@@ -38,21 +38,21 @@ interface Notification {
   action?: NotifyAction
 }
 const notifications = ref<Notification[]>([
-  { id: 3, cat: 'maintenance', title: '系統維護公告：7/20 02:00–04:00', read: true, time: '2026/07/14 10:00', pinned: true,
-    body: '為提供更穩定的服務，系統將於 2026/07/20 02:00–04:00 進行例行維護，期間後台將暫停服務，造成不便敬請見諒。' },
-  { id: 4, cat: 'notice', title: '商家資格審核通過', read: true, time: '2026/07/12 14:26',
+  { id: 3, cat: 'maintenance', title: '系統維護公告：7-20 02:00–04:00', read: true, time: '2026-07-14 10:00', pinned: true,
+    body: '為提供更穩定的服務，系統將於 2026-07-20 02:00–04:00 進行例行維護，期間後台將暫停服務，造成不便敬請見諒。' },
+  { id: 4, cat: 'notice', title: '商家資格審核通過', read: true, time: '2026-07-12 14:26',
     body: '恭喜！您的商家資格審核已通過，帳號功能已全數開通，歡迎開始使用直播管家的完整功能。' },
-  { id: 5, cat: 'notice', title: '合約將於 2026/08/31 到期', read: false, time: '2026/07/11 08:00',
-    body: '您的服務合約將於 2026/08/31 到期。為避免服務中斷，請於到期前完成續約手續。', action: { label: '前往續約' } },
-  { id: 6, cat: 'order', title: '訂單 #20260715-008 付款異常', read: false, time: '2026/07/15 21:03',
+  { id: 5, cat: 'notice', title: '合約將於 2026-08-31 到期', read: false, time: '2026-07-11 08:00',
+    body: '您的服務合約將於 2026-08-31 到期。為避免服務中斷，請於到期前完成續約手續。', action: { label: '前往續約' } },
+  { id: 6, cat: 'order', title: '訂單 #20260715-008 付款異常', read: false, time: '2026-07-15 21:03',
     body: '訂單 #20260715-008 的付款發生異常（授權失敗），目前訂單狀態為「待處理」，請確認後聯繫買家或取消訂單。', action: { label: '查看訂單' } },
-  { id: 7, cat: 'system', title: '新功能上線：AI 商品文案建議', read: true, time: '2026/07/09 11:20',
+  { id: 7, cat: 'system', title: '新功能上線：AI 商品文案建議', read: true, time: '2026-07-09 11:20',
     body: '「AI 商品文案建議」功能正式上線，於商品編輯頁點擊「AI 建議」即可自動產生商品標題與賣點文案。' },
-  { id: 8, cat: 'system', title: '付款服務條款更新公告', read: true, time: '2026/07/06 09:00',
-    body: '金流服務條款將於 2026/08/01 起更新，主要調整撥款週期與手續費計算方式，詳情請參閱條款全文。', action: { label: '查看條款全文' } },
-  { id: 9, cat: 'customer', title: '新訂單 #20260716-014 已成立', read: false, time: '2026/07/16 10:05',
+  { id: 8, cat: 'system', title: '付款服務條款更新公告', read: true, time: '2026-07-06 09:00',
+    body: '金流服務條款將於 2026-08-01 起更新，主要調整撥款週期與手續費計算方式，詳情請參閱條款全文。', action: { label: '查看條款全文' } },
+  { id: 9, cat: 'customer', title: '新訂單 #20260716-014 已成立', read: false, time: '2026-07-16 10:05',
     body: '客戶「陳美如」剛完成一筆訂單 #20260716-014，金額 NT$ 2,480。此為單向提醒，如需回覆客戶請至既有的「客服中心」。', action: { label: '查看訂單' } },
-  { id: 10, cat: 'customer', title: '商品收到新評價（4★）', read: true, time: '2026/07/15 19:30',
+  { id: 10, cat: 'customer', title: '商品收到新評價（4★）', read: true, time: '2026-07-15 19:30',
     body: '商品「無線藍牙耳機」收到一則新評價（4 星）：「音質不錯，出貨也快。」', action: { label: '查看評價' } },
 ])
 

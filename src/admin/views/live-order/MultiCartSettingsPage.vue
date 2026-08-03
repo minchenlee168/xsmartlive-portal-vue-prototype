@@ -24,7 +24,7 @@ const confirm = useConfirm()
 
 const carts = ref<MultiCartRecord[]>([
   {
-    date: '2026/05/07 14:44',
+    date: '2026-05-07 14:44',
     name: 'Xsmart直播間',
     id: 'MC-000007',
     desc: '新建收單時自動套用此設定',
@@ -39,7 +39,7 @@ const carts = ref<MultiCartRecord[]>([
     logiList: ['宅配', '超商配送', '自取'],
   },
   {
-    date: '2026/05/07 14:44',
+    date: '2026-05-07 14:44',
     name: '全功能配置',
     id: 'MC-000002',
     desc: '開放所有結帳行為與多種金流物流',
@@ -53,7 +53,7 @@ const carts = ref<MultiCartRecord[]>([
     logiList: ['宅配', '超商配送', '跨境', '自取', '商家自建（如郵局）'],
   },
   {
-    date: '2026/05/07 14:44',
+    date: '2026-05-07 14:44',
     name: '貨到付款限定',
     id: 'MC-000003',
     desc: '只開放超商貨到付款，不收線上付款',
@@ -67,7 +67,7 @@ const carts = ref<MultiCartRecord[]>([
     logiList: ['宅配', '超商配送'],
   },
   {
-    date: '2026/05/14 15:18',
+    date: '2026-05-14 15:18',
     name: '跨境配置',
     id: 'MC-000004',
     desc: '跨境配送（印尼、馬來西亞）專用',
@@ -81,7 +81,7 @@ const carts = ref<MultiCartRecord[]>([
     logiList: ['宅配', '跨境'],
   },
   {
-    date: '2026/05/14 19:05',
+    date: '2026-05-14 19:05',
     name: '自送結帳',
     id: 'MC-000005',
     desc: '只允許商家自行配送，不走第三方物流',
@@ -95,7 +95,7 @@ const carts = ref<MultiCartRecord[]>([
     logiList: ['商家自建（如郵局）'],
   },
   {
-    date: '2026/05/14 16:07',
+    date: '2026-05-14 16:07',
     name: '離島配送',
     id: 'MC-000006',
     desc: '離島地區（澎湖、小琉球）專用',
@@ -264,7 +264,7 @@ function onCartFormSaved(payload: MultiCartFormPayload): void {
   carts.value.push({
     ...payload.record,
     id: nextCartId(),
-    date: `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
     on: true,
   })
   toast.add({ severity: 'success', summary: `已建立「${payload.record.name}」`, life: 1800 })

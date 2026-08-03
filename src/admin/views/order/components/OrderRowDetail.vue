@@ -82,7 +82,7 @@ const cartLabel = computed(() => {
   return map[props.order.multiCart]
 })
 const sessionLabel = computed(() => {
-  const map = { session_0620: '6/20 開箱直播', session_0622: '6/22 美妝直播', session_0624: '6/24 晚間生鮮直播', session_0625: '6/25 服飾團' } as const
+  const map = { session_0620: '6-20 開箱直播', session_0622: '6-22 美妝直播', session_0624: '6-24 晚間生鮮直播', session_0625: '6-25 服飾團' } as const
   return props.order.sessionName ? map[props.order.sessionName] : '—'
 })
 
@@ -103,7 +103,7 @@ const progressSteps = computed<StepItem[]>(() => {
     icon: s.icon,
     isCurrent: i === currentIdx,
     isPast: i < currentIdx,
-    time: i === currentIdx ? props.order.createdAt.slice(5, 10).replace('-', '/') + ' ' + props.order.createdAt.slice(11, 16) : '—',
+    time: i === currentIdx ? props.order.createdAt.slice(5, 10) + ' ' + props.order.createdAt.slice(11, 16) : '—',
   }))
 })
 

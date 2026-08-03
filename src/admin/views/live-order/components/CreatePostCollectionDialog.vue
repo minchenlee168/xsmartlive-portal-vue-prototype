@@ -87,7 +87,7 @@ function onCreate(): void {
         </label>
         <InputText
           v-model="name"
-          placeholder="例：6/17 母嬰補貨團"
+          placeholder="例：6-17 母嬰補貨團"
           class="w-full"
           :invalid="hasError && isNameMissing"
           @keyup.enter="onCreate"
@@ -105,8 +105,8 @@ function onCreate(): void {
           selection-mode="range"
           show-time
           hour-format="24"
-          date-format="yy/mm/dd"
-          placeholder="YYYY/MM/DD HH:mm - YYYY/MM/DD HH:mm"
+          date-format="yy-mm-dd"
+          placeholder="YYYY-MM-DD HH:mm - YYYY-MM-DD HH:mm"
           class="w-full"
           :invalid="hasError && isPeriodMissing"
         />

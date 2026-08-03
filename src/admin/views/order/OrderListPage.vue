@@ -153,10 +153,10 @@ const multiCartOptions: FilterOption[] = [
   { label: '冰品專區 / 生活雜貨', value: 'ice_grocery' },
 ]
 const sessionNameOptions: FilterOption[] = [
-  { label: '6/20 開箱直播',     value: 'session_0620' },
-  { label: '6/22 美妝直播',     value: 'session_0622' },
-  { label: '6/24 晚間生鮮直播', value: 'session_0624' },
-  { label: '6/25 服飾團',       value: 'session_0625' },
+  { label: '6-20 開箱直播',     value: 'session_0620' },
+  { label: '6-22 美妝直播',     value: 'session_0622' },
+  { label: '6-24 晚間生鮮直播', value: 'session_0624' },
+  { label: '6-25 服飾團',       value: 'session_0625' },
 ]
 /** 精準欄位篩選：使用者選欄位 + 輸入文字，按搜尋後做精準（或包含）比對 */
 const precisionFieldOptions: FilterOption[] = [
@@ -1026,7 +1026,7 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             v-model="dateRange"
             selection-mode="range"
             show-icon
-            date-format="yy/mm/dd"
+            date-format="yy-mm-dd"
             placeholder="年 / 月 / 日  至  年 / 月 / 日"
             class="!w-[320px]"
           />

@@ -64,7 +64,7 @@ function generateInvoiceNumber(): string {
 function nowFormatted(): string {
   const d = new Date()
   const pad = (n: number): string => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function onIssue(): void {
@@ -106,10 +106,10 @@ interface ManualInvoiceRow {
 }
 
 const records = ref<ManualInvoiceRow[]>([
-  { id: '1', createdAt: '2026/05/10 09:15', orderNo: 'MANUAL-202605100001', qty: 1, taxType: 'taxable',  amount: 1500, note: '客戶補開',   invoiceNumber: 'AB12345600', invoiceType: 'paper',      status: 'issued' },
-  { id: '2', createdAt: '2026/05/11 14:42', orderNo: 'MANUAL-202605110001', qty: 3, taxType: 'taxable',  amount: 4200, note: '',           invoiceNumber: 'AB12345601', invoiceType: 'electronic', status: 'issued' },
-  { id: '3', createdAt: '2026/05/12 11:08', orderNo: 'MANUAL-202605120001', qty: 1, taxType: 'tax_free', amount:  980, note: '免稅商品',   invoiceNumber: 'AB12345602', invoiceType: 'paper',      status: 'issued' },
-  { id: '4', createdAt: '2026/05/13 16:30', orderNo: 'MANUAL-202605130001', qty: 2, taxType: 'taxable',  amount: 3300, note: '加開',       invoiceNumber: 'AB12345603', invoiceType: 'paper',      status: 'issued' },
+  { id: '1', createdAt: '2026-05-10 09:15', orderNo: 'MANUAL-202605100001', qty: 1, taxType: 'taxable',  amount: 1500, note: '客戶補開',   invoiceNumber: 'AB12345600', invoiceType: 'paper',      status: 'issued' },
+  { id: '2', createdAt: '2026-05-11 14:42', orderNo: 'MANUAL-202605110001', qty: 3, taxType: 'taxable',  amount: 4200, note: '',           invoiceNumber: 'AB12345601', invoiceType: 'electronic', status: 'issued' },
+  { id: '3', createdAt: '2026-05-12 11:08', orderNo: 'MANUAL-202605120001', qty: 1, taxType: 'tax_free', amount:  980, note: '免稅商品',   invoiceNumber: 'AB12345602', invoiceType: 'paper',      status: 'issued' },
+  { id: '4', createdAt: '2026-05-13 16:30', orderNo: 'MANUAL-202605130001', qty: 2, taxType: 'taxable',  amount: 3300, note: '加開',       invoiceNumber: 'AB12345603', invoiceType: 'paper',      status: 'issued' },
 ])
 
 // ── 歷史紀錄查詢 ──
@@ -291,11 +291,11 @@ function onSendEmail(row: ManualInvoiceRow): void {
             <div class="flex items-end gap-4 flex-wrap">
               <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-[var(--p-text-color)]">開始日期</label>
-                <DatePicker v-model="queryStart" show-icon date-format="yy/mm/dd" class="w-[180px]" />
+                <DatePicker v-model="queryStart" show-icon date-format="yy-mm-dd" class="w-[180px]" />
               </div>
               <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-[var(--p-text-color)]">結束日期</label>
-                <DatePicker v-model="queryEnd" show-icon date-format="yy/mm/dd" class="w-[180px]" />
+                <DatePicker v-model="queryEnd" show-icon date-format="yy-mm-dd" class="w-[180px]" />
               </div>
               <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-[var(--p-text-color)]">發票種類</label>

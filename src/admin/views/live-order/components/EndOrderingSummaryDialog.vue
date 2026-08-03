@@ -278,7 +278,7 @@ function onSave(): void {
           <DatePicker
             v-model="unlistDate"
             show-icon
-            date-format="yy/mm/dd"
+            date-format="yy-mm-dd"
             placeholder="年 / 月 / 日"
             class="!w-[200px]"
           />

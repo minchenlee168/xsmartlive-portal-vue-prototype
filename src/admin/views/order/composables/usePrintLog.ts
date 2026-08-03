@@ -29,7 +29,7 @@ export function usePrintLog() {
     logPrint: (orderNo: string, kind: PrintKind): void => {
       const now = new Date()
       const pad = (n: number) => String(n).padStart(2, '0')
-      const time = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+      const time = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
       ensure(orderNo)[kind].push({ time, operator: 'Test Name' })
     },
   }

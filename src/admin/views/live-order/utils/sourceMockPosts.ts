@@ -13,11 +13,11 @@ export interface SourceMockPost {
 }
 
 export const sourceMockPosts: SourceMockPost[] = [
-  { id: 1, title: '6/22 韓系夏裝補貨團，限時 8 折', date: '2026-06-22', isLive: true },
+  { id: 1, title: '6-22 韓系夏裝補貨團，限時 8 折', date: '2026-06-22', isLive: true },
   { id: 2, title: '【超低價】日本藥妝跨團合購', date: '2026-06-20' },
   { id: 3, title: '夏日防曬大集合，買就送遮陽帽', date: '2026-06-18', isLive: true },
   { id: 4, title: '《團主公告》本週四出貨，請盡速結單', date: '2026-06-17' },
-  { id: 5, title: '韓國童裝 6/25 預購開跑！', date: '2026-06-15' },
+  { id: 5, title: '韓國童裝 6-25 預購開跑！', date: '2026-06-15' },
   { id: 6, title: '【倒數 24H】嬰幼兒副食品禮盒最後機會', date: '2026-06-14' },
   { id: 7, title: '夏天就要喝的氣泡水組合，現貨秒出', date: '2026-06-12', isLive: true },
   { id: 8, title: '日本居家好物清倉，今晚 21:00 結單', date: '2026-06-10' },

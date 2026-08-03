@@ -27,7 +27,7 @@
         <label class="text-sm font-medium text-[var(--p-text-color)]">
           <span class="text-[#dc2626]">{{ t('live_order.text.required') }}</span>{{ t('live_order.form.field.session_date') }}
         </label>
-        <DatePicker v-model="date" date-format="yy/mm/dd" :placeholder="t('live_order.form.placeholder.session_date_format')" class="w-full" :class="{ 'p-invalid': hasError && !date }" />
+        <DatePicker v-model="date" date-format="yy-mm-dd" :placeholder="t('live_order.form.placeholder.session_date_format')" class="w-full" :class="{ 'p-invalid': hasError && !date }" />
         <span v-if="hasError && !date" class="text-xs text-[#dc2626]">{{ t('live_order.form.validation.session_date_required') }}</span>
       </div>
     </div>
@@ -82,7 +82,7 @@ watch(() => props.visible, v => {
 /** Close the dialog and emit visible=false. */
 function close(): void { innerVisible.value = false; emit('update:visible', false) }
 
-/** Format a Date as YYYY/MM/DD. */
+/** Format a Date as YYYY-MM-DD. */
 function formatDate(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')

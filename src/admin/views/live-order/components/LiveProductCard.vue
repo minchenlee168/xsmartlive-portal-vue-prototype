@@ -483,7 +483,7 @@ function onStartOrdering(): void {
   if (props.periodStartAt && props.periodStartAt.getTime() > Date.now()) {
     const d = props.periodStartAt
     const pad = (n: number): string => String(n).padStart(2, '0')
-    const display = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    const display = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
     confirm.require({
       header: '收單期間還沒到',
       message: `此貼文設定的收單期間從 ${display} 開始，是否要調整時間？`,

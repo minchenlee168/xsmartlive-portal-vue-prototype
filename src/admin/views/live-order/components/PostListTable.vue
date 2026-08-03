@@ -27,7 +27,7 @@ export interface OrderPostProduct {
 
 export interface OrderPost {
   id: number
-  /** 貼文顯示名稱：例如「貼文2026/02/10」 */
+  /** 貼文顯示名稱：例如「貼文2026-02-10」 */
   name: string
   /** 訂單數 */
   orderCount: number
