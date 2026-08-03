@@ -75,11 +75,6 @@ const filtered = computed<Notification[]>(() => {
   })
 })
 
-/** 收件匣時間省略年份（近期通知為主） */
-function shortTime(t: string): string {
-  return t.replace(/^\d{4}\//, '')
-}
-
 // ── 詳情 Dialog ──
 const detailVisible = ref(false)
 const detailNotif = ref<Notification | null>(null)
@@ -165,9 +160,9 @@ function toggleRead(n: Notification): void {
             </template>
           </Column>
 
-          <Column header="時間" style="width: 120px">
+          <Column header="時間" style="width: 180px">
             <template #body="{ data }">
-              <span class="text-[var(--p-text-color)]">{{ shortTime(data.time) }}</span>
+              <span class="text-base whitespace-nowrap text-[var(--p-text-color)]">{{ data.time }}</span>
             </template>
           </Column>
 
@@ -185,13 +180,16 @@ function toggleRead(n: Notification): void {
               <Button
                 v-tooltip.top="data.read ? '標示為未讀' : '標示為已讀'"
                 :aria-label="data.read ? '標示為未讀' : '標示為已讀'"
-                :icon="data.read ? 'pi pi-undo' : 'pi pi-check'"
                 severity="secondary"
                 variant="text"
                 rounded
                 size="small"
                 @click="(e: MouseEvent) => { e.stopPropagation(); toggleRead(data) }"
-              />
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', data.read ? 'envelope-open' : 'envelope']" />
+                </template>
+              </Button>
             </template>
           </Column>
         </DataTable>
@@ -207,7 +205,7 @@ function toggleRead(n: Notification): void {
           >
             <div class="flex items-center justify-between gap-2">
               <Tag :value="categoryOf(n.cat).name" :severity="categoryOf(n.cat).severity" />
-              <span class="text-xs text-[var(--p-text-muted-color)] shrink-0">{{ shortTime(n.time) }}</span>
+              <span class="text-xs text-[var(--p-text-muted-color)] shrink-0">{{ n.time }}</span>
             </div>
             <div class="flex items-center gap-2 text-[var(--p-text-color)]" :class="n.read ? 'font-normal' : 'font-semibold'">
               <span v-if="!n.read" class="inline-block size-2 rounded-full shrink-0 bg-blue-600 dark:bg-blue-400"></span>
@@ -223,13 +221,16 @@ function toggleRead(n: Notification): void {
               <Button
                 v-tooltip.top="n.read ? '標示為未讀' : '標示為已讀'"
                 :aria-label="n.read ? '標示為未讀' : '標示為已讀'"
-                :icon="n.read ? 'pi pi-undo' : 'pi pi-check'"
                 severity="secondary"
                 variant="text"
                 rounded
                 size="small"
                 @click="(e: MouseEvent) => { e.stopPropagation(); toggleRead(n) }"
-              />
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', n.read ? 'envelope-open' : 'envelope']" />
+                </template>
+              </Button>
             </div>
           </div>
           <div v-if="!filtered.length" class="py-12 text-center text-[var(--p-text-muted-color)]">目前沒有通知</div>
