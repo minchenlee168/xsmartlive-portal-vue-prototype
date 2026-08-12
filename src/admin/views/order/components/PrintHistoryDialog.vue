@@ -44,20 +44,25 @@ const sections = computed<Section[]>(() => [
       </div>
     </template>
 
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col divide-y divide-[var(--p-content-border-color)]">
       <div
         v-for="s in sections"
         :key="s.key"
-        class="rounded-lg border border-[var(--p-content-border-color)] p-4 flex flex-col gap-3"
+        class="py-4 first:pt-0 last:pb-0 flex flex-col gap-3"
       >
-        <!-- 卡頭：icon + 標題 + 次數 badge -->
+        <!-- 卡頭：icon + 標題 + 次數 badge（發票未開立時改顯示「未開立」，不談列印次數） -->
         <div class="flex items-center justify-between gap-2">
           <span class="inline-flex items-center gap-2 text-sm font-bold text-[var(--p-text-color)]">
             <i :class="s.icon" class="text-[var(--p-text-muted-color)]" style="font-size: 14px"></i>
             {{ s.title }}
           </span>
           <Tag
-            v-if="s.records.length === 0"
+            v-if="s.key === 'invoice' && !invoiceNumber"
+            value="未開立"
+            severity="warn"
+          />
+          <Tag
+            v-else-if="s.records.length === 0"
             value="0 次"
             severity="secondary"
           />
@@ -68,32 +73,38 @@ const sections = computed<Section[]>(() => [
           />
         </div>
 
-        <!-- 明細：尚未列印 or 列印紀錄表 -->
-        <span v-if="s.records.length === 0" class="text-xs text-[var(--p-text-muted-color)]">尚未列印</span>
-        <div v-else class="flex flex-col gap-1 text-sm">
-          <div class="grid grid-cols-[64px_1fr_1fr] gap-2 text-xs text-[var(--p-text-muted-color)] pb-1">
-            <span>次別</span>
-            <span>列印時間</span>
-            <span>操作者</span>
-          </div>
-          <div
-            v-for="(r, i) in s.records"
-            :key="i"
-            class="grid grid-cols-[64px_1fr_1fr] gap-2 items-center"
-          >
-            <span class="font-medium text-[var(--p-primary-color)]">第 {{ i + 1 }} 次</span>
-            <span class="text-[var(--p-text-color)]">{{ r.time }}</span>
-            <span class="text-[var(--p-text-color)]">{{ r.operator }}</span>
-          </div>
-        </div>
+        <!-- 發票尚未開立：無從列印，明確標示（不顯示「尚未列印」以免誤導） -->
+        <span
+          v-if="s.key === 'invoice' && !invoiceNumber"
+          class="text-xs text-[var(--p-text-muted-color)]"
+        >發票尚未開立，開立後才可列印</span>
 
-        <!-- 發票卡：已開立時額外顯示發票號碼 -->
-        <div
-          v-if="s.key === 'invoice' && invoiceNumber"
-          class="pt-2 border-t border-dashed border-[var(--p-content-border-color)] text-xs text-[var(--p-text-muted-color)]"
-        >
-          已開立 <span class="text-[var(--p-text-color)] font-medium">{{ invoiceNumber }}</span>
-        </div>
+        <!-- 已開立 / 出貨單 / 標籤：尚未列印 or 列印紀錄表 -->
+        <template v-else>
+          <!-- 發票已開立：先秀發票號碼 -->
+          <span
+            v-if="s.key === 'invoice' && invoiceNumber"
+            class="text-xs text-[var(--p-text-muted-color)]"
+          >已開立 <span class="text-[var(--p-text-color)] font-medium">{{ invoiceNumber }}</span></span>
+
+          <span v-if="s.records.length === 0" class="text-xs text-[var(--p-text-muted-color)]">尚未列印</span>
+          <div v-else class="flex flex-col gap-1 text-sm">
+            <div class="grid grid-cols-[64px_1fr_1fr] gap-2 text-xs text-[var(--p-text-muted-color)] pb-1">
+              <span>次別</span>
+              <span>列印時間</span>
+              <span>操作者</span>
+            </div>
+            <div
+              v-for="(r, i) in s.records"
+              :key="i"
+              class="grid grid-cols-[64px_1fr_1fr] gap-2 items-center"
+            >
+              <span class="font-medium text-[var(--p-primary-color)]">第 {{ i + 1 }} 次</span>
+              <span class="text-[var(--p-text-color)]">{{ r.time }}</span>
+              <span class="text-[var(--p-text-color)]">{{ r.operator }}</span>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </Dialog>

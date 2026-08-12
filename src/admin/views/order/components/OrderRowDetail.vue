@@ -499,10 +499,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">多購物車</span>
-          <Tag
-            :value="cartLabel"
-            :pt="{ root: { style: { background: order.cartTag.bg, color: order.cartTag.color } } }"
-          />
+          <span class="text-[var(--p-text-color)]">{{ cartLabel }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">場次名稱</span>
@@ -659,6 +656,23 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             </span>
           </div>
 
+          <!-- 發票狀態（配送物流下方）：開立發票後顯示發票號 + 開立時間；未開立顯示警示 -->
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">發票</span>
+            <span v-if="order.invoiceNumber" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
+              <i class="pi pi-receipt text-[var(--p-primary-color)] text-sm"></i>
+              <span class="font-medium">{{ order.invoiceNumber }}</span>
+              <template v-if="order.invoiceIssuedAt">
+                <span class="text-[var(--p-text-muted-color)]">·</span>
+                <span>{{ order.invoiceIssuedAt }}</span>
+              </template>
+            </span>
+            <span v-else class="inline-flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+              <i class="pi pi-exclamation-circle text-sm"></i>
+              尚未開立
+            </span>
+          </div>
+
           <!-- 出貨進度 Timeline（左欄內） -->
           <div class="flex flex-col gap-2">
             <span class="text-xs text-[var(--p-text-muted-color)]">出貨進度</span>
@@ -754,12 +768,29 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
         </div>
 
-        <!-- 整單層級配送物流聚合摘要（發票資訊由右上卡呈現，不重複） -->
+        <!-- 整單層級配送物流聚合摘要 -->
         <div class="flex items-center gap-2 text-sm">
           <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
           <span class="inline-flex items-center gap-1 text-[var(--p-text-color)]">
             <i class="pi pi-truck text-[var(--p-primary-color)] text-sm"></i>
             {{ batchCarrierSummary }}
+          </span>
+        </div>
+
+        <!-- 發票狀態（配送物流下方）：開立發票後顯示發票號 + 開立時間；未開立顯示警示 -->
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">發票</span>
+          <span v-if="order.invoiceNumber" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
+            <i class="pi pi-receipt text-[var(--p-primary-color)] text-sm"></i>
+            <span class="font-medium">{{ order.invoiceNumber }}</span>
+            <template v-if="order.invoiceIssuedAt">
+              <span class="text-[var(--p-text-muted-color)]">·</span>
+              <span>{{ order.invoiceIssuedAt }}</span>
+            </template>
+          </span>
+          <span v-else class="inline-flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+            <i class="pi pi-exclamation-circle text-sm"></i>
+            尚未開立
           </span>
         </div>
 
