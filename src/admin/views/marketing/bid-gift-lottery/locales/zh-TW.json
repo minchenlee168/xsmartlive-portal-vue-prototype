@@ -58,7 +58,10 @@
       "skip_reveal": "跳過動畫"
     },
     "draw_count": {
+      "title": "連抽數量",
       "label": "連抽",
+      "custom": "自訂",
+      "all": "全部 {count}",
       "unit": "位",
       "aria": "連抽數量",
       "decrease": "減少數量",

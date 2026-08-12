@@ -93,6 +93,26 @@ const stageSrc = computed(() => {
 
 // 每輪重建 iframe，避免 result.html 重用造成動畫不重播
 const stageFrameKey = computed(() => `${stage.value}-${round.value}`);
+
+// stage 內部是固定 960×425 絕對定位畫布，窄螢幕不能只壓 iframe 外框（會裁切變形）。
+// 改用外層 wrapper（aspect-ratio 保高）+ iframe transform: scale 等比縮放；scale 上限 1，
+// 桌機容器 ≥960 時恆為 1，像素輸出與原本一致。ResizeObserver 只負責量測算出 scale。
+const STAGE_NATIVE_WIDTH = 960;
+const stageScaleEl = useTemplateRef<HTMLDivElement>('stageScaleEl');
+const stageScale = ref(1);
+let stageResizeObserver: ResizeObserver | null = null;
+function updateStageScale() {
+  const el = stageScaleEl.value;
+  if (el) stageScale.value = Math.min(1, el.offsetWidth / STAGE_NATIVE_WIDTH);
+}
+// stage 在 iframe ↔ 中獎名單面板間 v-if 切換，wrapper 會重掛，須重新 observe
+watch(stageScaleEl, (el, prev) => {
+  if (prev) stageResizeObserver?.unobserve(prev);
+  if (el) {
+    stageResizeObserver?.observe(el);
+    updateStageScale();
+  }
+});
 const stageLabel = computed(() => (
   stage.value === 'result' && showWinnerPanel.value
     ? 'bid_gift_lottery_draw.status.winlist'
@@ -130,6 +150,12 @@ function onDrawCountChange(event: Event) {
   drawCount.value = Number.isNaN(parsed) || parsed < 1
     ? 1
     : Math.min(maxDraw.value, parsed);
+}
+// 連抽數量快選：常用值一鍵到位；超過剩餘人數者不列出，「全部」= 剩餘全抽
+const DRAW_PRESETS = [1, 5, 10];
+const drawPresets = computed(() => DRAW_PRESETS.filter((n) => n < maxDraw.value));
+function setDrawCount(n: number) {
+  drawCount.value = Math.min(maxDraw.value, Math.max(1, n));
 }
 
 // 本輪揭曉：於 winner-revealed（圓框展開高潮）啟動，逐一 lock；N=1 即與圓框同步
@@ -345,10 +371,16 @@ function handleKeydown(event: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
   window.addEventListener('message', handleStageMessage);
+  stageResizeObserver = new ResizeObserver(updateStageScale);
+  if (stageScaleEl.value) {
+    stageResizeObserver.observe(stageScaleEl.value);
+    updateStageScale();
+  }
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('message', handleStageMessage);
+  stageResizeObserver?.disconnect();
   stopCycling();
   clearRevealTimers();
   if (revealFallback !== null) clearTimeout(revealFallback);
@@ -401,14 +433,21 @@ onBeforeUnmount(() => {
 
       <div class="lottery-draw__stage">
         <!-- 待機/滾動/開箱：iframe 動畫；抽完禮物盒淡出，改成可捲動的中獎名單面板 -->
-        <iframe
+        <!-- iframe 內是固定 960×425 畫布，用外層 wrapper 等比縮放以適配窄螢幕 -->
+        <div
           v-if="!showWinnerPanel"
-          :key="stageFrameKey"
-          class="lottery-draw__stage-frame"
-          :src="stageSrc"
-          title="lottery-stage"
-          scrolling="no"
-        />
+          ref="stageScaleEl"
+          class="lottery-draw__stage-scale"
+        >
+          <iframe
+            :key="stageFrameKey"
+            class="lottery-draw__stage-frame"
+            :style="{ transform: `scale(${stageScale})` }"
+            :src="stageSrc"
+            title="lottery-stage"
+            scrolling="no"
+          />
+        </div>
         <div
           v-else
           class="lottery-draw__winlist"
@@ -513,64 +552,87 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="lottery-draw__actions">
-        <!-- 第一行：連抽數量 + 開始抽獎 + 停止 -->
-        <div class="lottery-draw__actions-row">
-        <!-- 連抽數量 stepper 手刻（非用 PrimeVue InputNumber），以沿用本頁半透明玻璃視覺；邏輯與無障礙自行補齊 -->
+        <!-- 第一行：連抽數量（快選膠囊 + 自訂 stepper） -->
         <div
-          class="lottery-draw__count"
+          class="lottery-draw__actions-row lottery-draw__count-row"
           :class="{ 'lottery-draw__count--disabled': isDrawingOrRevealing }"
           role="group"
           :aria-label="$t('bid_gift_lottery_draw.draw_count.aria')"
         >
-          <span class="lottery-draw__count-label">{{ $t('bid_gift_lottery_draw.draw_count.label') }}</span>
+          <span class="lottery-draw__count-title">{{ $t('bid_gift_lottery_draw.draw_count.title') }}</span>
+
+          <!-- 快選膠囊：常用值 + 全部；超過剩餘人數者不列出 -->
           <button
+            v-for="n in drawPresets"
+            :key="n"
             type="button"
-            class="lottery-draw__count-step"
-            :aria-label="$t('bid_gift_lottery_draw.draw_count.decrease')"
-            :disabled="isDrawingOrRevealing || drawCount <= 1"
-            @click="stepDraw(-1)"
-          >−</button>
-          <input
-            class="lottery-draw__count-input"
-            type="number"
-            inputmode="numeric"
-            :min="1"
-            :max="maxDraw"
-            :value="drawCount"
+            class="lottery-draw__preset"
+            :class="{ 'lottery-draw__preset--active': drawCount === n }"
             :disabled="isDrawingOrRevealing"
-            :aria-label="$t('bid_gift_lottery_draw.draw_count.aria')"
-            @change="onDrawCountChange"
-            @focus="($event.target as HTMLInputElement).select()"
-          >
+            @click="setDrawCount(n)"
+          >{{ n }}</button>
           <button
             type="button"
-            class="lottery-draw__count-step"
-            :aria-label="$t('bid_gift_lottery_draw.draw_count.increase')"
-            :disabled="isDrawingOrRevealing || drawCount >= maxDraw"
-            @click="stepDraw(1)"
-          >+</button>
-          <span class="lottery-draw__count-unit">{{ $t('bid_gift_lottery_draw.draw_count.unit') }}</span>
+            class="lottery-draw__preset lottery-draw__preset--all"
+            :class="{ 'lottery-draw__preset--active': drawCount === maxDraw }"
+            :disabled="isDrawingOrRevealing"
+            @click="setDrawCount(maxDraw)"
+          >{{ $t('bid_gift_lottery_draw.draw_count.all', { count: maxDraw }) }}</button>
+
+          <!-- 自訂 stepper 手刻（非用 PrimeVue InputNumber），以沿用本頁半透明玻璃視覺 -->
+          <div class="lottery-draw__count">
+            <span class="lottery-draw__count-label">{{ $t('bid_gift_lottery_draw.draw_count.custom') }}</span>
+            <button
+              type="button"
+              class="lottery-draw__count-step"
+              :aria-label="$t('bid_gift_lottery_draw.draw_count.decrease')"
+              :disabled="isDrawingOrRevealing || drawCount <= 1"
+              @click="stepDraw(-1)"
+            >−</button>
+            <input
+              class="lottery-draw__count-input"
+              type="number"
+              inputmode="numeric"
+              :min="1"
+              :max="maxDraw"
+              :value="drawCount"
+              :disabled="isDrawingOrRevealing"
+              :aria-label="$t('bid_gift_lottery_draw.draw_count.aria')"
+              @change="onDrawCountChange"
+              @focus="($event.target as HTMLInputElement).select()"
+            >
+            <button
+              type="button"
+              class="lottery-draw__count-step"
+              :aria-label="$t('bid_gift_lottery_draw.draw_count.increase')"
+              :disabled="isDrawingOrRevealing || drawCount >= maxDraw"
+              @click="stepDraw(1)"
+            >+</button>
+            <span class="lottery-draw__count-unit">{{ $t('bid_gift_lottery_draw.draw_count.unit') }}</span>
+          </div>
         </div>
 
-        <Button
-          :label="$t(startButtonLabelKey)"
-          severity="info"
-          rounded
-          size="large"
-          class="lottery-draw__action"
-          :disabled="!canStart"
-          @click="handleStart"
-        />
-        <Button
-          :label="$t('bid_gift_lottery_draw.button.stop')"
-          severity="danger"
-          rounded
-          size="large"
-          class="lottery-draw__action"
-          :class="{ 'lottery-draw__action--pulse': canStop }"
-          :disabled="!canStop"
-          @click="handleStop"
-        />
+        <!-- 第二行：開始抽獎 + 停止 -->
+        <div class="lottery-draw__actions-row">
+          <Button
+            :label="$t(startButtonLabelKey)"
+            severity="info"
+            rounded
+            size="large"
+            class="lottery-draw__action"
+            :disabled="!canStart"
+            @click="handleStart"
+          />
+          <Button
+            :label="$t('bid_gift_lottery_draw.button.stop')"
+            severity="danger"
+            rounded
+            size="large"
+            class="lottery-draw__action"
+            :class="{ 'lottery-draw__action--pulse': canStop }"
+            :disabled="!canStop"
+            @click="handleStop"
+          />
         </div>
 
         <!-- 第二行：送出 + 複製 -->
@@ -728,6 +790,7 @@ onBeforeUnmount(() => {
 
 .lottery-draw__session-name {
   flex: 1;
+  min-width: 0; /* flex item 預設 min-width:auto 會被內容撐住，加此行 ellipsis 才會生效 */
   text-align: left;
   padding-left: 0.5rem;
   font-size: 1.15rem;
@@ -781,14 +844,27 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 1rem;
   flex: 1;
+  width: 100%;
   justify-content: center;
 }
 
+/* 縮放窗口：寬度自適應（上限 960），aspect-ratio 保證高度永遠等比、不需 JS 設高 */
+.lottery-draw__stage-scale {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 960 / 425;
+  overflow: hidden;
+}
+
 .lottery-draw__stage-frame {
-  /* iframe 內 wrapper 固定 960×425，這層尺寸要對齊才不會被裁切或冒出內捲軸 */
+  /* iframe 維持原生 960×425 不失真；縮放交給外層量測後的 transform: scale（origin 左上） */
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 960px;
   height: 425px;
-  max-width: 100%;
+  transform-origin: top left;
   border: 0;
   background: transparent;
   overflow: hidden;
@@ -1054,6 +1130,63 @@ onBeforeUnmount(() => {
 
 .lottery-draw__action {
   min-width: 9rem;
+}
+
+/* 連抽數量整列：標題 + 快選膠囊 + 自訂 stepper */
+.lottery-draw__count-row {
+  gap: 0.6rem;
+  transition: opacity 0.15s ease;
+}
+
+.lottery-draw__count-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  margin-right: 0.15rem;
+}
+
+/* 快選膠囊：常用值一鍵到位，沿用半透明玻璃視覺 */
+.lottery-draw__preset {
+  min-width: 2.9rem;
+  height: 2.4rem;
+  padding: 0 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.lottery-draw__preset:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.lottery-draw__preset:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--p-primary-color);
+}
+
+.lottery-draw__preset:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 選中：填白反白，清楚標示目前連抽數 */
+.lottery-draw__preset--active {
+  background-color: #fff;
+  border-color: #fff;
+  color: var(--p-primary-color, #6d28d9);
+}
+
+.lottery-draw__preset--active:hover:not(:disabled) {
+  background-color: #fff;
 }
 
 /* 連抽數量 stepper：沿用膠囊的半透明白視覺 */
@@ -1343,5 +1476,107 @@ onBeforeUnmount(() => {
   padding: 1.5rem 0;
   text-align: center;
   color: rgba(0, 0, 0, 0.5);
+}
+
+/* ===== 手機版（≤640px，專案單一斷點）：同結構下的密度適配 ===== */
+/* 垂直順序不變；stage 靠 transform scale 已自動縮放，這裡只調間距、觸控目標與換行 */
+@media (max-width: 640px) {
+  .lottery-draw__content {
+    gap: 1rem;
+    padding: 1rem 1rem 1.5rem;
+  }
+
+  .lottery-draw__topbar {
+    padding: 0.25rem 0;
+    gap: 0.5rem;
+  }
+
+  /* 手刻按鈕不受全域 44px 規則涵蓋，手機一律補到觸控友善尺寸 */
+  .lottery-draw__back {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .lottery-draw__session-name {
+    font-size: 1rem;
+  }
+
+  .lottery-draw__pill {
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .lottery-draw__stage {
+    gap: 0.75rem;
+  }
+
+  .lottery-draw__stage-labelrow {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* 跳過動畫鈕：補足觸控高度 */
+  .lottery-draw__winlist-skip {
+    min-height: 2.75rem;
+  }
+
+  /* 池：頭像縮一級、間距收緊，減少換行造成的高度暴增 */
+  .lottery-draw__pool {
+    margin-bottom: 0.75rem;
+  }
+
+  .lottery-draw__pool-item {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .lottery-draw__pool-item--back {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* 「+N 人」：由固定 28px 放大，補足觸控（次要入口，另有 topbar pill 44px 冗餘路徑，不必到 44 免得在小頭像排裡過於突兀） */
+  .lottery-draw__pool-more {
+    height: auto;
+    min-height: 2.5rem;
+  }
+
+  /* 中獎名單：窄螢幕改單欄，每列可用寬加倍、姓名不擠壓；
+     取消面板自身捲動，交由外層 __content 承擔 → 全頁單一捲動區，避免雙捲軸卡頓 */
+  .lottery-draw__winlist-grid {
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  /* 三行操作鈕維持兩兩並排，只收 gap 讓排列更穩 */
+  .lottery-draw__actions {
+    gap: 0.75rem;
+  }
+
+  .lottery-draw__actions-row {
+    gap: 0.75rem;
+  }
+
+  .lottery-draw__count-row {
+    gap: 0.5rem;
+  }
+
+  /* 快選膠囊 / stepper 按鈕補到 44px 觸控高度 */
+  .lottery-draw__preset {
+    min-height: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .lottery-draw__count-step {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .lottery-draw__action {
+    min-width: 8rem;
+    flex: 1 1 8rem;
+  }
 }
 </style>
