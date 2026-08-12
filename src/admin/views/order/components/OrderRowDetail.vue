@@ -486,16 +486,16 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         </template>
       </div>
 
-      <!-- 訂單來源（原「購買通路」card，改回訂單來源標題以符合使用者偏好） -->
+      <!-- 訂單來源（比照規範頁：訂單來源 + 平台列；平台列標題用「收單來源」） -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
         <span class="text-sm font-bold text-[var(--p-text-color)]">訂單來源</span>
         <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">購買通路</span>
-          <span class="font-medium text-[var(--p-text-color)]">{{ order.channel }}</span>
+          <span class="text-[var(--p-text-muted-color)]">訂單來源</span>
+          <span class="font-medium text-[var(--p-text-color)]">{{ sourceLabel }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">訂單來源</span>
-          <span class="text-[var(--p-text-color)]">{{ sourceLabel }}</span>
+          <span class="text-[var(--p-text-muted-color)]">收單來源</span>
+          <span class="text-[var(--p-text-color)]">{{ socialLabel }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">多購物車</span>
@@ -887,15 +887,16 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         :pt="{ column: { headerCell: { style: 'white-space: nowrap;' } } }">
         <Column header="商品名稱" field="name" />
         <Column header="規格" field="spec" />
-        <Column header="單價" body-class="text-right" header-class="text-right">
-          <template #body="{ data }">${{ data.price.toLocaleString() }}</template>
+        <Column header="訂單來源" field="source" />
+        <Column header="單價">
+          <template #body="{ data }">{{ data.price.toLocaleString() }}</template>
         </Column>
-        <Column header="數量" body-class="text-right" header-class="text-right">
-          <template #body="{ data }">×{{ data.qty }}</template>
+        <Column header="數量">
+          <template #body="{ data }">{{ data.qty }}</template>
         </Column>
-        <Column header="小計" body-class="text-right" header-class="text-right">
+        <Column header="小計">
           <template #body="{ data }">
-            <span class="font-bold">${{ (data.price * data.qty).toLocaleString() }}</span>
+            <span class="font-bold">{{ (data.price * data.qty).toLocaleString() }}</span>
           </template>
         </Column>
       </DataTable>
