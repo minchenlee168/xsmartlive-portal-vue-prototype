@@ -33,7 +33,7 @@ interface OrderRow {
   itemCount: number
   shippingMethod: string
   paymentStatus: 'paid' | 'unpaid'
-  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'cancelled'
+  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled'
   carrierStatus: 'unconfigured' | 'configured'
   trackingStatus: string | null
   /** 已設定的物流商顯示名稱（配送設定 confirm 後寫入） */
@@ -102,6 +102,7 @@ const shippingStatusOptions: FilterOption[] = [
   { label: '待收貨', value: 'awaiting_receipt' },
   { label: '已送達', value: 'arrived' },
   { label: '已完成', value: 'completed' },
+  { label: '退換貨', value: 'returned' },
   { label: '已取消', value: 'cancelled' },
 ]
 const carrierOptions: FilterOption[] = [
@@ -577,8 +578,8 @@ const BATCH_CONFIGS: Record<Exclude<BatchMode, null>, BatchConfig> = {
     footerCountLabel: (count) => `將列印出貨單 ${count} 筆訂單`,
     confirmActionLabel: '確認列印出貨單',
     toastSummary: '批次印出貨單完成',
-    // 尚未結束的訂單(排除已完成 / 已取消)都可列印出貨單
-    isSelectable: (o) => o.shippingStatus !== 'completed' && o.shippingStatus !== 'cancelled',
+    // 尚未結束的訂單(排除已完成 / 退換貨 / 已取消 等終止狀態)都可列印出貨單
+    isSelectable: (o) => !['completed', 'returned', 'cancelled'].includes(o.shippingStatus),
     performAction: () => {
       // 列印動作交給實際列印邏輯,mock 只跳 toast
     },
@@ -724,6 +725,7 @@ function shippingStatusTagMeta(s: OrderRow['shippingStatus']): { label: string; 
     awaiting_receipt: { label: '待收貨', severity: 'secondary' },
     arrived:          { label: '已送達', severity: 'success' },
     completed:        { label: '已完成', severity: 'secondary' },
+    returned:         { label: '退換貨', severity: 'warn' },
     cancelled:        { label: '已取消', severity: 'danger' },
   }
   return map[s]
@@ -1313,8 +1315,9 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 
           <Column header="出貨狀態">
             <template #body="{ data }">
-              <!-- 已取消：只顯示 tag,不顯示進度條 -->
+              <!-- 已取消 / 退換貨：終止狀態只顯示 tag,不顯示進度條 -->
               <Tag v-if="data.shippingStatus === 'cancelled'" value="已取消" severity="danger" />
+              <Tag v-else-if="data.shippingStatus === 'returned'" value="退換貨" severity="warn" />
               <!-- PrimeVue Timeline 顯示 5 階段,水平排列,目前階段主色加粗 -->
               <Timeline
                 v-else
@@ -1491,7 +1494,15 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
       <!-- footer：取消訂單獨立靠左（destructive 動作分區）；右側維持取消/儲存 -->
       <template #footer>
         <div class="flex items-center justify-between gap-2 w-full">
-          <Button label="取消訂單" icon="pi pi-ban" severity="danger" variant="outlined" @click="openCancelOrderDialog" />
+          <!-- 終止狀態（已完成 / 退換貨 / 已取消）的訂單不可再取消 -->
+          <Button
+            label="取消訂單"
+            icon="pi pi-ban"
+            severity="danger"
+            variant="outlined"
+            :disabled="!detailDialogOrder || ['completed', 'returned', 'cancelled'].includes(detailDialogOrder.shippingStatus)"
+            @click="openCancelOrderDialog"
+          />
           <div class="flex items-center gap-2">
             <Button label="取消" severity="secondary" variant="outlined" @click="detailDialogVisible = false" />
             <Button label="儲存" @click="detailDialogVisible = false" />

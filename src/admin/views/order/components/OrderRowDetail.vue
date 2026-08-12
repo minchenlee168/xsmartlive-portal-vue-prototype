@@ -30,7 +30,7 @@ interface OrderRow {
   itemCount: number
   shippingMethod: string
   paymentStatus: 'paid' | 'unpaid'
-  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'cancelled'
+  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled'
   carrierStatus: 'unconfigured' | 'configured'
   trackingStatus: string | null
   carrierName?: string
@@ -66,6 +66,7 @@ const shippingBadge = computed<{ label: string; severity: TagSeverity }>(() => {
     awaiting_receipt: { label: '待收貨', severity: 'secondary' },
     arrived:          { label: '已送達', severity: 'success' },
     completed:        { label: '已完成', severity: 'secondary' },
+    returned:         { label: '退換貨', severity: 'warn' },
     cancelled:        { label: '已取消', severity: 'danger' },
   }
   return map[props.order.shippingStatus]
@@ -96,7 +97,9 @@ const progressSteps = computed<StepItem[]>(() => {
     { key: 'arrived',    label: '已送達', icon: 'pi pi-map-marker' },
     { key: 'completed',  label: '已完成', icon: 'pi pi-check-circle' },
   ]
-  const currentIdx = order.findIndex(s => s.key === props.order.shippingStatus)
+  // 退換貨屬「已完成之後」的終止狀態，Timeline 比照已完成呈現滿條（終止標記另由下方 chip 呈現）
+  const effectiveStatus = props.order.shippingStatus === 'returned' ? 'completed' : props.order.shippingStatus
+  const currentIdx = order.findIndex(s => s.key === effectiveStatus)
   return order.map((s, i) => ({
     key: s.key,
     label: s.label,
@@ -197,7 +200,7 @@ const STATUS_FLOW: Array<{ key: OrderRow['shippingStatus']; label: string }> = [
 const statusSwitchDialogVisible = ref(false)
 /** 使用者要切換的目標狀態（點 stepper 或按下一步時決定） */
 const statusSwitchTarget = ref<OrderRow['shippingStatus'] | null>(null)
-const currentStatusLabel = computed(() => STATUS_FLOW.find(s => s.key === props.order.shippingStatus)?.label ?? '')
+const currentStatusLabel = computed(() => STATUS_FLOW.find(s => s.key === props.order.shippingStatus)?.label ?? shippingBadge.value.label)
 const targetStatusLabel = computed(() => STATUS_FLOW.find(s => s.key === statusSwitchTarget.value)?.label ?? '')
 const nextStatusInfo = computed(() => {
   const idx = STATUS_FLOW.findIndex(s => s.key === props.order.shippingStatus)
@@ -221,6 +224,31 @@ function confirmStatusSwitch(): void {
   props.order.shippingStatus = statusSwitchTarget.value
   statusSwitchDialogVisible.value = false
   statusSwitchTarget.value = null
+}
+
+/**
+ * 終止狀態（已完成 ↔ 退換貨）：僅已送達之後可用。點擊直接切換並跳 toast；可逆（再點回已完成即復原）。
+ * 只做標記與備註，不含完整退換流程。
+ */
+const showTerminalStatus = computed(() =>
+  (['arrived', 'completed', 'returned'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
+)
+const isReturned = computed(() => props.order.shippingStatus === 'returned')
+/** 終止狀態目前選取：completed / returned / null（已送達但尚未標記）——供 chip 選中樣式與 aria-pressed 用三態判斷 */
+const terminalSelection = computed<'completed' | 'returned' | null>(() =>
+  props.order.shippingStatus === 'returned' ? 'returned'
+    : props.order.shippingStatus === 'completed' ? 'completed'
+      : null,
+)
+function setTerminalStatus(target: 'completed' | 'returned'): void {
+  if (props.order.shippingStatus === target) return
+  props.order.shippingStatus = target
+  const label = target === 'returned' ? '退換貨' : '已完成'
+  toast.add({
+    severity: target === 'returned' ? 'warn' : 'success',
+    summary: `訂單 ${props.order.orderNo} 已更新為「${label}」`,
+    life: 2000,
+  })
 }
 
 /** 設定配送 Dialog：委派給 ShippingConfigDialog 共用元件（與訂單列表表格共用） */
@@ -706,17 +734,48 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
               </template>
             </Timeline>
           </div>
+
+          <!-- 終止狀態（已完成 ↔ 退換貨）：僅已送達之後顯示；與上方進度用 hairline 分隔，避免被誤讀成第 6 站 -->
+          <div
+            v-if="showTerminalStatus"
+            class="flex items-center gap-2 pt-3 border-t border-[var(--p-content-border-color)]"
+            role="group"
+            aria-label="終止狀態"
+          >
+            <span class="text-[var(--p-text-muted-color)] text-sm w-[80px] shrink-0">終止狀態</span>
+            <!-- 選中=實心語意色（已完成沿用全站 secondary、退換貨 warn）；未選=secondary outlined，靠實心/外框區分而非借用 success 綠 -->
+            <Button
+              label="已完成"
+              icon="pi pi-check"
+              size="small"
+              severity="secondary"
+              :variant="terminalSelection === 'completed' ? undefined : 'outlined'"
+              :aria-pressed="terminalSelection === 'completed'"
+              aria-label="將終止狀態設為已完成"
+              @click="setTerminalStatus('completed')"
+            />
+            <Button
+              label="退換貨"
+              icon="pi pi-undo"
+              size="small"
+              :severity="terminalSelection === 'returned' ? 'warn' : 'secondary'"
+              :variant="terminalSelection === 'returned' ? undefined : 'outlined'"
+              :aria-pressed="terminalSelection === 'returned'"
+              aria-label="將終止狀態設為退換貨"
+              @click="setTerminalStatus('returned')"
+            />
+          </div>
         </div>
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--p-text-color)]">出貨單備註</span>
+            <span class="text-sm text-[var(--p-text-color)]">{{ isReturned ? '退換貨備註' : '出貨單備註' }}</span>
             <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
               <Checkbox binary />
               <span>同步顯示於出貨單</span>
             </label>
           </div>
-          <Textarea placeholder="輸入出貨相關備註...（將同步顯示於出貨單）" rows="5" class="w-full resize-none" />
+          <Textarea :placeholder="isReturned ? '輸入退換貨相關備註...' : '輸入出貨相關備註...（將同步顯示於出貨單）'" rows="5" class="w-full resize-none" />
         </div>
       </div>
       </template>
