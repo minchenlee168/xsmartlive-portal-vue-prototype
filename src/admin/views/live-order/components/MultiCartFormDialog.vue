@@ -115,7 +115,8 @@ interface FeeGroup {
   name: string
   dot: string
   sub?: string
-  carriers: Array<[string, number]>
+  /** [物流商名稱, 客代數, 支援溫層] */
+  carriers: Array<[string, number, TempLayer[]]>
 }
 /** 國內預設運費（本島常溫/冷藏/冷凍、離島常溫/冷藏/冷凍） */
 const DOMESTIC_FEE: Record<string, number[]> = {
@@ -127,47 +128,49 @@ const CB_FEE: Record<string, number[]> = {
   on: [100, 200, 200, 0, 0, 0],
   cod: [100, 200, 200, 0, 0, 0],
 }
+/** 「全溫層皆支援」標記；沿用 TEMP_OPTIONS 以免溫層順序漂移導致運費索引對不上 */
+const ALL_TEMPS: TempLayer[] = TEMP_OPTIONS
 const METHOD_CONFIG: Record<string, FeeGroup[]> = {
   宅配: [
     {
       name: '宅配',
       dot: '#3b82f6',
       carriers: [
-        ['新竹物流', 3],
-        ['嘉里大榮常溫', 2],
-        ['嘉里大榮低溫', 0],
-        ['嘉里快遞', 0],
-        ['黑貓宅急便', 0],
+        ['新竹物流', 3, ['常溫']],
+        ['嘉里大榮常溫', 2, ['常溫']],
+        ['嘉里大榮低溫', 0, ['冷藏', '冷凍']],
+        ['嘉里快遞', 0, ALL_TEMPS],
+        ['黑貓宅急便', 0, ALL_TEMPS],
       ],
     },
   ],
   超商配送: [
-    { name: '超商配送 - 黑貓', dot: '#f97316', carriers: [['黑貓宅急便（門市寄件）', 0]] },
+    { name: '超商配送 - 黑貓', dot: '#f97316', carriers: [['黑貓宅急便（門市寄件）', 0, ['常溫']]] },
     {
       name: '超商配送 - 7-11',
       dot: '#f97316',
       carriers: [
-        ['7-11 B2C 到府收件', 0],
-        ['7-11 B2C 冷凍到府收件', 0],
-        ['7-11 交貨便（門市寄件）', 0],
+        ['7-11 B2C 到府收件', 0, ['常溫']],
+        ['7-11 B2C 冷凍到府收件', 0, ['冷凍']],
+        ['7-11 交貨便（門市寄件）', 0, ['常溫']],
       ],
     },
     {
       name: '超商配送 - 全家',
       dot: '#f97316',
       carriers: [
-        ['全家常溫到府收件', 0],
-        ['全家冷凍到府收件', 0],
+        ['全家常溫到府收件', 0, ['常溫']],
+        ['全家冷凍到府收件', 0, ['冷凍']],
       ],
     },
   ],
   '商家自建（如郵局）': [
-    { name: '商家自建（如郵局）', dot: '#8b5cf6', carriers: [['中華郵局', 0]] },
+    { name: '商家自建（如郵局）', dot: '#8b5cf6', carriers: [['中華郵局', 0, ALL_TEMPS]] },
   ],
 }
 const CB_GROUPS: FeeGroup[] = [
-  { name: 'Presco 跨境物流', dot: '#a855f7', sub: '宅配', carriers: [['Presco 跨境物流（宅配＋超商代收）', 1]] },
-  { name: 'Presco 跨境物流', dot: '#a855f7', sub: '超商配送', carriers: [['Presco 跨境物流（宅配＋超商代收）', 1]] },
+  { name: 'Presco 跨境物流', dot: '#a855f7', sub: '宅配', carriers: [['Presco 跨境物流（宅配＋超商代收）', 1, ['常溫']]] },
+  { name: 'Presco 跨境物流', dot: '#a855f7', sub: '超商配送', carriers: [['Presco 跨境物流（宅配＋超商代收）', 1, ['常溫']]] },
 ]
 const DOMESTIC_REGIONS = ['台灣本島', '台灣離島']
 const CB_REGIONS = ['馬來西亞（目的地）', '香港（目的地）']
@@ -185,7 +188,7 @@ const rewardOn = ref(true)
 const freeShip = ref<number | null>(null)
 const feeVals = ref<Record<string, number>>({})
 const feeOff = ref<Record<string, boolean>>({})
-const feeEdit = ref<Record<string, boolean>>({ dom: false, cb: false })
+const feeEdit = ref<Record<string, boolean>>({})
 const hasTriedSave = ref(false)
 
 /** 將某購物車設定填入表單（編輯預填、新增帶入預設範本共用） */
@@ -210,7 +213,7 @@ watch(
   (v) => {
     if (!v) return
     hasTriedSave.value = false
-    feeEdit.value = { dom: false, cb: false }
+    feeEdit.value = {}
     if (props.initial) {
       applyRecord(props.initial)
       return
@@ -280,10 +283,59 @@ function toggleRowOff(scope: string, g: FeeGroup, payId: string): void {
 function toggleFeeEdit(scope: string): void {
   feeEdit.value = { ...feeEdit.value, [scope]: !feeEdit.value[scope] }
 }
-/** 還原該區所有格子為預設運費 */
-function resetFees(scope: string): void {
+/** 每個地區的 3 欄溫層順序與 TEMP_OPTIONS 相同（常溫/冷藏/冷凍）；0-based */
+const selectedTempIndex = computed(() => TEMP_OPTIONS.indexOf(temp.value))
+
+// ── 溫層支援過濾（配送溫層為單選 → 矩陣收斂到該溫層） ──
+function carrierSupports(c: [string, number, TempLayer[]], t: TempLayer): boolean {
+  return c[2].includes(t)
+}
+function groupSupportsTemp(g: FeeGroup, t: TempLayer): boolean {
+  return g.carriers.some((c) => carrierSupports(c, t))
+}
+/** 群組內只列出支援選定溫層的物流商（左欄說明清單用） */
+function visibleCarriers(g: FeeGroup): Array<[string, number, TempLayer[]]> {
+  return g.carriers.filter((c) => carrierSupports(c, temp.value))
+}
+/** 依選定溫層過濾後、實際會出現在矩陣的群組 */
+const domGroupsForTemp = computed(() =>
+  domesticGroups.value.filter((g) => groupSupportsTemp(g, temp.value)),
+)
+const cbGroupsForTemp = computed(() => CB_GROUPS.filter((g) => groupSupportsTemp(g, temp.value)))
+function groupsOfScope(scope: string): FeeGroup[] {
+  return scope === 'dom' ? domGroupsForTemp.value : cbGroupsForTemp.value
+}
+
+// ── 運費區塊：地區改為「獨立區塊」而非同表的欄 ──
+interface FeeBlock {
+  /** feeEdit / reset 狀態用的唯一鍵 */
+  key: string
+  title: string
+  dataScope: 'dom' | 'cb'
+  /** 此區塊要顯示的地區欄；idx 為 6 格運費索引中的地區序（本島=0、離島=1；跨境馬來=0、香港=1），name 供表頭與 aria-label 用 */
+  regions: Array<{ name: string; idx: number }>
+}
+/** 國內拆成「國內配送（本島）」「離島配送（離島）」兩塊；跨境維持單一區塊（兩目的地欄） */
+const feeBlocks = computed<FeeBlock[]>(() => {
+  const blocks: FeeBlock[] = []
+  if (domesticGroups.value.length) {
+    blocks.push({ key: 'dom-main', title: '國內配送', dataScope: 'dom', regions: [{ name: DOMESTIC_REGIONS[0], idx: 0 }] })
+    blocks.push({ key: 'dom-island', title: '離島配送', dataScope: 'dom', regions: [{ name: DOMESTIC_REGIONS[1], idx: 1 }] })
+  }
+  if (showCrossBorder.value) {
+    blocks.push({ key: 'cb', title: '跨境配送', dataScope: 'cb', regions: CB_REGIONS.map((name, idx) => ({ name, idx })) })
+  }
+  return blocks
+})
+/** 還原此區塊「目前顯示溫層」的格子為預設運費（不動其他地區／溫層，避免靜默清空看不到的資料） */
+function resetFees(block: FeeBlock): void {
+  const regionIdxs = block.regions.map((r) => r.idx)
   feeVals.value = Object.fromEntries(
-    Object.entries(feeVals.value).filter(([k]) => !k.startsWith(`${scope}|`)),
+    Object.entries(feeVals.value).filter(([k]) => {
+      if (!k.startsWith(`${block.dataScope}|`)) return true
+      const col = Number(k.split('|').pop())
+      return !(regionIdxs.includes(Math.floor(col / 3)) && col % 3 === selectedTempIndex.value)
+    }),
   )
 }
 
@@ -291,6 +343,14 @@ function resetFees(scope: string): void {
 const isNameInvalid = computed(() => hasTriedSave.value && name.value.trim() === '')
 const isFreeShipInvalid = computed(() => freeShip.value != null && freeShip.value < 0)
 const hasNegativeFee = computed(() => Object.values(feeVals.value).some((v) => v < 0))
+/** 有負數運費的溫層；因畫面只顯示當前溫層，錯誤訊息需指出問題落在哪個溫層 */
+const negativeFeeTemps = computed<TempLayer[]>(() => {
+  const set = new Set<TempLayer>()
+  for (const [k, v] of Object.entries(feeVals.value)) {
+    if (v < 0) set.add(TEMP_OPTIONS[Number(k.split('|').pop()) % 3])
+  }
+  return [...set]
+})
 const canSave = computed(
   () => name.value.trim() !== '' && !isFreeShipInvalid.value && !hasNegativeFee.value,
 )
@@ -346,6 +406,9 @@ function onSave(): void {
     <div class="max-h-[calc(85vh-160px)] overflow-y-auto pt-2 pb-4">
       <Message v-if="hasTriedSave && !canSave" severity="error" class="mb-4" :closable="false">
         請確認紅框標示的欄位皆已正確填寫／選擇（免運金額不可為負數）。
+        <template v-if="negativeFeeTemps.length">
+          <br />運費為負數的溫層：{{ negativeFeeTemps.join('、') }}，請切換至該溫層修正。
+        </template>
       </Message>
 
       <!-- ═══ 購物車基本設定 ═══ -->
@@ -475,60 +538,57 @@ function onSave(): void {
         </div>
 
         <template v-else>
-          <!-- 國內配送 / 跨境配送 各一張矩陣表 -->
-          <template
-            v-for="scope in [
-              ...(domesticGroups.length ? ['dom'] : []),
-              ...(showCrossBorder ? ['cb'] : []),
-            ]"
-            :key="scope"
-          >
-            <div class="flex items-center gap-2 mt-1">
-              <span class="text-sm font-bold text-[var(--p-text-color)]">
-                {{ scope === 'dom' ? '國內配送' : '跨境配送' }}
-              </span>
-              <Button
-                :label="feeEdit[scope] ? '完成' : '編輯運費'"
-                :icon="feeEdit[scope] ? 'pi pi-check' : 'pi pi-pen-to-square'"
-                severity="secondary"
-                outlined
-                size="small"
-                @click="toggleFeeEdit(scope)"
-              />
-              <Button
-                v-if="feeEdit[scope]"
-                label="還原預設"
-                icon="pi pi-refresh"
-                severity="secondary"
-                variant="text"
-                size="small"
-                @click="resetFees(scope)"
-              />
-              <span class="text-xs text-[var(--p-text-muted-color)]">調整過的金額會以圓點標示</span>
+          <!-- 國內配送（本島）／離島配送（離島）／跨境配送 各為獨立區塊 -->
+          <template v-for="block in feeBlocks" :key="block.key">
+            <div class="flex items-center gap-2 mt-1 flex-wrap">
+              <span class="text-sm font-bold text-[var(--p-text-color)]">{{ block.title }}</span>
+              <template v-if="groupsOfScope(block.dataScope).length">
+                <Button
+                  :label="feeEdit[block.key] ? '完成' : '編輯運費'"
+                  :icon="feeEdit[block.key] ? 'pi pi-check' : 'pi pi-pen-to-square'"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  @click="toggleFeeEdit(block.key)"
+                />
+                <Button
+                  v-if="feeEdit[block.key]"
+                  v-tooltip.top="`還原「${temp}」的預設運費`"
+                  label="還原預設"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  @click="resetFees(block)"
+                />
+                <span class="text-xs text-[var(--p-text-muted-color)]">調整過的金額會以圓點標示</span>
+              </template>
             </div>
 
-            <div class="overflow-x-auto rounded-xl border border-[var(--p-content-border-color)]">
-              <table class="fee-table w-full border-collapse text-xs" style="min-width: 640px">
+            <!-- 該溫層下無任何物流方式支援 → 收起此表，改用提示 -->
+            <div
+              v-if="!groupsOfScope(block.dataScope).length"
+              class="border border-[var(--p-content-border-color)] rounded-xl px-4 py-6 text-center text-sm text-[var(--p-text-muted-color)]"
+            >
+              目前選定的配送溫層「{{ temp }}」下，已勾選的{{ block.dataScope === 'dom' ? '國內' : '跨境' }}物流方式皆無支援此溫層，請調整配送溫層或物流方式設定。
+            </div>
+
+            <div v-else class="overflow-x-auto rounded-xl border border-[var(--p-content-border-color)]">
+              <table class="fee-table w-full border-collapse text-xs" style="min-width: 420px">
                 <thead>
                   <tr>
-                    <th rowspan="2" style="width: 210px">物流方式</th>
-                    <th rowspan="2">付款方式</th>
-                    <th
-                      v-for="r in scope === 'dom' ? DOMESTIC_REGIONS : CB_REGIONS"
-                      :key="r"
-                      colspan="3"
-                    ><i class="pi pi-map-marker" style="font-size: 12px"></i> {{ r }}</th>
-                  </tr>
-                  <tr>
-                    <template v-for="r in scope === 'dom' ? DOMESTIC_REGIONS : CB_REGIONS" :key="r">
-                      <th>常溫</th>
-                      <th>冷藏</th>
-                      <th>冷凍</th>
-                    </template>
+                    <!-- 物流方式欄不設固定寬、只設最小寬 → 吸收剩餘寬度填滿表格；付款/運費欄固定寬，輸入框不會變空盪 -->
+                    <th scope="col" style="min-width: 210px">物流方式</th>
+                    <th scope="col" style="width: 150px">付款方式</th>
+                    <th scope="col" style="width: 150px" v-for="region in block.regions" :key="region.idx">
+                      <!-- 單欄區塊：地區已在標題，欄名只顯示溫層；多欄（跨境）：欄名用「地區-溫層」區分目的地 -->
+                      <template v-if="block.regions.length === 1">{{ temp }}</template>
+                      <template v-else><i class="pi pi-map-marker" style="font-size: 12px"></i> {{ region.name }}-{{ temp }}</template>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <template v-for="g in scope === 'dom' ? domesticGroups : CB_GROUPS" :key="g.name + (g.sub ?? '')">
+                  <template v-for="g in groupsOfScope(block.dataScope)" :key="g.name + (g.sub ?? '')">
                     <tr v-for="([payLabel, payId], pi) in feePays" :key="payId">
                       <td v-if="pi === 0" :rowspan="feePays.length" class="fee-logi">
                         <div class="flex items-center gap-2 font-bold text-sm text-[var(--p-text-color)]">
@@ -538,22 +598,22 @@ function onSave(): void {
                         <div v-if="g.sub" class="text-xs font-bold mt-1 text-[var(--p-primary-color)]">{{ g.sub }}</div>
                         <div class="mt-2 flex flex-col gap-1">
                           <div
-                            v-for="[cName, kdai] in g.carriers"
+                            v-for="[cName, kdai] in visibleCarriers(g)"
                             :key="cName"
                             class="flex items-center gap-1 text-xs text-[var(--p-text-muted-color)]"
                           >
                             <span class="w-2.5 text-center">›</span>{{ cName }}
-                            <Tag v-if="kdai > 0" :value="`${kdai} 客代`" severity="secondary" class="!ml-auto !py-0 !text-xs" />
+                            <Tag v-if="kdai > 0" :value="`${kdai} 客代`" severity="secondary" class="!py-0 !text-xs" />
                           </div>
                         </div>
                       </td>
                       <td class="text-center">
                         <label class="inline-flex items-center gap-2 cursor-pointer">
                           <Checkbox
-                            :model-value="!isRowOff(scope, g, payId)"
+                            :model-value="!isRowOff(block.dataScope, g, payId)"
                             binary
                             :aria-label="`${g.name} ${payLabel} 啟用`"
-                            @update:model-value="toggleRowOff(scope, g, payId)"
+                            @update:model-value="toggleRowOff(block.dataScope, g, payId)"
                           />
                           <span
                             class="inline-block text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap"
@@ -561,36 +621,40 @@ function onSave(): void {
                               payId === 'cod'
                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                              isRowOff(scope, g, payId) ? 'opacity-45' : '',
+                              isRowOff(block.dataScope, g, payId) ? 'opacity-45' : '',
                             ]"
                           >{{ payLabel }}</span>
                         </label>
                       </td>
-                      <template v-if="isRowOff(scope, g, payId)">
-                        <td v-for="k in 6" :key="k" class="text-center text-[var(--p-text-muted-color)]">—</td>
+                      <template v-if="isRowOff(block.dataScope, g, payId)">
+                        <td
+                          v-for="region in block.regions"
+                          :key="region.idx"
+                          class="text-center text-[var(--p-text-muted-color)]"
+                        >—</td>
                       </template>
                       <template v-else>
-                        <td v-for="k in 6" :key="k" class="text-center">
+                        <td v-for="region in block.regions" :key="region.idx" class="text-center">
                           <InputNumber
-                            v-if="feeEdit[scope]"
-                            :model-value="cellValue(scope, g, payId, k - 1)"
-                            :invalid="cellValue(scope, g, payId, k - 1) < 0"
+                            v-if="feeEdit[block.key]"
+                            :model-value="cellValue(block.dataScope, g, payId, region.idx * 3 + selectedTempIndex)"
+                            :invalid="cellValue(block.dataScope, g, payId, region.idx * 3 + selectedTempIndex) < 0"
                             :use-grouping="false"
-                            :aria-label="`${g.name} ${payLabel} 運費`"
+                            :aria-label="`${g.name} ${payLabel} ${region.name} ${temp} 運費`"
                             input-class="!w-14 !px-1 !py-1 !text-center !text-xs"
-                            @update:model-value="(v) => setCellValue(scope, g, payId, k - 1, v)"
+                            @update:model-value="(v) => setCellValue(block.dataScope, g, payId, region.idx * 3 + selectedTempIndex, v)"
                           />
                           <span
                             v-else
                             class="inline-block min-w-11 relative"
-                            :class="cellValue(scope, g, payId, k - 1) !== defaultFeeOf(scope, payId, k - 1)
+                            :class="cellValue(block.dataScope, g, payId, region.idx * 3 + selectedTempIndex) !== defaultFeeOf(block.dataScope, payId, region.idx * 3 + selectedTempIndex)
                               ? 'font-semibold text-amber-700 dark:text-amber-400'
                               : 'text-[var(--p-text-color)]'"
                           >
-                            {{ cellValue(scope, g, payId, k - 1) }}
+                            {{ cellValue(block.dataScope, g, payId, region.idx * 3 + selectedTempIndex) }}
                             <span
-                              v-if="cellValue(scope, g, payId, k - 1) !== defaultFeeOf(scope, payId, k - 1)"
-                              v-tooltip.top="`預設 ${defaultFeeOf(scope, payId, k - 1)}`"
+                              v-if="cellValue(block.dataScope, g, payId, region.idx * 3 + selectedTempIndex) !== defaultFeeOf(block.dataScope, payId, region.idx * 3 + selectedTempIndex)"
+                              v-tooltip.top="`預設 ${defaultFeeOf(block.dataScope, payId, region.idx * 3 + selectedTempIndex)}`"
                               class="absolute -top-0.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500"
                             ></span>
                           </span>
