@@ -101,7 +101,7 @@ function handleCancel() {
     :style="{ width: '32rem', maxWidth: '95vw' }"
   >
     <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-2">
         <label
           for="preorder-arrival-extra-info"
           class="text-sm font-medium text-slate-700 dark:text-slate-200"

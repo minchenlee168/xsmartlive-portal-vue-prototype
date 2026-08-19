@@ -297,19 +297,19 @@ onMounted(() => {
               </span>
               <span
                 v-if="member.isVip"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                class="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
               >
                 {{ t('bid_list.manual_bid.session_records.member.vip') }}
               </span>
               <span
                 v-if="extraMemberIds.has(member.id)"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300"
+                class="text-xs px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300"
               >
                 {{ t('bid_list.manual_bid.records_note.from_records') }}
               </span>
               <span class="text-xs text-slate-400">{{ member.memberCode }}</span>
             </div>
-            <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {{ member.socialAccount }}
               <span class="mx-1">·</span>
               {{ t('bid_list.manual_bid.session_records.member.field.phone_last4') }} {{ member.phoneLast4 }}

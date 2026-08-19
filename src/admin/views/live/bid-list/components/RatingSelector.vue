@@ -30,7 +30,7 @@ const starClass = computed(() => {
 });
 
 /** xs 尺寸不留星間距，5 顆星總寬對齊會員頭像（w-10） */
-const gapClass = computed(() => (props.size === 'xs' ? 'gap-0' : 'gap-0.5'));
+const gapClass = computed(() => (props.size === 'xs' ? 'gap-0' : 'gap-1'));
 
 function handleClick(value: number) {
   if (props.readonly) return;

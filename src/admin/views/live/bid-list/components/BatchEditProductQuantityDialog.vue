@@ -323,7 +323,7 @@ function handleClose() {
             <div
               v-for="product in category.products"
               :key="product.code"
-              class="flex items-center gap-2 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5"
+              class="flex items-center gap-2 border border-slate-200 dark:border-slate-700 rounded px-2 py-2"
             >
               <span class="flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
                 {{ product.name }}

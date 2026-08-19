@@ -100,18 +100,18 @@ watch(
           <table class="w-full text-sm">
             <thead class="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs">
               <tr>
-                <th class="px-2 py-1.5 w-8">
+                <th class="px-2 py-2 w-8">
                   <Checkbox
                     v-model="selectAllOnList"
                     :binary="true"
                     :disabled="candidateRows.length === 0"
                   />
                 </th>
-                <th class="px-2 py-1.5 text-left">{{ t('bid_list.order_modification.column.create_time') }}</th>
-                <th class="px-2 py-1.5 text-left">{{ t('bid_list.order_modification.column.buyer') }}</th>
-                <th class="px-2 py-1.5 text-left">{{ t('bid_list.order_modification.column.bid_number') }}</th>
-                <th class="px-2 py-1.5 text-right">{{ t('bid_list.order_modification.column.quantity') }}</th>
-                <th class="px-2 py-1.5 text-right">{{ t('bid_list.order_modification.column.subtotal') }}</th>
+                <th class="px-2 py-2 text-left">{{ t('bid_list.order_modification.column.create_time') }}</th>
+                <th class="px-2 py-2 text-left">{{ t('bid_list.order_modification.column.buyer') }}</th>
+                <th class="px-2 py-2 text-left">{{ t('bid_list.order_modification.column.bid_number') }}</th>
+                <th class="px-2 py-2 text-right">{{ t('bid_list.order_modification.column.quantity') }}</th>
+                <th class="px-2 py-2 text-right">{{ t('bid_list.order_modification.column.subtotal') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -120,26 +120,26 @@ watch(
                 :key="row.id"
                 class="border-t border-slate-100 dark:border-slate-800"
               >
-                <td class="px-2 py-1.5">
+                <td class="px-2 py-2">
                   <Checkbox
                     :model-value="isSelected(row.id)"
                     :binary="true"
                     @update:model-value="(value: boolean) => toggle(row.id, value)"
                   />
                 </td>
-                <td class="px-2 py-1.5 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                <td class="px-2 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
                   {{ row.createTime }}
                 </td>
-                <td class="px-2 py-1.5 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                <td class="px-2 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
                   {{ row.winner.name || row.winner.facebookId }}
                 </td>
-                <td class="px-2 py-1.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
+                <td class="px-2 py-2 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
                   {{ row.bidNumber }}
                 </td>
-                <td class="px-2 py-1.5 text-right text-slate-700 dark:text-slate-200">
+                <td class="px-2 py-2 text-right text-slate-700 dark:text-slate-200">
                   {{ row.quantity }}
                 </td>
-                <td class="px-2 py-1.5 text-right text-slate-700 dark:text-slate-200">
+                <td class="px-2 py-2 text-right text-slate-700 dark:text-slate-200">
                   {{ row.totalAmount }}
                 </td>
               </tr>
