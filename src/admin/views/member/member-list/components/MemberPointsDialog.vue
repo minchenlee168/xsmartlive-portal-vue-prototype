@@ -108,8 +108,18 @@ function handleConfirm() {
         v-model="adjustAmount"
         :min="1"
         :placeholder="$t('member.points.amount_placeholder')"
-        class="w-40"
-      />
+        show-buttons
+        button-layout="horizontal"
+        fluid
+        class="w-52"
+      >
+        <template #incrementbuttonicon>
+          <i class="pi pi-plus" />
+        </template>
+        <template #decrementbuttonicon>
+          <i class="pi pi-minus" />
+        </template>
+      </InputNumber>
       <Button
         :label="$t('common.button.confirm')"
         :disabled="!adjustAmount || adjustAmount <= 0"

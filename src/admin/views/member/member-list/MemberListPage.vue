@@ -55,7 +55,7 @@ const moreMenuItems = computed(() => [
   { faIcon: ['fas', 'coins'] as IconProp, label: t('member.action.points'), command: handlePoints },
   {
     faIcon: ['far', 'ban'] as IconProp,
-    label: activeMoreRow.value?.status === 'blacklisted' ? t('member.action.unban') : t('member.action.ban'),
+    label: activeMoreRow.value?.status === 'blacklisted' ? t('member.action.remove_blacklist') : t('member.action.ban'),
     command: handleBan,
   },
   { faIcon: ['far', 'envelope'] as IconProp, label: t('member.action.message'), command: handleMessage },
@@ -105,11 +105,11 @@ async function handleBan() {
   if (!row) return;
   const accepted = await confirm({
     message: row.status === 'blacklisted'
-      ? t('member.detail.suspend.confirm_unsuspend')
-      : t('member.detail.suspend.confirm_suspend'),
+      ? t('member.action.unban_confirm', { name: row.name })
+      : t('member.action.ban_confirm', { name: row.name }),
   });
   if (!accepted) return;
-  showSuccess({ detail: t('member.detail.suspend.stub') });
+  showSuccess({ detail: t('member.action.stub') });
 }
 
 const filter = ref<MemberMockFilter>(createEmptyFilter());

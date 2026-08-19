@@ -78,8 +78,12 @@
     "action": {
       "orders": "訂單紀錄",
       "points": "紅利點數",
-      "ban": "停權會員",
+      "ban": "加入黑名單",
       "unban": "解除停權",
+      "remove_blacklist": "移出黑名單",
+      "ban_confirm": "確定要把 {name} 加入黑名單嗎？",
+      "unban_confirm": "確定要把 {name} 移出黑名單嗎？",
+      "stub": "版面預覽：黑名單狀態尚未接後端",
       "message": "發送訊息",
       "more": "更多"
     },

@@ -78,8 +78,12 @@
     "action": {
       "orders": "Order records",
       "points": "Bonus points",
-      "ban": "Suspend",
+      "ban": "Add to blacklist",
       "unban": "Unsuspend",
+      "remove_blacklist": "Remove from blacklist",
+      "ban_confirm": "Add {name} to the blacklist?",
+      "unban_confirm": "Remove {name} from the blacklist?",
+      "stub": "Preview only: blacklist status is not wired to the backend yet",
       "message": "Send message",
       "more": "More"
     },
