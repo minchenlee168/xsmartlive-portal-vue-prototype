@@ -10,6 +10,10 @@ interface ColumnItem {
   header: string;
   sortable?: boolean;
   slot?: string;
+  /** 是否凍結此欄（向後相容：未指定則不凍結）。 */
+  frozen?: boolean;
+  /** 凍結欄對齊側（搭配 frozen 使用）。 */
+  alignFrozen?: 'left' | 'right';
 }
 
 interface PaginationTableProps {
@@ -123,6 +127,8 @@ function onRowReorder(event: { value: unknown[] | undefined }) {
       :field="col.field"
       :header="col.header"
       :sortable="col.sortable"
+      :frozen="col.frozen"
+      :align-frozen="col.alignFrozen"
     >
       <template #body="{ data: rowData }">
         <Skeleton v-if="props.loading" />

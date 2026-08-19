@@ -1,0 +1,238 @@
+{
+  "member": {
+    "title": {
+      "list": "Member List"
+    },
+    "filter": {
+      "keyword_placeholder": "Member No. / Name / Full mobile",
+      "level_all": "All levels",
+      "status_all": "All statuses",
+      "star_all": "All ratings",
+      "binding_placeholder": "All",
+      "binding_hint": "(multi-select, match all)",
+      "created_at_range_placeholder": "Registered date range",
+      "blacklist_only": "Blacklisted only",
+      "label": {
+        "keyword": "Keyword",
+        "level": "Member Level",
+        "status": "Member Status",
+        "stars": "Star Rating",
+        "bindings": "Bindings",
+        "created_at": "Registered Date"
+      }
+    },
+    "form": {
+      "field": {
+        "email": "Email",
+        "mobile": "Mobile",
+        "rank": "Rank",
+        "status": "Status",
+        "gender": "Gender",
+        "birthday": "Birthday",
+        "bonus_points": "Bonus Points",
+        "registered_at": "Registered At"
+      }
+    },
+    "table": {
+      "column": {
+        "id": "#",
+        "no": "Member No.",
+        "name": "Name",
+        "email": "Email",
+        "mobile": "Mobile",
+        "bindings": "Bindings",
+        "rank": "Member Level",
+        "level": "Member Level",
+        "stars": "Star Rating",
+        "spend": "Total Spend",
+        "bids": "Bids",
+        "abandoned_bids": "Abandoned",
+        "abandon_rate": "Abandon Rate",
+        "bonus_points": "Bonus",
+        "registered_at": "Registered",
+        "last_order": "Last Order",
+        "status": "Member Status",
+        "actions": "Actions"
+      },
+      "scroll_prev": "Scroll to previous columns",
+      "scroll_next": "Scroll to next columns"
+    },
+    "status": {
+      "normal": "Normal",
+      "suspended": "Suspended",
+      "blacklisted": "Blacklisted"
+    },
+    "level": {
+      "normal": "General",
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold"
+    },
+    "binding": {
+      "bound": "Linked",
+      "unbound": "Not linked"
+    },
+    "stars": {
+      "rating": "{count} stars"
+    },
+    "action": {
+      "orders": "Order records",
+      "points": "Bonus points",
+      "ban": "Suspend",
+      "unban": "Unsuspend",
+      "message": "Send message",
+      "more": "More"
+    },
+    "detail": {
+      "title": "Member Detail",
+      "created_at_prefix": "Created on",
+      "rate_label": "Merchant rating",
+      "rate_note_placeholder": "Rating note (optional)",
+      "reveal_phone": "Show full number",
+      "unset": "Not set",
+      "not_provided": "Not provided",
+      "not_filled": "Not filled",
+      "save_stub": "Layout preview: rating is not wired to the backend yet",
+      "cod_eligible": "Eligible ({stars} ★ ≥ min {min} ★)",
+      "cod_ineligible": "Not eligible ({stars} ★ < min {min} ★)",
+      "section": {
+        "basic": "Basic info",
+        "binding": "Linked accounts",
+        "trade": "Transactions",
+        "subscription": "Subscriptions",
+        "suspend": "Account suspension"
+      },
+      "field": {
+        "mobile_full": "Full mobile",
+        "address": "Address",
+        "gender_birthday": "Gender / Birthday",
+        "cod": "COD eligibility",
+        "last_order": "Last order",
+        "last_checkout": "Last checkout",
+        "last_order_created": "Last order created"
+      },
+      "trade": {
+        "spend": "Total spend",
+        "points": "Bonus points",
+        "orders": "Orders",
+        "bids": "Bids",
+        "abandoned": "Abandoned"
+      },
+      "notif": {
+        "live": "Live notifications",
+        "live_desc": "Notify the member when the store goes live via the LINE official account",
+        "receiving": "Receiving",
+        "off": "Off"
+      },
+      "suspend": {
+        "status_label": "Member status",
+        "desc_normal": "Once suspended, the member cannot log in or place orders. Can be lifted anytime.",
+        "desc_suspended": "This member currently cannot log in to the store or place orders.",
+        "btn_suspend": "Suspend member",
+        "confirm_suspend": "Suspend this member? They will not be able to log in or place orders.",
+        "confirm_unsuspend": "Lift the suspension for this member?",
+        "stub": "Layout preview: suspension is not wired to the backend yet"
+      }
+    },
+    "orders": {
+      "title": "Order records",
+      "empty": "No order records yet",
+      "column": {
+        "no": "Order No.",
+        "date": "Order date",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "status": {
+        "done": "Completed",
+        "processing": "Processing",
+        "cancelled": "Cancelled"
+      }
+    },
+    "points": {
+      "title": "Bonus points",
+      "current": "Current points",
+      "unit": "pts",
+      "adjust": "Adjust points",
+      "add": "Add",
+      "sub": "Deduct",
+      "amount_placeholder": "Enter points",
+      "reason_placeholder": "Reason (optional), e.g. shipping delay compensation",
+      "preview": "After adjustment: {after} pts (was {before})",
+      "history": "Point history",
+      "empty": "No point changes yet",
+      "adjust_stub": "Layout preview: point adjustment is not wired to the backend yet",
+      "column": {
+        "time": "Time",
+        "type": "Type",
+        "change": "Change",
+        "balance": "Balance",
+        "note": "Note"
+      },
+      "type": {
+        "earn": "Purchase reward",
+        "manual_add": "Manual add",
+        "manual_sub": "Manual deduct",
+        "redeem": "Order redemption"
+      }
+    },
+    "message": {
+      "title": "Send message",
+      "recipient": "Recipient",
+      "channel_label": "Channels (multi-select; unlinked / no-data channels disabled)",
+      "unavailable": "(not linked)",
+      "template_label": "Template (optional)",
+      "template_placeholder": "Choose a template…",
+      "content_label": "Message",
+      "content_placeholder": "Enter the message to send…",
+      "send": "Send",
+      "send_stub": "Layout preview: message is not wired to the backend yet",
+      "validation": {
+        "channel": "Please select at least one channel",
+        "content": "Please enter the message"
+      },
+      "channel": {
+        "inapp": "In-app",
+        "email": "Email",
+        "sms": "SMS",
+        "line": "LINE",
+        "messenger": "Messenger",
+        "whatsapp": "WhatsApp"
+      },
+      "template": {
+        "live": {
+          "label": "Live stream notice",
+          "text": "Dear member, thank you for your support! There are exclusive deals in this week's live stream — don't miss out."
+        },
+        "coupon": {
+          "label": "Coupon delivery",
+          "text": "Your exclusive coupon has been sent — remember to use it at checkout!"
+        },
+        "cart": {
+          "label": "Cart reminder",
+          "text": "Reminder: items in your cart are almost sold out — grab them while you can."
+        }
+      }
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "unknown": "Not provided"
+    },
+    "button": {
+      "add_to_blacklist": "Block",
+      "remove_from_blacklist": "Unblock"
+    },
+    "dialog": {
+      "detail_title": "Member Detail",
+      "block_confirm": "Are you sure you want to block member \"{name}\"?",
+      "unblock_confirm": "Are you sure you want to remove member \"{name}\" from the blacklist?"
+    },
+    "toast": {
+      "added_to_blacklist": "Member blocked",
+      "removed_from_blacklist": "Member unblocked",
+      "preview_only": "Layout preview: actions are not wired to the backend yet"
+    }
+  }
+}

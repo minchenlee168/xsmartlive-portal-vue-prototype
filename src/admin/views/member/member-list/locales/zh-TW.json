@@ -1,0 +1,238 @@
+{
+  "member": {
+    "title": {
+      "list": "會員列表"
+    },
+    "filter": {
+      "keyword_placeholder": "會員編號 / 姓名 / 完整手機號碼",
+      "level_all": "全部等級",
+      "status_all": "全部狀態",
+      "star_all": "全部星等",
+      "binding_placeholder": "全部",
+      "binding_hint": "（可多選，需全部符合）",
+      "created_at_range_placeholder": "帳號建立日期",
+      "blacklist_only": "只看黑名單會員",
+      "label": {
+        "keyword": "關鍵字",
+        "level": "會員等級",
+        "status": "會員狀態",
+        "stars": "星等",
+        "bindings": "綁定管道",
+        "created_at": "帳號建立日期"
+      }
+    },
+    "form": {
+      "field": {
+        "email": "Email",
+        "mobile": "手機",
+        "rank": "會員等級",
+        "status": "狀態",
+        "gender": "性別",
+        "birthday": "生日",
+        "bonus_points": "紅利點數",
+        "registered_at": "註冊時間"
+      }
+    },
+    "table": {
+      "column": {
+        "id": "#",
+        "no": "會員編號",
+        "name": "姓名",
+        "email": "Email",
+        "mobile": "手機",
+        "bindings": "綁定資訊",
+        "rank": "會員等級",
+        "level": "會員等級",
+        "stars": "星等",
+        "spend": "累積消費",
+        "bids": "標單數",
+        "abandoned_bids": "棄標數",
+        "abandon_rate": "棄標率",
+        "bonus_points": "紅利點數",
+        "registered_at": "註冊日",
+        "last_order": "最後購買日",
+        "status": "會員狀態",
+        "actions": "操作"
+      },
+      "scroll_prev": "查看左側欄位",
+      "scroll_next": "查看右側欄位"
+    },
+    "status": {
+      "normal": "正常",
+      "suspended": "停權",
+      "blacklisted": "黑名單"
+    },
+    "level": {
+      "normal": "一般",
+      "bronze": "銅卡",
+      "silver": "銀卡",
+      "gold": "金卡"
+    },
+    "binding": {
+      "bound": "已綁定",
+      "unbound": "未綁定"
+    },
+    "stars": {
+      "rating": "{count} 星"
+    },
+    "action": {
+      "orders": "訂單紀錄",
+      "points": "紅利點數",
+      "ban": "停權會員",
+      "unban": "解除停權",
+      "message": "發送訊息",
+      "more": "更多"
+    },
+    "detail": {
+      "title": "會員明細",
+      "created_at_prefix": "建立於",
+      "rate_label": "商家評星",
+      "rate_note_placeholder": "評星備註（選填）",
+      "reveal_phone": "顯示完整號碼",
+      "unset": "未設定",
+      "not_provided": "未提供",
+      "not_filled": "未填寫",
+      "save_stub": "版面預覽：評星尚未接後端",
+      "cod_eligible": "符合（{stars} 星 ≥ 門檻 {min} 星）",
+      "cod_ineligible": "不符合（{stars} 星 < 門檻 {min} 星）",
+      "section": {
+        "basic": "基本資料",
+        "binding": "綁定資訊",
+        "trade": "交易概況",
+        "subscription": "訂閱狀況",
+        "suspend": "帳號停權"
+      },
+      "field": {
+        "mobile_full": "完整手機",
+        "address": "地址",
+        "gender_birthday": "性別 / 生日",
+        "cod": "貨到付款資格",
+        "last_order": "最後下單日",
+        "last_checkout": "最後結帳日",
+        "last_order_created": "最後訂單日"
+      },
+      "trade": {
+        "spend": "累積消費",
+        "points": "紅利點數",
+        "orders": "訂單數",
+        "bids": "標單數",
+        "abandoned": "棄標數"
+      },
+      "notif": {
+        "live": "開播通知",
+        "live_desc": "透過 LINE 官方帳號通知賣場開播",
+        "receiving": "接收中",
+        "off": "已關閉"
+      },
+      "suspend": {
+        "status_label": "會員狀態",
+        "desc_normal": "停權後無法登入商城與下單，可隨時解除。",
+        "desc_suspended": "此會員目前無法登入商城與下單。",
+        "btn_suspend": "停權會員",
+        "confirm_suspend": "確定要停權此會員嗎？停權後無法登入商城與下單。",
+        "confirm_unsuspend": "確定要解除此會員的停權嗎？",
+        "stub": "版面預覽：停權狀態尚未接後端"
+      }
+    },
+    "orders": {
+      "title": "訂單紀錄",
+      "empty": "尚無訂單紀錄",
+      "column": {
+        "no": "訂單編號",
+        "date": "下單日期",
+        "amount": "金額",
+        "status": "狀態"
+      },
+      "status": {
+        "done": "已完成",
+        "processing": "處理中",
+        "cancelled": "已取消"
+      }
+    },
+    "points": {
+      "title": "紅利點數",
+      "current": "目前點數",
+      "unit": "點",
+      "adjust": "調整點數",
+      "add": "補點",
+      "sub": "扣點",
+      "amount_placeholder": "輸入點數",
+      "reason_placeholder": "原因（選填）例：出貨延誤補償",
+      "preview": "調整後點數：{after} 點（原 {before}）",
+      "history": "點數歷程",
+      "empty": "尚無點數異動",
+      "adjust_stub": "版面預覽：點數調整尚未接後端",
+      "column": {
+        "time": "時間",
+        "type": "類型",
+        "change": "異動",
+        "balance": "異動後餘額",
+        "note": "備註"
+      },
+      "type": {
+        "earn": "消費回饋",
+        "manual_add": "手動補點",
+        "manual_sub": "手動扣點",
+        "redeem": "折抵訂單"
+      }
+    },
+    "message": {
+      "title": "發送訊息",
+      "recipient": "收件會員",
+      "channel_label": "發送管道（可多選，未綁定 / 無資料者不可選）",
+      "unavailable": "（未綁）",
+      "template_label": "訊息範本（選填）",
+      "template_placeholder": "選擇範本…",
+      "content_label": "訊息內容",
+      "content_placeholder": "輸入要發送的訊息…",
+      "send": "送出",
+      "send_stub": "版面預覽：訊息尚未接後端",
+      "validation": {
+        "channel": "請至少選擇一個發送管道",
+        "content": "請輸入訊息內容"
+      },
+      "channel": {
+        "inapp": "站內通知",
+        "email": "Email",
+        "sms": "簡訊",
+        "line": "LINE",
+        "messenger": "Messenger",
+        "whatsapp": "WhatsApp"
+      },
+      "template": {
+        "live": {
+          "label": "直播開播通知",
+          "text": "親愛的會員您好，感謝您的支持！本週直播有專屬優惠，別錯過囉。"
+        },
+        "coupon": {
+          "label": "優惠券發送",
+          "text": "您的專屬優惠券已發送，記得在結帳時使用喔！"
+        },
+        "cart": {
+          "label": "購物車提醒",
+          "text": "提醒您，購物車內的商品即將售完，把握機會下單～"
+        }
+      }
+    },
+    "gender": {
+      "male": "男",
+      "female": "女",
+      "other": "其他",
+      "unknown": "未提供"
+    },
+    "button": {
+      "add_to_blacklist": "加入黑名單",
+      "remove_from_blacklist": "解除黑名單"
+    },
+    "dialog": {
+      "detail_title": "會員詳情",
+      "block_confirm": "確定要將會員「{name}」加入黑名單嗎？",
+      "unblock_confirm": "確定要將會員「{name}」從黑名單解除嗎？"
+    },
+    "toast": {
+      "added_to_blacklist": "已加入黑名單",
+      "removed_from_blacklist": "已解除黑名單",
+      "preview_only": "版面預覽：操作尚未接後端"
+    }
+  }
+}

@@ -1,0 +1,389 @@
+<script setup lang="ts">
+import MemberDetailDialog from './components/MemberDetailDialog.vue';
+import MemberFilter from './components/MemberFilter.vue';
+import MemberMessageDialog from './components/MemberMessageDialog.vue';
+import MemberOrdersDialog from './components/MemberOrdersDialog.vue';
+import MemberPointsDialog from './components/MemberPointsDialog.vue';
+import { useHorizontalScrollHint } from './composables/useHorizontalScrollHint';
+import { useMemberList } from './composables/useMemberList';
+import { mockMembers, type MemberMockFilter, type MockMemberRow } from './mock/mockMembers';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
+import {
+  BINDING_CHANNELS,
+  BINDING_UNBOUND_CLASS,
+  formatLastOrderDate,
+  formatSpend,
+  getAbandonRate,
+  MEMBER_LEVEL_SEVERITY,
+  MEMBER_STATUS_SEVERITY,
+} from './utils/mockMemberDisplay';
+import { useGlobalDialog } from '@/admin/composables/useGlobalDialog';
+import { useGlobalToast } from '@/admin/composables/useGlobalToast';
+import PageTitle from '@/admin/components/portal-ui/PageTitle.vue';
+import PaginationTable from '@/admin/components/portal-ui/PaginationTable.vue';
+
+import { computed, ref, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+/*
+ * ⚠️ 版面預覽（mock）：本頁為對齊設計 mockup 的 14 欄版面，資料來自前端假資料
+ * （`./mock/mockMembers.ts`），非後端 API。篩選為客端過濾、操作按鈕僅提示未接後端。
+ * 待後端補齊欄位後，應改回 API 驅動並移除 mock 相關檔案。
+ */
+
+const { t } = useI18n();
+const { confirm } = useGlobalDialog();
+const { showSuccess } = useGlobalToast();
+
+const { columns } = useMemberList();
+
+const tableWrapper = useTemplateRef<HTMLElement>('tableWrapper');
+const { canScrollLeft, canScrollRight, headerHeight, frozenRightWidth, scrollByViewport }
+  = useHorizontalScrollHint(tableWrapper);
+
+const moreMenu = useTemplateRef<{ toggle: (event: Event) => void }>('moreMenu');
+const activeMoreRow = ref<MockMemberRow | null>(null);
+
+/** 操作欄前兩顆 icon 按鈕（檢視 / 訂單紀錄）。 */
+const primaryActions = computed<{ key: string; icon: IconProp; label: string; onClick: (row: MockMemberRow) => void }[]>(() => [
+  { key: 'view', icon: ['far', 'eye'], label: t('common.button.view'), onClick: handleView },
+  { key: 'orders', icon: ['far', 'rectangle-list'], label: t('member.action.orders'), onClick: handleOrders },
+]);
+
+/** 「更多」選單項（第 3 個以後：紅利點數 / 停權 / 發送訊息）。 */
+const moreMenuItems = computed(() => [
+  { faIcon: ['fas', 'coins'] as IconProp, label: t('member.action.points'), command: handlePoints },
+  {
+    faIcon: ['far', 'ban'] as IconProp,
+    label: activeMoreRow.value?.status === 'blacklisted' ? t('member.action.unban') : t('member.action.ban'),
+    command: handleBan,
+  },
+  { faIcon: ['far', 'envelope'] as IconProp, label: t('member.action.message'), command: handleMessage },
+]);
+
+/** 開啟該列的「更多」彈出選單。 */
+function openMoreMenu(event: Event, row: MockMemberRow) {
+  activeMoreRow.value = row;
+  moreMenu.value?.toggle(event);
+}
+
+const activeMember = ref<MockMemberRow | null>(null);
+const detailVisible = ref(false);
+const ordersVisible = ref(false);
+const pointsVisible = ref(false);
+const messageVisible = ref(false);
+
+/** 檢視會員明細，開啟明細彈窗。 */
+function handleView(row: MockMemberRow) {
+  activeMember.value = row;
+  detailVisible.value = true;
+}
+
+/** 訂單紀錄。 */
+function handleOrders(row: MockMemberRow) {
+  activeMember.value = row;
+  ordersVisible.value = true;
+}
+
+/** 紅利點數（由「更多」選單開啟，對象為 activeMoreRow）。 */
+function handlePoints() {
+  if (!activeMoreRow.value) return;
+  activeMember.value = activeMoreRow.value;
+  pointsVisible.value = true;
+}
+
+/** 發送訊息（由「更多」選單開啟）。 */
+function handleMessage() {
+  if (!activeMoreRow.value) return;
+  activeMember.value = activeMoreRow.value;
+  messageVisible.value = true;
+}
+
+/** 停權 / 解除停權（stub，二次確認後僅提示，未接後端）。 */
+async function handleBan() {
+  const row = activeMoreRow.value;
+  if (!row) return;
+  const accepted = await confirm({
+    message: row.status === 'blacklisted'
+      ? t('member.detail.suspend.confirm_unsuspend')
+      : t('member.detail.suspend.confirm_suspend'),
+  });
+  if (!accepted) return;
+  showSuccess({ detail: t('member.detail.suspend.stub') });
+}
+
+const filter = ref<MemberMockFilter>(createEmptyFilter());
+/** 已套用的搜尋條件（按「搜尋」才由 filter 複製過來，對齊按鈕套用模型）。 */
+const appliedFilter = ref<MemberMockFilter>(createEmptyFilter());
+
+function createEmptyFilter(): MemberMockFilter {
+  return {
+    keyword: '',
+    level: null,
+    status: null,
+    stars: null,
+    bindings: [],
+    createdAtRange: null,
+    blacklistOnly: false,
+  };
+}
+
+/** 當日 00:00 的 epoch（帳號建立日期區間下界）。 */
+function dayStart(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+/** 當日 23:59:59.999 的 epoch（帳號建立日期區間上界）。 */
+function dayEnd(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999).getTime();
+}
+
+/** 依已套用條件做客端過濾（對齊 mockup 搜尋區各條件；綁定管道為多選、需全部符合）。 */
+const filteredMembers = computed<MockMemberRow[]>(() => {
+  const { keyword, level, status, stars, bindings, createdAtRange, blacklistOnly } = appliedFilter.value;
+  const kw = keyword.trim().toLowerCase();
+  const [from, to] = createdAtRange ?? [];
+
+  return mockMembers.filter((member) => {
+    if (kw && !member.name.toLowerCase().includes(kw) && !member.no.toLowerCase().includes(kw)) return false;
+    if (level !== null && member.level !== level) return false;
+    if (status !== null && member.status !== status) return false;
+    if (stars !== null && member.stars !== stars) return false;
+    if (blacklistOnly && member.status !== 'blacklisted') return false;
+    if (bindings.length > 0 && !bindings.every((key) => member.bindings[key])) return false;
+    if (from && to) {
+      const created = new Date(member.createdAt).getTime();
+      if (created < dayStart(from) || created > dayEnd(to)) return false;
+    }
+    return true;
+  });
+});
+
+/** 表格列：附上預格式化的純文字欄與棄標率顯示物件。 */
+const rows = computed(() =>
+  filteredMembers.value.map((member) => ({
+    ...member,
+    spendLabel: formatSpend(member.spend),
+    lastOrderLabel: formatLastOrderDate(member.lastOrderAt),
+    abandonRate: getAbandonRate(member.bids, member.abandonedBids),
+  })),
+);
+
+function handleApplyFilter() {
+  appliedFilter.value = { ...filter.value };
+}
+
+function handleResetFilter() {
+  filter.value = createEmptyFilter();
+  appliedFilter.value = createEmptyFilter();
+}
+</script>
+
+<template>
+  <div class="flex flex-col gap-4">
+    <Card>
+      <template #content>
+        <PageTitle
+          :title="$t('member.title.list')"
+          :show-back="false"
+          class="mb-4"
+        />
+
+        <MemberFilter
+          v-model="filter"
+          @apply="handleApplyFilter"
+          @reset="handleResetFilter"
+        />
+      </template>
+    </Card>
+
+    <Card>
+      <template #content>
+        <div
+          ref="tableWrapper"
+          class="relative"
+        >
+      <PaginationTable
+        :data="rows"
+        :columns="columns"
+        table-style="min-width: 100rem"
+      >
+      <template #bindings="{ data }">
+        <div class="flex items-center gap-1">
+          <span
+            v-for="channel in BINDING_CHANNELS"
+            :key="channel.key"
+            v-tooltip.top="`${channel.name}：${data.bindings[channel.key] ? $t('member.binding.bound') : $t('member.binding.unbound')}`"
+            class="inline-flex"
+          >
+            <FontAwesomeIcon
+              :icon="channel.icon"
+              :class="data.bindings[channel.key] ? channel.boundClass : BINDING_UNBOUND_CLASS"
+              :aria-label="`${channel.name} ${data.bindings[channel.key] ? $t('member.binding.bound') : $t('member.binding.unbound')}`"
+            />
+          </span>
+        </div>
+      </template>
+
+      <template #level="{ data }">
+        <Tag
+          :severity="MEMBER_LEVEL_SEVERITY[data.level as MockMemberRow['level']]"
+          :value="$t(`member.level.${data.level}`)"
+        />
+      </template>
+
+      <template #stars="{ data }">
+        <span
+          class="inline-flex items-center gap-1 tabular-nums"
+          :aria-label="$t('member.stars.rating', { count: data.stars })"
+        >
+          {{ data.stars }}
+          <FontAwesomeIcon
+            :icon="['fas', 'star']"
+            class="text-yellow-400 dark:text-yellow-300"
+          />
+        </span>
+      </template>
+
+      <template #abandonRate="{ data }">
+        <span :class="data.abandonRate.toneClass">{{ data.abandonRate.label }}</span>
+      </template>
+
+      <template #status="{ data }">
+        <Tag
+          :severity="MEMBER_STATUS_SEVERITY[data.status as MockMemberRow['status']]"
+          :value="$t(`member.status.${data.status}`)"
+        />
+      </template>
+
+      <template #actions="{ data }">
+        <div class="flex items-center gap-1">
+          <Button
+            v-for="action in primaryActions"
+            :key="action.key"
+            v-tooltip.top="action.label"
+            :aria-label="action.label"
+            rounded
+            size="small"
+            severity="secondary"
+            text
+            @click="action.onClick(data)"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="action.icon" />
+            </template>
+          </Button>
+          <Button
+            v-tooltip.top="$t('member.action.more')"
+            :aria-label="$t('member.action.more')"
+            rounded
+            size="small"
+            severity="secondary"
+            text
+            @click="openMoreMenu($event, data)"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'ellipsis-vertical']" />
+            </template>
+          </Button>
+        </div>
+      </template>
+      </PaginationTable>
+
+      <button
+        v-show="canScrollLeft"
+        type="button"
+        class="scroll-hint scroll-hint-left"
+        :style="{ top: `${headerHeight / 2}px` }"
+        :aria-label="$t('member.table.scroll_prev')"
+        @click="scrollByViewport(-1)"
+      >
+        <FontAwesomeIcon :icon="['far', 'chevron-left']" />
+      </button>
+      <button
+        v-show="canScrollRight"
+        type="button"
+        class="scroll-hint scroll-hint-right"
+        :style="{ top: `${headerHeight / 2}px`, right: `${frozenRightWidth}px` }"
+        :aria-label="$t('member.table.scroll_next')"
+        @click="scrollByViewport(1)"
+      >
+        <FontAwesomeIcon :icon="['far', 'chevron-right']" />
+      </button>
+        </div>
+      </template>
+    </Card>
+
+    <Menu
+      ref="moreMenu"
+      :model="moreMenuItems"
+      popup
+    >
+      <template #item="{ item, props }">
+        <a
+          v-bind="props.action"
+          class="flex items-center gap-2"
+        >
+          <FontAwesomeIcon
+            :icon="item.faIcon"
+            class="w-4"
+          />
+          <span>{{ item.label }}</span>
+        </a>
+      </template>
+    </Menu>
+
+    <MemberDetailDialog
+      v-model:visible="detailVisible"
+      :member="activeMember"
+    />
+
+    <MemberOrdersDialog
+      v-model:visible="ordersVisible"
+      :member="activeMember"
+    />
+
+    <MemberPointsDialog
+      v-model:visible="pointsVisible"
+      :member="activeMember"
+    />
+
+    <MemberMessageDialog
+      v-model:visible="messageVisible"
+      :member="activeMember"
+    />
+  </div>
+</template>
+
+<style scoped>
+/*
+ * §7.5 橫向捲動可發現性：圓形箭頭按鈕，垂直對齊表頭列、貼齊凍結欄內側（比照訂單管理範式）。
+ * 顏色走 --p-* token（深色安全）；陰影用半透明黑，不受主題影響。
+ */
+.scroll-hint {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 9999px;
+  background: var(--p-content-background);
+  color: var(--p-text-muted-color);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.scroll-hint:hover {
+  color: var(--p-primary-color);
+  border-color: var(--p-primary-color);
+}
+.scroll-hint-left {
+  left: 0.25rem;
+}
+.scroll-hint-right {
+  right: 0.25rem;
+}
+</style>

@@ -12,6 +12,7 @@ export const RouteName = {
   LiveOrderPostList: 'live.order.post.list',
   LiveOrderCommunity: 'live.order.community',
   LiveRecords: 'live.records',
+  BidList: 'live.bid_list',
   MultiCartSettings: 'live.multi_cart_settings',
 } as const
 
@@ -62,6 +63,16 @@ export const liveOrderRoutes: RouteRecordRaw[] = [
     component: () => import('@/admin/views/live-records/LiveRecordsPage.vue'),
     meta: {
       i18nKey: 'route.live_records',
+      permissionKey: PERMISSIONS.LIVE_ORDER_VIEW,
+      layout: 'default',
+    },
+  },
+  {
+    path: 'bid-list',
+    name: RouteName.BidList,
+    component: () => import('@/admin/views/live/bid-list/BidListPage.vue'),
+    meta: {
+      i18nKey: 'route.bid_list',
       permissionKey: PERMISSIONS.LIVE_ORDER_VIEW,
       layout: 'default',
     },

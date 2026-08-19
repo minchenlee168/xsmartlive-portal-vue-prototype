@@ -1,6 +1,7 @@
 import type { PermissionKey } from '@/admin/constants/permissions'
 import { RouteName } from '@/admin/router'
 import liveLogoUrl from '@/admin/assets/live-logo.svg'
+import memberListIconUrl from '@/admin/assets/icons/icon-member-list.svg'
 
 export interface MenuItem {
   labelKey: string
@@ -15,6 +16,8 @@ export interface MenuItem {
   permissionKey?: PermissionKey | PermissionKey[]
   /** 規劃中：不導頁，只跳「此功能規劃中」toast。 */
   planning?: boolean
+  /** 標籤後方的小徽章（如 '🚧' 表示規劃中）。 */
+  badge?: string
 }
 
 /**
@@ -26,34 +29,18 @@ export interface MenuItem {
  * 客服管理 / 會員管理 / 設定…）暫不列入。
  */
 export const sidebarMenu: MenuItem[] = [
-  /* 直播收單區暫時隱藏（先隱藏，日後恢復移除此註解即可）
+  // 綜合收單區：目前僅「得標清單」已實作
   {
-    labelKey: 'nav.live',
+    labelKey: 'nav.live_commerce',
     imgSrc: liveLogoUrl,
     items: [
       {
-        labelKey: 'nav.live_order',
-        icon: ['far', 'circle-play'],
-        to: RouteName.LiveOrder,
-      },
-      {
-        labelKey: 'nav.live_order_post',
-        icon: ['far', 'comment'],
-        to: RouteName.LiveOrderPost,
-      },
-      {
-        labelKey: 'nav.live_order_community',
-        icon: ['far', 'users'],
-        to: RouteName.LiveOrderCommunity,
-      },
-      {
-        labelKey: 'nav.live_records',
-        icon: ['far', 'clipboard-list'],
-        to: RouteName.LiveRecords,
+        labelKey: 'nav.bid_list',
+        icon: ['far', 'list-radio'],
+        to: RouteName.BidList,
       },
     ],
   },
-  */
   {
     labelKey: 'nav.product.product',
     icon: ['far', 'box-isometric'],
@@ -128,6 +115,18 @@ export const sidebarMenu: MenuItem[] = [
         labelKey: 'nav.keyword_lottery',
         icon: ['far', 'hashtag'],
         to: RouteName.KeywordLotteryList,
+      },
+    ],
+  },
+  // 會員管理：目前僅「會員列表」已實作
+  {
+    labelKey: 'nav.member',
+    icon: ['far', 'users'],
+    items: [
+      {
+        labelKey: 'nav.member_list',
+        imgSrc: memberListIconUrl,
+        to: RouteName.MemberList,
       },
     ],
   },

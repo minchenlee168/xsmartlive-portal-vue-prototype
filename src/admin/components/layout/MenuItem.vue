@@ -119,8 +119,17 @@ function resolveChildKey(child: MenuItem, index: number): string {
         :icon="item.icon"
       />
       <Transition name="menu-label">
-        <span v-if="props.isExpanded">
+        <span
+          v-if="props.isExpanded"
+          class="flex items-center gap-1.5"
+        >
           {{ $t(item.labelKey) }}
+          <span
+            v-if="item.badge"
+            class="text-xs leading-none font-normal opacity-70 whitespace-nowrap"
+          >
+            {{ item.badge }}
+          </span>
         </span>
       </Transition>
     </a>
@@ -143,8 +152,17 @@ function resolveChildKey(child: MenuItem, index: number): string {
         :icon="item.icon"
       />
       <Transition name="menu-label">
-        <span v-if="props.isExpanded">
+        <span
+          v-if="props.isExpanded"
+          class="flex items-center gap-1.5"
+        >
           {{ $t(item.labelKey) }}
+          <span
+            v-if="item.badge"
+            class="text-xs leading-none font-normal opacity-70 whitespace-nowrap"
+          >
+            {{ item.badge }}
+          </span>
         </span>
       </Transition>
     </button>
@@ -171,8 +189,17 @@ function resolveChildKey(child: MenuItem, index: number): string {
         :icon="item.icon"
       />
       <Transition name="menu-label">
-        <span v-if="props.isExpanded">
+        <span
+          v-if="props.isExpanded"
+          class="flex items-center gap-1.5"
+        >
           {{ $t(item.labelKey) }}
+          <span
+            v-if="item.badge"
+            class="text-xs leading-none font-normal opacity-70 whitespace-nowrap"
+          >
+            {{ item.badge }}
+          </span>
         </span>
       </Transition>
     </RouterLink>

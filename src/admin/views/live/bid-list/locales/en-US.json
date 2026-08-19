@@ -1,0 +1,1064 @@
+{
+  "bid_list": {
+    "title": "Bid Order List",
+    "design_note": {
+      "title": "Bid Order List | Page Handbook",
+      "content": "This page centralizes in-progress live-stream bid orders so merchants can help customers check out, mark as complete, discard, notify, batch process, modify, and manually add bids.\n• Filter bar puts search type + keyword + date range (defaults to the last 30 days ending today; with Today / Last 7 days / Last 30 days shortcuts beside it, each ending today; all filters take effect instantly with no Apply button; rapid consecutive changes always show results for the latest conditions only) on the first row, and order method (Live order / Post order / Group order, clearable), bid source (Facebook / IG / TikTok / LiveBuy, clearable), bid status (Incomplete / Transferred to completed / Transferred to order / Discarded, clearable), bid/product attributes (Preorder / Add-on item / Free shipping item, multi-select), session (multi-select, OR logic), referral code (With referral code / Without referral code, clearable) and grouping plus Clear / Save on the second row, with small saved-filter buttons listed below it (click a name to apply its saved dropdown values, click a cross to remove it; Save is disabled when no dropdown filter is set, up to 10 saved filters with names of at most 20 characters; the save dialog pre-fills the name with the selected option labels joined by '-', and a cross in the input clears it, with a footnote that only dropdown values are saved (keyword and date range excluded)); there is no advanced filter popover.\n• The bid/product attributes dropdown is multi-select (Preorder / Add-on item / Free shipping item); bids matching any checked attribute are listed. With selections the trigger shows \"Bid/Product attributes (n)\" and a \"✕ Clear (n)\" row appears at the top of the panel.\n• Sorting moved to the table header: a single sort icon beside the \"Time\" column title opens a menu of bid create / bid update / product card create time; a rating-sort icon sits beside \"Winner / Rating\"; for the same field the first click sorts newest first (rating: highest first), the second reverses, the third clears; time and rating sorts are mutually exclusive and apply to the filtered result.\n• A \"Quick filters\" row sits above the list: FB, IG, TikTok and LiveBuy source chips (two-way synced with the bid source dropdown), then a divider, then Incomplete, Transferred to completed, Transferred to order and Discarded status chips (two-way synced with the bid status dropdown). Clicking a chip applies it and clicking it again clears; the grouping dropdown offers three clearable grouping scenarios (group by same bid, by multi-cart, by cart), and no status chip is highlighted when a grouping type is selected.\n• A primary \"Batch actions\" dropdown sits at the right of the page title row (same style as Order Management): the panel opens with a small caption \"Choose a batch action\", listing top-down Batch Discard (red destructive item, first), Batch Transfer to Complete, Batch Preorder Arrival, Batch notify, Batch Rating (pick 1-5 stars directly in the panel, same star style as in-row ratings), Batch Transfer to Order, Batch Print Bid, and Batch Transfer to Preorder; next to it sits the \"+ New blank bid\" button (white outlined style), then text buttons in order: \"Price History Lookup\", \"Bid Settings\".\n• Picking \"Batch notify\" enters batch notify mode: only unfinished rows are selectable (rows already transferred to order / completed or discarded show no checkbox); after selecting, click \"Next (set notification)\" to open the notification dialog — first pick a notification type (Cashout urge / Bid winner, default Cashout urge), then pick a channel (LINE / Messenger / SMS) alongside the Notification history button; clicking \"Send\" shows a success toast that matches the picked notification type, closes the dialog, and exits batch mode, while Cancel keeps the mode and selection.\n• Picking \"Batch Transfer to Preorder\" enters batch transfer to preorder mode: only unfinished rows are selectable (rows already transferred to order / completed or discarded show no checkbox); after selecting, click \"Next (confirm)\" to open a dialog listing the selected bids (create time, buyer, bid number, quantity, subtotal, pre-checked by default) which can be unchecked; the Convert button is disabled when nothing is selected; submitting shows a success toast, closes the dialog, and exits batch mode; Cancel keeps the mode and selection.\n• \"Bid Settings\" opens a settings dialog split into two cards - Auto reminder and Auto discard: the Auto reminder card on top (switch + send a reminder N hour(s) after winning, up to 23; skipped when less than one day apart from the last reminder; unaffected by the Auto discard switch); the Auto discard card below holds a main switch (Auto discard) plus discard timing (auto discard after N hours or days), pre-discard reminder (switch + send the last reminder N hour(s) before the deadline, up to 23; the whole section is disabled with a note when discard timing exceeds 1 day 23 hours), scope (exclude preorder / manual bids), winning-amount threshold (switch + amount, bids at or above the threshold go to manual handling), and post-discard actions (add to blacklist after N discards). Each card also has a mute time start / end range at the bottom (always on, no switch; grayed out when the card's main switch is off), with a hint that merchants commonly set 22:00 - 08:00, and a ? icon next to the section title shows the trigger rule (if the reminder time falls within the mute window, it will be sent right before the mute window begins). Fields in the Auto discard card are grayed out when its main switch is off; saving shows a success toast.\n• Picking any batch action enters a \"batch mode\": a mode bar appears above the list with the mode name and \"X selected · N selectable (per current filter)\" on the left, and Select all eligible / Next / Cancel on the right; only then does the table show the header select-all and per-row checkboxes. Clicking Next opens the original confirm dialog, and finishing exits the mode and clears the selection. In Batch Transfer to Complete only unfinished rows without the preorder attribute show checkboxes; in Batch Preorder Arrival only rows with the preorder attribute do - select-all and the selectable count cover only those rows.\n• The \"+ New blank bid\" button (white outlined style, matching the buttons to its right) sits next to \"Batch actions\" on the page title row and directly opens a blank manual bid dialog; the toolbar above the table only appears in Preorder display mode.\n• Main table: each row shows the Time column (create / update / product-card-created time, icon-labeled with minute precision), status / multi-cart (status pill + cart name), winner card + rating, Bid source / Method / Session / Message (first line shows the platform icon and order method, second line the session name, third line the message; rows with the preorder attribute show a blue \"Preorder\" pill next to the order method), product image (for add-on products, the product-card image is shown first when set; otherwise the product photo, and the not-uploaded hint only when both are missing), product name + free-shipping pill + add-on badge, spec note, quantity, amount, and per-row action buttons.\n• When Grouping is set to \"Group by same bid,\" the table switches to a grouped view: one row per (session × product) with columns for created time, session name, product name, bid count, spec note, and two per-row actions (Batch edit / Batch update).\n• Grouped view \"Batch edit\" opens a batch quantity editor dialog: category accordion (Meat / Seafood / Fried / 1212 / ee) with a - / + stepper per product; top-right search supports Product code / Product name; footer offers Reset, Save, Close.\n• When Display type is set to \"Preorder\": only rows with isPreorder are shown; a \"(Preorder item)\" label appears above the product name; a green \"Preorder arrival\" button appears above the table; unfinished-row \"Transfer to complete\" is replaced with the green \"Preorder arrival\" icon; the sort options (time and rating, both directions) apply to list ordering.\n• Preorder arrival (shared by single and batch): clicking the button opens a \"Are you sure you want to mark the preorder as arrived (settle the bill)?\" dialog with an additional-information input and a checkbox to append it after the original session name; submit validates - checked but empty warns \"must not be empty\", unchecked with input warns \"tick the checkbox first\", both empty triggers a second confirm \"no additional information will be appended\"; success shows a toast.\n• Display scenarios are wired (mirroring 168money showStatus; the four status scenarios switch via quick filters or the bid status dropdown, the grouping scenarios via the grouping dropdown; all = nothing selected):\n  - Incomplete, Transferred to completed, Transferred to order, Discarded: filter by bid status.\n  - Group by same bid: switches to grouped view.\n  - Preorder / Multi-cart / Default cart: filter by bidOriginType (order-source type 2/5/6); community bids are now filtered via the order-method dropdown (Group order).\n  - Add-on items (last 7 days): isAddOn rows whose createTime is within 7 days of the mockup anchor date (2026-07-14).\n  - LiveBuy bids are now filtered via the bid-source dropdown (bid source = LiveBuy).\n  - LiveBuy recommended bids are now filtered via the referral-code dropdown (With referral code).\n• Row status drives action buttons: unfinished shows Discard / Transfer to Order / Manual Bid / Transfer to Complete / Transfer Bid in that order (Discard always first); unfinished rows with the preorder attribute show a green \"Preorder Arrival\" instead of Transfer to Complete / Transfer to Order (arrival must come first); Transfer to Order opens the same checkout dialog as \"Batch Transfer to Order\"; discarded rows show Restore to Cart. A status pill always shows in the \"Status / Multi-cart\" column: Pending (orange), Transferred to order / Transferred to completed (green), Discarded (red). Manual Bid, Edit, Add/Remove Single-Item Free Shipping, Print and Notify are always available (in that order; Notify opens the notification dialog with a switchable notification type: Cashout urge / Bid winner, default Cashout urge); when a row has more than 4 action buttons, only the first 3 show and the 4th becomes a \"More\" (⋮) button that opens a top-down vertical menu with the remaining actions.\n• Row-level \"Edit data\" opens the edit dialog: order method shown read-only below the title, live source (FB / IG / TikTok) read-only, type (cart / multi-cart / preorder) editable, winner info shows only the social name and social ID (display-only) and clicking the block opens the winner profile dialog (avatar, winning platform, social ID, member ID / name, LINE binding), session / spec / spec note / unit price / quantity editable (switching the spec overwrites the spec note with the new spec name; checking \"Keep note when switching spec\" keeps the manual note, and the ? icon next to it shows an explanation) while the product photo is display-only and is grouped with initial / current stock in an info card (no cost field); product name / code are editable; choosing the \"Multi-Cart\" type reveals multi-cart name (pick existing or enter new) and delivery type (ambient / chilled) fields with a \"Set Multi-Cart Shipping Fee\" link; for bids already converted to order / completed order, unit price, quantity and weight are locked with a red hint; footer offers Manual bid, Batch update, Save, Back; \"Batch update\" first shows a scope prompt (all bids of the same product created in the same batch and not yet converted — across pages, regardless of list selection; quantity excluded) and submits only after confirmation.\n• A green \"Export\" button sits to the right of the \"Group by\" dropdown in the second filter row; it is disabled with a \"Select a start and end date to export\" tooltip until the filter date range has both a start and an end date; clicking \"Export\" first opens the export settings dialog: options (separate add-on section / include photos / sort by customer — \"include photos\" means the exported file contains both the product screenshot and the member avatar) and sort order (newest first / oldest first). Only confirming \"Export\" inside the dialog shows an export-started notice.\n• Price History Lookup dialog: although this dialog lives on the Bid List page, it actually queries a product card's price history — data is scoped to session × product (one row = one product card). The search bar holds a product-name search box (fuzzy) with a Pick Product button beside it (opens the shared product picker; picking one fills the name back into the input) and a date range field (typed or picked start / end, draft defaults to the last 3 months); opening the dialog shows an empty-state prompt to enter conditions and click Apply, and changes to conditions do not affect the result area until Apply is clicked. Seven summary cards show record count, total quantity, average, max, min, total and discard rate alongside the results. The result area shows the trend chart (on top) and the detail table (below) at the same time, both driven by the same query result; the trend chart is a single line for this product's price history (discards excluded), with created time on the X axis and bid amount on the Y axis; the detail table columns are Created at / Image / Product ID / Session / Spec / Source / Order method / Quantity / Bid amount / Actions and no longer repeats the product name column. Detail-table columns are sortable and the paginator appears below the detail table only when there are more than 10 records (chart is not affected). A flat row under the search bar filters the results further: order source and order method dropdowns. The result area's top-right offers Export (mockup toast only). Each row ends with Go to session and Copy this price (both mockup toasts). When nothing matches, an empty state is shown.\n• The Notification History dialog switches its scope by launch source: when opened from a row-level Notify dialog it lists only that single bid's notifications (columns: created at, notification type, channel, status) with the bid ID in the title; when opened from the Batch notify dialog it keeps the per-session aggregate (one row per session).\n• Multiple context dialogs: Helper Checkout, Batch Transfer to Preorder, Print Bid, Notify (single / batch), Notify History (per-bid / by session), Manual Bid / Form, Edit Bid Data, Live Product Sales, Batch Done, Image Preview, Export.",
+      "operation_guide": "[Understand what this page does]\n• Manage in-progress live-stream bids: reconcile, chase payments, help customers check out\n• This is a mockup; most actions show a dialog or toast and do not change backend data\n\n[Search & filter]\n• \"Quick filters\" row above the list: FB / IG / TikTok / LiveBuy source chips and Incomplete / Transferred to completed / Transferred to order / Discarded status chips (separated by a divider): click to apply, click again to clear; two-way synced with the bid source and bid status dropdowns\n• Filter area has two rows: search type + keyword + date range; order method, bid source, bid/product attributes, session, referral code, grouping, Export, Clear, Save; all filters apply instantly\n• Search types: Facebook name, Facebook/LiveBuy ID, session, product name, spec note, multi-cart name, bid number\n• Grouping dropdown (no standalone label; shows \"Grouping\" hint when empty): group by same bid, by multi-cart, by cart, clearable with ✕ (status scenarios switch via the quick filters or the bid status dropdown)\n• Date range: defaults to the last 30 days ending today; start and end can be adjusted\n• Bid source dropdown: shows an \"Bid source\" hint when unselected; options are Facebook / IG / TikTok / LiveBuy, clearable with ✕\n• Bid status dropdown: shows a \"Bid status\" hint when unselected; options are Incomplete / Transferred to completed / Transferred to order / Discarded, two-way synced with the status chips, clearable with ✕\n• Referral code dropdown: shows a \"Referral code\" hint when unselected; options are With referral code / Without referral code (filters bids carrying a LiveBuy referral code), clearable with ✕\n• Bid/Product attributes dropdown: shows a \"Bid/Product attributes\" hint when unselected; multi-select Preorder / Add-on item / Free shipping item, rows matching any checked item are listed; the \"✕ Clear (n)\" row at the top clears all\n• Session dropdown: shows a \"Session\" hint when unselected; multi-select, rows in any checked session are listed; type inside the panel to search sessions quickly; the trigger shows \"Session (n)\" with selections, and the \"✕ Clear (n)\" row at the top clears all\n• Order method dropdown: shows an \"Order method\" hint when unselected; options are Live order / Post order / Group order, clearable with ✕, and the list shows only matching bids\n• Sorting: one time-sort icon beside the \"Time\" header (opens a field menu) and one rating-sort icon beside \"Winner / Rating\"; for the same field click once for descending, twice for ascending, three times to clear; only one column sorts at a time, and hovering shows each tooltip\n• Filter changes (including keyword and dates) update the list instantly; there is no Apply button\n• Clear restores all filters to defaults\n\n[Selection & batch actions]\n• Picking any action in \"Batch actions\" enters batch mode; only then does the table show the header select-all and per-row checkboxes; Batch Transfer to Complete allows only unfinished rows without the preorder attribute, Batch Preorder Arrival only rows with it\n• The mode bar shows \"X selected · N selectable (per current filter)\"; \"Select all eligible\" checks the whole filtered list, \"Cancel\" exits the mode, and \"Next\" stays disabled until something is selected\n• Batch Transfer to Order opens a form; submit triggers a success toast\n• Batch actions dropdown (right of the page title row): top-down Batch Discard, Batch Transfer to Complete, Batch Preorder Arrival, Batch notify, Batch Rating, Batch Transfer to Order, Batch Print Bid, Batch Transfer to Preorder; next to \"Batch actions\" sits the \"+ New blank bid\" button (white outlined style; directly opens a blank manual bid dialog), then text buttons in order: Price History Lookup, Bid Settings — each opens its dialog\n• Batch notify: click to enter batch mode; only unfinished rows show a checkbox; click \"Next (set notification)\" to open the notification dialog — first pick a notification type (Cashout urge / Bid winner, default Cashout urge), then pick a channel (LINE / Messenger / SMS) alongside the Notification history button; \"Send\" shows a success toast that matches the picked notification type and exits batch mode, \"Cancel\" keeps the mode so the selection can be adjusted\n• Batch Transfer to Preorder: click to enter batch mode; only unfinished rows show a checkbox; click \"Next (confirm)\" to open a dialog listing the selected bids (pre-checked by default), which can be unchecked; \"Convert to preorder\" shows a success toast and exits batch mode; \"Cancel\" keeps the mode so the selection can be adjusted\n• The \"Notification History\" inside the \"Batch notify\" dialog lists send statistics by session (one row per session); when opened from a single row's Notify dialog it lists only that bid's notification records (created at, notification type, channel, status) with the bid ID in the title\n• Bid Settings: click \"Bid Settings\" to open the auto-discard settings dialog. Turn the main switch on to configure discard timing, exclusion scope, amount threshold, pre-discard reminder, and post-discard actions; Save shows a success toast. When the main switch is off, every field below is grayed out and disabled. Each card also has a mute time start / end range at the bottom (always on, no switch), with a hint that merchants commonly set 22:00 - 08:00, and a ? icon next to the section title reveals the trigger rule; the mute time fields gray out when the card's main switch is off\n• Batch Transfer / Batch Discard: click Next, confirm, then the batch done dialog shows and the mode exits\n• Live Product Sales / Batch Print Bid / Notify / Batch Transfer to Preorder / Manual Bid open the matching dialog\n• Price History Lookup (this dialog actually queries a product card's price history — data is scoped to session × product): the search bar holds a product-name search box (fuzzy match), a Pick Product button beside it (opens the shared product picker) and a date range field (draft defaults to the last 3 months); opening the dialog shows an empty state prompting to enter conditions and click Apply; changes to the product name, product picked, date range or advanced filters are drafts and only run the query after clicking Apply in the advanced row; seven summary cards show (record count, total quantity, average, max, min, total, discard rate); the result area shows the trend chart (on top) and the detail table (below) at the same time, both driven by the same query result (no Table / Chart toggle); the chart is a single line for this product's price history (discards excluded), with created time on the X axis and bid amount on the Y axis; the detail table columns are Created at / Image / Product ID / Session / Spec / Source / Order method / Quantity / Bid amount / Actions, product name is not repeated per row; sort columns from the header, and the paginator appears below the detail table when there are more than 10 records; a flat row under the search bar provides secondary filtering: order source and order method dropdowns, with Clear and Apply buttons on the right of the same row (Clear resets conditions to defaults and returns to the empty state; Apply runs the query); the result area's top-right has an Export button (mockup toast only); each row ends with Go to session and Copy this price; when nothing matches, an empty state is shown\n• Batch Rating: pick 1-5 stars inside the Batch actions panel to enter the mode (the bar shows the chosen stars); select rows then click Next to apply with a success toast\n• Batch Transfer to Order / Batch Print Bid: click Next to open the dialog; closing it exits the mode\n\n[Row shortcuts]\n• Unfinished: Transfer to Complete, Transfer Bid, Discard - each confirms then toasts on success; \"Transfer to Order\" opens the same checkout dialog as \"Batch Transfer to Order\"; Discard always sits last in the row actions; unfinished rows with the preorder attribute show \"Preorder Arrival\" instead of Transfer to Complete / Transfer to Order (it opens the arrival confirmation dialog)\n• Batch Preorder Arrival: only rows with the preorder attribute are selectable; select bids then click Next to open the arrival confirmation dialog; closing it exits batch mode\n• Discarded: Restore to Cart - confirm then success toast\n• Any status: Print Bid (opens dialog), Edit Data (opens the edit dialog; winner info shows only social name / ID and clicking it opens the winner profile; Save shows a success toast and Manual bid switches to the blank bid dialog, Batch update shows a scope prompt before submitting); the row action \"Notify\" opens the notification dialog (notification type toggle at the top: Cashout urge / Bid winner, default Cashout urge; channel and the \"Notification history\" button below, with the picked bid appearing in the summary list) and shows a success toast matching the picked notification type after sending\n• When a row has more than 4 action buttons, the 4th becomes a \"More\" (⋮) button: it opens a vertical menu with the remaining actions (e.g. Manual Bid / Edit / Print on unfinished rows)\n• The Add/Remove Single-Item Free Shipping row action (after Edit Data) toggles the \"Single-item free shipping\" pill next to the product name and toasts\n• Click product image for larger preview; missing image shows a red placeholder\n• Rating star hover to pick; click shows immediate toast\n\n[Pagination]\n• Default 30 rows/page; switch to 10/30/50/100\n\n[If data looks off]\n• This is a mockup; data comes from front-end fixtures. Real API will be wired later.",
+      "acceptance_criteria": "AC1: On mount, shows title \"Bid Order List\", filter bar, quick filters, table/Skeleton, and paginator sections.\nAC2: Search type dropdown has 8 options; keyword matching updates instantly when the type changes.\nAC3: The grouping dropdown has 3 items (group by same bid, by multi-cart, by cart); a placeholder shows when none is selected; clearing the selection restores the plain full list.\nAC4: Keyword, date, and dropdown changes update the list instantly; rapid changes only ever show results for the latest conditions.\nAC5: Clicking Clear restores all filters to defaults and shows \"Reset done\" toast.\nAC6: In batch mode, the header select-all picks every selectable row in the current list; unchecking clears selection; the mode bar shows the selected count.\nAC7: In batch mode the Next button is disabled while nothing is selected; it becomes clickable after selecting.\nAC8: Batch Transfer and Batch Discard confirm after Next, then show the batch done dialog and exit batch mode; in Batch Transfer to Complete only unfinished rows without the preorder attribute show checkboxes.\nAC9: Batch Transfer to Order opens a form; submitting shows a success toast and closes the dialog.\nAC10: Batch transfer to preorder mode allows only unfinished rows to be selectable; Next opens a dialog with the selected bids that can be unchecked; the Convert button is disabled when nothing is selected; submitting shows a success toast and exits the mode.\nAC11: Picking 1-5 stars inside the \"Batch actions\" panel enters batch rating mode; after selecting bids, Next applies the rating with a success toast.\nAC12: Unfinished rows show Discard / Transfer to Order / Manual Bid / Transfer to Complete / Transfer Bid buttons in that order (Discard always first); unfinished rows with the preorder attribute show \"Preorder Arrival\" instead of Transfer to Complete / Transfer to Order; transferred rows keep only Print / Edit / Add or Remove Single-Item Free Shipping actions and show a green status pill in the Status / Multi-cart column.\nAC13: Discarded rows show a red \"Discarded\" pill in the Status / Multi-cart column and a Restore to Cart button; clicking confirms first then shows success toast.\nAC14: Rows with single-item free shipping show a \"Single-item free shipping\" pill, others show none; the add/remove row action toggles the pill instantly with a toast.\nAC15: Clicking the product image opens an image preview dialog; rows without an image show a red placeholder text.\nAC16: Add-on rows show an \"Add-on\" badge below the product name; the Status / Multi-cart column always shows a status pill (Pending / Transferred to order / Transferred to completed / Discarded), plus the cart name for multi-cart rows, otherwise ---.\nAC17: Paginator appears when total > 0; page and per-page changes immediately update the query state.\nAC18: While mock loads, Skeletons appear; when there is no data, the table shows an empty state and the paginator is hidden.\nAC19: The bid source dropdown sits directly on the filter bar; there is no advanced filter panel; sorting is handled by header icons.\nAC20: When unselected, the bid source, bid status, order method and referral code dropdowns show the \"Bid source\", \"Bid status\", \"Order method\" and \"Referral code\" hints respectively; Clear returns all dropdowns to defaults and resets the header sort.\nAC21: The \"Batch actions\" dropdown at the right of the page title row lists, top-down, Batch Discard, Batch Transfer to Complete, Batch Preorder Arrival, Batch notify, Batch Rating, Batch Transfer to Order, Batch Print Bid, and Batch Transfer to Preorder; picking any item closes the panel.\nAC22: Text button \"Price History Lookup\" appears to the right of \"Batch actions\"; it opens its dialog.\nAC23: The Price History Lookup dialog actually queries a product card's price history (data is scoped to session × product); the search bar holds a product-name search box (fuzzy match) alongside a date range field; opening the dialog shows an empty state prompting to enter conditions and apply; changing any condition is treated as a draft and only takes effect after clicking Apply; when applied but nothing matches, an empty state is shown.\nAC24: Source chips sync two-way with the bid source dropdown and status chips with the bid status dropdown; clicking applies, clicking again clears; no status chip is highlighted when a grouping type is selected.\nAC25: Row-level \"Edit data\" opens the edit dialog; the order method shows read-only below the title, the live source is read-only and the type is editable, winner info shows only social name / ID and clicking it opens the winner profile dialog (winning platform, member ID / name), and Save shows a success toast.\nAC26: \"Batch update\" in the edit dialog first shows a scope prompt (same product, same creation batch, not yet converted, regardless of selection); confirming closes the dialog with a success toast.\nAC27: Switching the spec in the edit dialog rewrites the spec note with the new spec name; with \"Keep note when switching spec\" checked, the note stays unchanged.\nAC28: Choosing the \"Multi-Cart\" type in the edit dialog shows the multi-cart name and delivery type fields; other types hide them.\nAC29: Product name and code are editable in the edit dialog; the product photo is display-only.\nAC30: For bids converted to order / completed order, unit price, quantity and weight are locked with a red hint.\nAC31: The edit dialog shows initial and current stock; the weight field is editable with a red batch-refill note.\nAC32: The order method dropdown has 3 items (Live order / Post order / Group order); selecting one filters the list, and the message column becomes \"Bid source / Method / Session / Message\" — the first line shows the platform icon and the order method as a short label (Live / Post / Group), the second line the session name, the third line the message.\nAC33: The referral code dropdown has 2 items (With referral code / Without referral code); selecting one shows only matching bids.\nAC34: Picking any batch action enters batch mode: checkboxes appear only then, and the mode bar shows selected/selectable counts (per current filter) with Select all eligible / Next / Cancel; Cancel exits and clears the selection.\nAC35: For the same field, header sorting cycles descending, ascending, then off on successive clicks; time and rating sorts are mutually exclusive, and sorting applies to the filtered result.\nAC36: The bid/product attributes dropdown is multi-select (Preorder / Add-on item / Free shipping item); bids matching any checked attribute are listed, the trigger shows the selected count, and Clear inside the dropdown empties the selection.\nAC37: Picking \"Transferred to order\" in the bid status dropdown lists only transferred bids and highlights the matching chip in sync; clearing with ✕ restores all rows.\nAC38: When a row has more than 4 action buttons, only the first 3 plus a \"More\" (⋮) button show; clicking More opens a vertical menu with the remaining actions, picking one runs it and closes the menu; rows with 4 or fewer buttons show no More button.\nAC39: Choosing \"Batch Preorder Arrival\" enters batch mode where only rows with the preorder attribute show checkboxes; after selecting bids, Next opens the arrival confirmation dialog and closing it exits the mode.\nAC40: Clicking \"Transfer to Order\" on an unfinished non-preorder row opens the same checkout dialog as \"Batch Transfer to Order\", pre-filled with that row; preorder-attribute rows offer neither Transfer to Order nor Transfer to Complete until Preorder Arrival is done.\nAC41: Rows with the preorder attribute show a blue \"Preorder\" pill next to the order method in the \"Bid source / Method / Session / Message\" column; other rows do not.\nAC42: Clicking \"Bid Settings\" on the page title row opens the settings dialog; turning the Auto discard switch off grays out and disables every field under Discard timing, Scope, Amount threshold, Pre-discard reminder, and Post-discard actions.\nAC43: In the Bid Settings dialog, Save closes the dialog and shows a \"Bid settings saved\" toast; Cancel closes without any toast.\nAC44: When the Winning amount threshold, Pre-discard reminder, or Discard count tracking switches are each off, their amount / hour / count field is grayed out and cannot be edited; turning the switch on re-enables the field.\nAC45: The in-row \"Notify\" button opens the notification dialog with the notification type toggle (Cashout urge / Bid winner, default Cashout urge) and channel switch, pre-filled with that bid.\nAC46: Sending in the notification dialog shows a success toast matching the picked notification type and closes the dialog.\nAC47: Clicking \"Notification history\" in the notification dialog opens the history scoped by launch source (batch notify = by session; single row = that bid only).\nAC48: The \"Batch notify\" dialog's notification history is grouped by session, one row per session with the notification type (bid / checkout) and send statistics.\nAC49: For add-on products, the product image shows the product-card image first; falls back to the product photo when the card has no image, and shows the not-uploaded hint only when both are missing.\nAC50: The \"Export\" button is always shown to the right of the \"Group by\" dropdown in the filter row; it is disabled with a hint tooltip until the date range has both start and end dates.\nAC51: Clicking \"Export\" opens the export settings dialog: options (separate add-on section / include photos / sort by customer, with \"include photos\" checked by default) and sort order (newest first by default / oldest first); the settings persist; confirming \"Export\" in the dialog shows an export-started notice and closes it, while \"Cancel\" just closes it.\nAC52: On page load the date range defaults to the last 30 days ending today; pressing \"Clear\" also restores this 30-day default.\nAC53: With results, the Price History Lookup dialog shows seven summary cards on top: record count, total quantity, average, max, min, total, and discard rate; the total quantity and amount-based cards all exclude discarded bids.\nAC54: Advanced filters render as a flat row of dropdowns (order source, order method) with Clear and Apply buttons on the right of the same row; Clear resets conditions to defaults and returns the result area to the empty state, and only Apply triggers the query.\nAC55: The dialog uses a single product-name search box (fuzzy match); the result area shows both the trend chart (on top) and the detail table (below) at the same time; the trend chart shows a single line for this product's price history (discards excluded), with created time on the X axis and bid amount on the Y axis; the detail table lists product cards one by one (one row = a session's bid record) and no longer repeats the product name column.\nAC56: The top-right Export button shows an \"Exported (mockup)\" toast.\nAC57: Each result table row has Go to session and Copy this price buttons that show matching mockup toasts; header columns (created at, product ID, session, bid amount) sort in cycles, and the paginator appears only when there are more than 10 records.\nAC58: The Price History Lookup switches to apply-based: changes to the product-name input are treated as a draft; only clicking Apply (or pressing Enter in the input) runs the query and resets pagination to page 1.\nAC59: The detail table lists product cards one by one (one row = a session's bid record) with columns Created at / Image / Product ID / Session / Spec / Source / Order method / Quantity / Bid amount / Actions.\nAC60: In Batch notify mode, only unfinished rows show checkboxes; Next opens the notification dialog (first pick a notification type: Cashout urge / Bid winner, default Cashout urge; then pick a channel with Notification history available), and sending shows a success toast matching the picked notification type and exits the mode.\nAC61: In batch transfer to preorder mode the selected rows are pre-checked by default; rows already transferred to order / completed or discarded show no checkbox.\nAC64: A new Session multi-select dropdown is added to the filter bar; selecting sessions shows only bids in any of the chosen sessions; the ✕ clears all and restores the full list; typing inside the panel filters options in real time.\nAC65: Opening the notification history from a row-level Notify dialog shows the title with the bid ID and lists only that bid's records (columns: created at, notification type, channel, status); opening it from the Batch notify dialog shows the by-session aggregate.\nAC67: Both cards have a mute time start / end range (always on; grayed out when the card's main switch is off); a ? icon tooltip next to the section title shows the trigger rule.\nAC68: The Price History Lookup places a Pick Product button beside the product-name input; clicking it opens the shared product picker, and picking one fills its name back into the input; after filling, Apply is still required to run the query.",
+      "test_plan": "[Automated tests]\nA1: After mount, title, ? icon, filter bar, quick filters, table (or Skeletons), and paginator all exist.\nA2: useBidListFilter initial values and reset behavior match spec.\nA3: useBidListMock returns 5 fixture rows covering unfinished, transferred-to-order, transferred-to-complete, and discarded.\nA4: In batch mode, toggling the header select-all syncs every selectable row and the mode-bar count.\nA5: In batch mode, Next is disabled with no selection and enabled after selecting.\nA6: Batch Transfer / Batch Discard: after Next and confirm, the batch done dialog opens and the mode exits.\nA7: Batch Transfer to Order opens the checkout dialog; submitting shows one success toast and closes the dialog.\nA8: In Batch Transfer to Preorder dialog, Select All, single row toggle, and disabled submit button behave as specified.\nA9: Clicking the Add/Remove Single-Item Free Shipping row action toggles the pill state and fires one toast each.\nA10: Page / per-page changes update page and perPage state immediately.\nA11: Clicking the ? icon opens the handbook page in a new tab with section=bid_list.\nA12: Changing bid source or clicking a header sort icon updates the list immediately; Clear returns all dropdowns to defaults and resets the sort.\nA13: Switching order method to Live / Post / Group order leaves only matching rows; Any or Clear shows all rows again.\nA14: Switching referral code to With/Without leaves only matching rows; Any or Clear shows all rows again.\nA15: Before entering batch mode the table has no checkboxes; they appear on entry and disappear with cleared selection on Cancel.\nA16: Checking one or more bid/product attributes leaves only rows matching any of them; clicking Clear at the top of the dropdown shows all rows again.\nA17: Changing the bid source or bid status dropdown highlights the matching quick filter chip; clearing a chip empties the dropdown in sync.\nA18: In the Bid Settings dialog, turning the Auto discard main switch off grays out and disables the discard timing, scope, amount threshold, pre-discard reminder, and post-discard action fields while the Auto reminder card stays usable; turning it back on re-enables them; Save closes the dialog and fires a success toast.\nA19: When discard timing exceeds 1 day 23 hours (e.g. 2 days), the pre-discard reminder section is grayed out with an explanatory note; bringing it back within range re-enables it.\nA20: Click the Save button in the filter bar, enter a name and save - a small button with that name appears under the filter bar; clicking it applies the saved dropdown values while the keyword and date range keep their current values; the Save button is disabled when no dropdown filter is set.\nA21: Click a date shortcut (Today / Last 7 days / Last 30 days) - the date range fills in with the matching period ending today with a toast confirming it; the list filters immediately.\nA22: With 10 saved filters, entering a new name shows a limit hint and disables saving; the name input accepts at most 20 characters.\nA23: Open the save dialog - the name is pre-filled with the selected dropdown labels joined by '-'; clicking the cross in the input clears it.\n\n[Manual tests]\nM1: Filter, quick filters, and table remain usable across desktop, tablet, and mobile widths.\nM2: Tab order: filter fields -> Clear/Save -> quick filters -> row buttons -> ? icon.\nM3: All dialogs close on ESC; outside click follows the spec.\nM4: When switching to a discarded row, the red \"Discarded\" pill in the Status / Multi-cart column and the Restore to Cart button render correctly.\nM5: After applying Batch Rating, the ratings of the selected rows visually sync (at the mock data level).\nM6: Scrolling, paging, and selection stay smooth under a large data set.\nM7: Click row-level \"Edit data\" - the dialog is pre-filled with the row and winner info has no editable inputs; clicking the winner block opens the winner profile dialog (avatar, winning platform, member ID / name); \"Save\" closes with a success toast, \"Manual bid\" switches to the blank bid dialog.\nM8: Click \"Batch update\" in the edit dialog - a scope prompt appears; cancel keeps the dialog open, confirm closes it with a success toast; red batch hints show under unit price / quantity.\nM9: Switch the spec in the edit dialog - the spec note is overwritten with the new spec name; check \"Keep note when switching spec\" and switch again - the note is kept; the ? icon opens an explanation popup.\nM10: Switch the type to \"Multi-Cart\" - name dropdown / new-name input and ambient / chilled options appear; clicking \"Set Multi-Cart Shipping Fee\" shows an info toast.\nM11: Open the edit dialog on a converted row - unit price / quantity / weight are locked.\nM12: Click source and status quick filter chips: the selected one turns primary, the list switches immediately and the matching dropdown syncs; clicking again clears both.\nM13: Click \"More\" (⋮) on an unfinished row: the vertical menu lists Manual Bid / Edit / Add or Remove Single-Item Free Shipping / Print and each runs its action; transferred rows have 4 or fewer buttons and show no More button.\nM14: Pick \"Batch Preorder Arrival\" in Batch actions: only rows with the preorder attribute show checkboxes; select bids and click Next to open the arrival confirmation dialog; closing it exits batch mode.\nM15: Pick \"Batch Transfer to Complete\": only unfinished rows without the preorder attribute show checkboxes; click \"Transfer to Order\" on an unfinished non-preorder row - the \"Batch Transfer to Order\" dialog opens with that row; unfinished preorder-attribute rows only offer \"Preorder Arrival\", with no Transfer to Complete / Transfer to Order.\nM16: Click \"Bid Settings\" on the page title row to open the dialog; turn the Auto discard main switch off - fields in the Auto discard card are grayed out and disabled while the Auto reminder card on top stays usable; turn it on to adjust discard timing (value and unit), exclusion checkboxes, amount threshold, pre-discard reminder hours, and blacklist threshold; the Auto reminder card has its own switch and reminder hours; click Save to close with a success toast, and reopening the dialog keeps the previously set values.\nM17: Set discard timing to 2 days - the pre-discard reminder section grays out with a disabled reason; set it back within 1 day to make it adjustable again.\nM18: Set several dropdown filters, click the filter-bar Save button and name it - a saved-filter button appears; change the dropdowns then click that button - the saved values are restored and the list updates immediately with keyword and dates untouched; click the cross - a confirmation appears and the button is removed only after confirming (cancel keeps it); reopen the save dialog - existing saved filters are listed in the dialog, clicking a name fills it in with an overwrite hint and the save button reads Overwrite - saving updates that entry without adding a new button.\nM19: Click each date shortcut in turn - the date range updates to each period and the list filters immediately; with 10 saved filters, entering a new name shows the limit hint and cannot be saved, while clicking an existing name to overwrite still works.\nM20: Click the in-row \"Notify\" button - the notification dialog opens with the notification type defaulted to Cashout urge (switchable to Bid winner); the picked bid appears in the summary list below; toggle the channel and click Send - a success toast matching the picked notification type shows and the dialog closes.\nM21: Click \"Notification history\" in the notification dialog - each session row shows the notification type and send statistics.\nM22: Check the product image on add-on rows - rows with a product-card image show it, rows with only a product photo show the photo, and rows with neither show the not-uploaded hint.\nM23: Without dates, hover over \"Export\" - the button is disabled and a \"select a start and end date\" tooltip shows; set both dates - the button becomes enabled; click \"Export\" to open the settings dialog, toggle options and sort, cancel and reopen - the settings persist; confirm \"Export\" in the dialog - an export-started notice shows and the dialog closes; clear the dates - the button becomes disabled again.\nM24: Open Price History Lookup - the result area is empty and shows the prompt to enter conditions and apply; typing in the product-name input does not change the list (draft only); click Apply below to run the query and show results; typing a non-existent name and applying shows the empty state; click Clear to reset conditions to defaults and return to the empty state.\nM25: The date range field sits on the search bar (next to the product-name box); opening the dialog pre-fills the draft with the last 3 months; adjusting start / end or the advanced dropdowns (order source, order method) stays as a draft and does not change the results; only clicking Apply in the advanced row runs the query; clicking Clear resets all conditions to defaults and returns the result area to the empty state with a matching toast.\nM26: The result area shows the trend chart (on top) and the detail table (below) at the same time; the chart is a single line for this product's price history (discards excluded), with created time on the X axis and bid amount on the Y axis; click a detail-table header - sorting toggles direction and the icon updates, chart reflects the same data; with more than 10 records the paginator appears below the detail table and does not affect the chart.\nM27: Click Export in the result area - an \"Exported (mockup)\" toast shows.\nM28: Click Go to session and Copy this price on a row - each shows its mockup toast (no real navigation or clipboard write).\nM29: The detail table lists product cards one by one (one row = a session's bid record) with columns Created at / Image / Product ID / Session / Spec / Source / Order method / Quantity / Bid amount / Actions (product name is not repeated per row); click a header to toggle sort direction; each row ends with Go to session and Copy this price, each showing a matching mockup toast.\nM30: Pick \"Batch notify\" in Batch actions - checkboxes appear on unfinished rows only, other rows show none; after selecting bids, Next opens the notification dialog; the notification type defaults to Cashout urge and can be switched to Bid winner, then Send shows a matching \"Sent N cashout / bid winner notifications\" toast, closing the dialog exits batch mode.\nM31: Pick \"Batch Transfer to Preorder\" in Batch actions - checkboxes appear on unfinished rows only, other rows show none; after selecting bids, Next opens a dialog listing the selected rows (pre-checked by default) which can be unchecked; the Convert button is disabled when nothing is selected; submitting shows a success toast and exits batch mode.\nM33: Check 2 sessions - the list shows only bids in those two sessions; type a session-name keyword in the panel - options filter live; then enter any batch mode and click \"Select all eligible\" - only selectable rows within those two sessions are checked.\nM34: Click \"Notify\" on a single row - the notification dialog opens; click \"Notification history\" inside - the title carries the bid ID and the table lists only that bid's records (columns: created at, notification type, channel, status); if that bid has no records the \"No notification history for this bid\" empty state shows; opening the same dialog from Batch notify lists the by-session aggregate.\nM36: Both cards have a mute time start / end range; when the card's main switch is off the range grays out; clicking the ? icon next to the section title reveals the trigger rule.\nM37: Open Price History Lookup - the empty-state prompt to enter conditions and apply shows; type in the product-name input or use Pick Product to fill a product name - conditions are draft, results unchanged; click Apply - results appear per conditions; click Clear - conditions reset to defaults and results return to the empty state."
+    },
+    "filter": {
+      "label": {
+        "search_by": "Search by",
+        "date_range": "Date range",
+        "product_name": "Price history lookup"
+      },
+      "placeholder": {
+        "keyword": "Type a keyword to filter instantly",
+        "date_range": "YYYY/MM/DD - YYYY/MM/DD",
+        "product_name": "Enter product name and press Enter",
+        "by_search_type": {
+          "facebookName": "Enter Facebook name",
+          "facebookOrLivebuyId": "Enter Facebook ID or LiveBuy ID",
+          "session": "Enter session name",
+          "productName": "Enter product name",
+          "specNote": "Enter spec note",
+          "multiCartName": "Enter multi-cart name",
+          "bidNumber": "Enter bid number"
+        },
+        "display_type": "Grouping",
+        "source": "Bid source",
+        "bid_status": "Bid status",
+        "product_attributes": "Bid/Product attributes",
+        "order_method": "Order method",
+        "invite_code": "Referral code",
+        "session": "Session",
+        "multi_cart_select": "Select multi-cart name"
+      },
+      "date_quick": {
+        "today": "Today",
+        "last_7_days": "Last 7 days",
+        "last_30_days": "Last 30 days"
+      },
+      "toast": {
+        "date_quick_filled": "Date range {label} filled in"
+      },
+      "button": {
+        "search": "Search",
+        "reset": "Clear",
+        "save_filter": "Save",
+        "price_history": "Price history lookup"
+      },
+      "search_type": {
+        "facebook_name": "Facebook name",
+        "facebook_or_livebuy_id": "Facebook ID or LiveBuy ID",
+        "session": "Session",
+        "product_name": "Product name",
+        "spec_note": "Spec note",
+        "multi_cart_name": "Multi-cart name",
+        "bid_number": "Bid number"
+      },
+      "display_type": {
+        "show_all": "Incomplete + completed",
+        "show_incomplete": "Incomplete only",
+        "show_completed": "Completed only",
+        "show_discarded": "Discarded only",
+        "group_by_same_bid": "Group by same bid",
+        "preorder": "Preorder",
+        "multi_cart": "By multi-cart",
+        "add_on_recent": "Add-on (last week)"
+      },
+      "source_type": {
+        "fb": "Facebook",
+        "ig": "IG",
+        "tiktok": "TikTok",
+        "livebuy": "LiveBuy"
+      },
+      "bid_status": {
+        "unfinished": "Incomplete",
+        "completed": "Transferred to completed",
+        "transferred_to_order": "Transferred to order",
+        "discarded": "Discarded"
+      },
+      "order_method": {
+        "live": "Live order",
+        "post": "Post order",
+        "community": "Group order"
+      },
+      "invite_code": {
+        "has": "With referral code",
+        "none": "Without referral code"
+      },
+      "product_attributes": {
+        "preorder": "Preorder",
+        "add_on": "Add-on item",
+        "free_shipping": "Free shipping item",
+        "trigger": "Bid/Product attributes ({count})",
+        "clear": "Clear ({count})"
+      },
+      "session": {
+        "trigger_label": "Session ({count})",
+        "filter_placeholder": "Search session",
+        "clear": "✕ Clear ({count})"
+      },
+      "multi_cart": {
+        "empty": "No multi-cart names yet"
+      }
+    },
+    "action": {
+      "preview_image": "Preview product image",
+      "batch_menu_title": "Choose a batch action"
+    },
+    "batch_mode": {
+      "title": {
+        "batch_transfer_complete": "Batch transfer-to-complete mode",
+        "batch_preorder_arrival": "Batch preorder arrival mode",
+        "notify_cashout": "Batch notify mode",
+        "batch_rating": "Batch rating mode ({rating} stars)",
+        "helper_transfer_order": "Batch transfer to order mode",
+        "print_bid": "Batch print bid mode",
+        "order_modification": "Batch transfer to preorder mode",
+        "batch_discard": "Batch discard mode"
+      },
+      "summary": "{selected} selected · {selectable} selectable (per current filter)",
+      "button": {
+        "select_all": "Select all eligible",
+        "cancel": "Cancel"
+      },
+      "next": {
+        "batch_transfer_complete": "Next: confirm transfer",
+        "batch_preorder_arrival": "Next: preorder arrival",
+        "notify_cashout": "Next (set notification)",
+        "batch_rating": "Next: apply rating",
+        "helper_transfer_order": "Next: batch transfer to order",
+        "print_bid": "Next: batch print bid",
+        "order_modification": "Next (confirm)",
+        "batch_discard": "Next: confirm discard"
+      }
+    },
+    "button": {
+      "helper_transfer_order": "Batch Transfer to Order",
+      "batch_menu": "Batch actions",
+      "batch_transfer_complete": "Batch transfer to complete",
+      "batch_preorder_arrival": "Batch Preorder Arrival",
+      "batch_discard": "Batch discard",
+      "batch_rating": "Batch update rating",
+      "live_product_sales": "Live product sales",
+      "print_bid": "Batch Print Bid",
+      "batch_notify_cashout": "Batch notify",
+      "batch_order_modification": "Batch Transfer to Preorder",
+      "manual_bid": "New blank bid",
+      "preorder_arrival": "Preorder arrival",
+      "bid_setting": "Bid Settings"
+    },
+    "table": {
+      "column": {
+        "image": "Image",
+        "multi_cart": "Status / Multi-cart",
+        "product": "Product name",
+        "spec": "Spec",
+        "winner": "Winner / Rating",
+        "message": "Bid source / Method / Session / Message",
+        "actions": "Actions",
+        "qty_amount": "Amount / Qty",
+        "source_session_time": "Time"
+      },
+      "amount_lookup_tooltip": "Click to look up this product's price history",
+      "amount_lookup_aria": "Look up product price history: {amount}",
+      "scroll": {
+        "left": "Scroll left",
+        "right": "Scroll right to see more columns"
+      },
+      "sort": {
+        "create_time": "Sort by bid create time; to query add-on products, filter by the add-on product's create time",
+        "last_update_time": "Sort by bid update time",
+        "newly_added_time": "Sort by product card create time",
+        "rating": "Sort by rating",
+        "field": {
+          "create_time": "Bid create time",
+          "last_update_time": "Bid update time",
+          "newly_added_time": "Product card create time",
+          "rating": "Rating"
+        },
+        "time_menu": "Time sort"
+      },
+      "cell": {
+        "order_method": {
+          "live": "Live",
+          "post": "Post",
+          "community": "Group"
+        },
+        "no_product_image": "No product image uploaded",
+        "add_on": "Add-on",
+        "free_shipping": "Single-item free shipping",
+        "bid_number_prefix": "Bid #: ",
+        "cost_prefix": "Cost: ",
+        "line_bound_tooltip": "Buyer has bound the store LINE cashout notify",
+        "preorder_label": "(Preorder item)",
+        "linked_order_prefix": "Order #: ",
+        "linked_order_merged": "# Order data merged",
+        "linked_order_split": "# Order data split",
+        "no_name": "(Name not available)",
+        "platform_id": "{platform} ID",
+        "preorder_tag": "Preorder",
+        "spec_pending": "Pending spec",
+        "spec_none": "No spec",
+        "spec_bundle_more": "More +{count}",
+        "spec_bundle_collapse": "Collapse"
+      },
+      "action": {
+        "add_free_shipping": "Add single-item free shipping",
+        "remove_free_shipping": "Remove single-item free shipping",
+        "transfer_complete": "Transfer to complete",
+        "transfer_order": "Transfer to Order",
+        "convert_fbid": "Transfer Bid",
+        "discard": "Discard",
+        "restore_from_discard": "Restore to cart",
+        "print_bid": "Print bid",
+        "more": "More",
+        "copy_platform_id": "Copy {platform} ID",
+        "edit_data": "Edit data",
+        "preorder_arrival": "Preorder arrival",
+        "create_manual_bid": "Create manual bid",
+        "notify_bid_win": "Notify"
+      }
+    },
+    "status": {
+      "unfinished": "Incomplete",
+      "transferred_to_order": "Transferred to order",
+      "transferred_to_complete": "Transferred to completed",
+      "discarded": "Discarded"
+    },
+    "empty": {
+      "no_data": "No bid orders found"
+    },
+    "grouped": {
+      "column": {
+        "created_at": "Created at",
+        "session": "Session",
+        "product": "Product",
+        "bid_count": "Bid count",
+        "spec": "Spec",
+        "actions": "Actions"
+      },
+      "cell": {
+        "bid_count": "{count}"
+      },
+      "action": {
+        "batch_edit": "Batch edit",
+        "batch_update": "Batch update"
+      }
+    },
+    "dialog": {
+      "confirm_batch_transfer_complete": "Transfer {count} bid orders to completed?",
+      "confirm_batch_discard": "Discard {count} bid orders?",
+      "confirm_transfer_complete_single": "Transfer this bid order to completed?",
+      "confirm_discard_single": "Discard this bid order?",
+      "confirm_restore": "Restore this discarded bid order back to the cart?",
+      "confirm_open_multi_buyer": "{count} different buyers selected. Continue to create a merged order?",
+      "row_rating_change_confirm": "Change rating for \"{name}\" (ID: {id}) from \"{from}\" to \"{to}\"?",
+      "image_preview_title": "Product image preview"
+    },
+    "rating": {
+      "unrated": "Unrated",
+      "stars": "{n} star(s)"
+    },
+    "preorder_arrival_dialog": {
+      "title": "Are you sure you want to mark the preorder as arrived (settle the bill)?",
+      "extra_info_label": "Additional information",
+      "extra_info_placeholder": "Please enter additional information...",
+      "append_to_session_name": "If checked, the additional information will be appended after the original session name",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "error_extra_info_empty": "Additional information cannot be empty",
+      "error_check_required": "To append additional information, please tick the checkbox",
+      "confirm_no_extra_info": "No additional information will be appended to the bid"
+    },
+    "toast": {
+      "reset_done": "Reset done",
+      "select_first": "Please select at least one bid order",
+      "rating_updated": "Updated {count} bid orders to {rating} stars",
+      "row_rating_updated": "Updated to {rating} stars",
+      "transfer_complete_done": "Transferred to completed",
+      "discard_done": "Discarded",
+      "restore_done": "Restored to cart",
+      "free_shipping_toggled": "Single-item free shipping updated",
+      "free_shipping_added": "Single-item free shipping added",
+      "free_shipping_removed": "Single-item free shipping removed",
+      "notify_sent": "Notification sent",
+      "edit_data_saved": "Bid data updated",
+      "price_history_placeholder": "Price history search not implemented (mockup)",
+      "done": "Done",
+      "grouped_batch_edit_placeholder": "Batch edit: {session} × {product} (not implemented)",
+      "grouped_batch_update_placeholder": "Batch update: {session} × {product} (not implemented)",
+      "preorder_arrival_done": "Preorder bid marked as arrived",
+      "preorder_arrival_done_with_info": "Preorder bid marked as arrived; \"{info}\" appended to the session name",
+      "edit_data_batch_saved": "Batch of bids updated",
+      "copied_platform_id": "{platform} ID copied",
+      "copy_failed": "Copy failed, please copy manually"
+    },
+    "order_modification": {
+      "title": "Batch Transfer to Preorder",
+      "field": {
+        "candidates": "Selected bid orders ({count} total)"
+      },
+      "column": {
+        "create_time": "Create time",
+        "buyer": "Buyer",
+        "bid_number": "Bid number",
+        "quantity": "Qty",
+        "subtotal": "Subtotal"
+      },
+      "footer": {
+        "selected_count": "{count} selected"
+      },
+      "button": {
+        "cancel": "Cancel",
+        "submit": "Convert to preorder"
+      },
+      "toast": {
+        "success": "{count} converted to preorder (mockup)"
+      }
+    },
+    "saved_filter": {
+      "remove": "Remove saved filter",
+      "dialog_confirm_remove": "Delete saved filter {name}?",
+      "dialog": {
+        "title": "Save Filter",
+        "field": {
+          "name": "Filter name"
+        },
+        "placeholder": {
+          "name": "Enter a filter name"
+        },
+        "label": {
+          "existing": "Existing saved filters (click a name to overwrite)"
+        },
+        "hint": {
+          "overwrite": "A saved filter with this name already exists; saving will overwrite it.",
+          "scope": "* Only dropdown filter values are saved; the search keyword and selected date range are not included.",
+          "limit": "You have reached the limit of 10 saved filters. Click an existing name to overwrite it, or remove one first."
+        },
+        "button": {
+          "cancel": "Cancel",
+          "save": "Save",
+          "overwrite": "Overwrite",
+          "clear_name": "Clear name"
+        }
+      },
+      "toast": {
+        "saved": "Filter saved",
+        "updated": "Saved filter {name} overwritten",
+        "applied": "Applied saved filter {name}",
+        "removed": "Saved filter removed"
+      }
+    },
+    "bid_setting": {
+      "title": "Bid Settings",
+      "form": {
+        "section": {
+          "main_switch": "Auto discard",
+          "timing": "Discard timing",
+          "scope": "Scope",
+          "amount_threshold": "Winning amount threshold",
+          "auto_notify": "Auto reminder",
+          "pre_discard_notify": "Pre-discard reminder",
+          "post_discard": "Post-discard actions",
+          "mute_time": "Mute time"
+        },
+        "field": {
+          "auto_discard_after": "Auto discard time",
+          "exclude_preorder": "Exclude preorder bids",
+          "exclude_manual_bid": "Exclude manual bids",
+          "amount_threshold": "Threshold amount",
+          "blacklist_threshold": "Discard count tracking",
+          "mute_time_start": "Start",
+          "mute_time_end": "End",
+          "mute_time_separator": "to"
+        },
+        "unit": {
+          "hour": "Hour(s)",
+          "day": "Day(s)"
+        },
+        "hint": {
+          "main_switch": "When on, qualifying bids that are not completed by the deadline are auto-discarded; all fields below are disabled when off.",
+          "after_win_prefix": "After winning, if not completed within",
+          "after_win_suffix": ", the bid is auto-discarded",
+          "scope": "Checked items are exempt from auto discard and stay for manual handling.",
+          "amount_threshold": "When enabled, bids with a winning amount at or above the threshold are not auto-discarded and require manual handling.",
+          "currency_yuan": "NTD",
+          "auto_notify": "Automatically send a cashout reminder when a winning bid is not yet completed. Limited by Facebook's 24-hour messaging window, up to 23 hours.",
+          "auto_notify_prefix": "Send a reminder",
+          "auto_notify_suffix": "hour(s) after winning",
+          "auto_notify_conflict": "If this reminder would be sent less than one day apart from the pre-discard last reminder, it is skipped and only the last reminder is sent.",
+          "pre_discard_notify": "Send one last cashout reminder before the bid is auto-discarded. Limited by Facebook's 24-hour messaging window, up to 23 hours.",
+          "pre_discard_prefix": "Send the last reminder",
+          "pre_discard_suffix": "hour(s) before the deadline",
+          "pre_discard_locked": "Discard timing exceeds 1 day 23 hours, so the last reminder would fall outside Facebook's 24-hour messaging window; this feature is disabled.",
+          "blacklist_threshold": "When enabled, members reaching the given auto-discard count are added to the blacklist.",
+          "blacklist_prefix": "After",
+          "blacklist_suffix": "auto discards, add to blacklist",
+          "mute_time_hint": "Merchants commonly set 22:00 – 08:00",
+          "mute_time_tooltip": "If the reminder time falls within the mute window, it will be sent right before the mute window begins"
+        }
+      },
+      "button": {
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "toast": {
+        "saved": "Bid settings saved"
+      }
+    },
+    "helper_checkout": {
+      "title": "Help customer transfer order",
+      "section": {
+        "product_info": "Product info",
+        "recipient": "Recipient info",
+        "shipping_payment": "Shipping & payment",
+        "bonus_note": "Bonus & note"
+      },
+      "field": {
+        "buyer_name": "Buyer",
+        "recipient_area": "Recipient area",
+        "recipient_name": "Recipient name",
+        "recipient_phone": "Recipient phone",
+        "recipient_email": "E-mail",
+        "recipient_address": "Recipient address",
+        "payment_method": "Payment method",
+        "shipping_method": "Shipping method",
+        "bank_account_last5": "Bank account last 5 digits",
+        "self_pickup_location": "Pickup location",
+        "bonus_available": "Available bonus",
+        "bonus_used": "Bonus to use",
+        "note": "Order note"
+      },
+      "placeholder": {
+        "recipient_name": "Enter recipient name",
+        "recipient_phone": "Enter recipient phone",
+        "recipient_email": "Enter e-mail",
+        "recipient_address": "Enter full address",
+        "shipping_method": "Select shipping method",
+        "bank_account_last5": "Enter last 5 digits of bank account",
+        "note": "Optional"
+      },
+      "hint": {
+        "summary": "This will create orders for the {count} selected bid orders; customers will receive a pending-payment order.",
+        "bank_account_last5": "(Please write the transferrer's name)",
+        "select_primary_buyer": "Select the buyer for this order"
+      },
+      "dialog": {
+        "confirm_multi_buyer": "This transfer includes {count} buyers. Confirm to create the merged order?"
+      },
+      "area": {
+        "domestic": "Main island",
+        "outer_island": "Outer island"
+      },
+      "column": {
+        "product": "Product",
+        "session": "Session",
+        "quantity": "Qty",
+        "subtotal": "Subtotal"
+      },
+      "origin": {
+        "facebookPage": "Auction",
+        "preorder": "Preorder",
+        "multiCart": "Multi-cart",
+        "community": "Community post"
+      },
+      "summary": {
+        "total": "Total",
+        "unit_price": "Unit price",
+        "unit_point": "pt"
+      },
+      "payment_option": {
+        "cash_on_delivery": "Cash on delivery",
+        "bank_transfer": "Bank transfer",
+        "credit_card": "Credit card",
+        "convenience_store": "Convenience store",
+        "self_pickup": "Self pickup"
+      },
+      "shipping_option": {
+        "home_delivery": "Home delivery",
+        "convenience_store": "Convenience store pickup",
+        "pickup": "In-store pickup"
+      },
+      "button": {
+        "back": "Back",
+        "submit": "Save & submit",
+        "import_last": "Import last purchase settings"
+      },
+      "toast": {
+        "success": "Created orders for {count} bid orders",
+        "imported": "Imported last purchase settings"
+      }
+    },
+    "print": {
+      "title": "Print Bid Content",
+      "divider_start": "Print bid content",
+      "divider_end": "End of print bid content",
+      "time": "Time:",
+      "name": "Name:",
+      "session": "Session:",
+      "product_name": "Product:",
+      "quantity": "Quantity:",
+      "price": "Price:",
+      "comment": "Comment:",
+      "spec_note": "Spec note:",
+      "bid_note": "Bid note:",
+      "button": {
+        "close": "Close",
+        "print": "Print"
+      }
+    },
+    "notify": {
+      "title_cashout": "Batch notify",
+      "title_single": "Notify",
+      "channel": "Channel",
+      "button": {
+        "history": "History",
+        "send": "Send",
+        "cancel": "Cancel"
+      }
+    },
+    "notify_cashout": {
+      "notify_type_label": "Notification type",
+      "notify_type": {
+        "bid_win": "Bid winner",
+        "urge": "Cashout urge"
+      },
+      "channel_label": "Channel",
+      "channel": {
+        "line": "LINE",
+        "messenger": "Messenger",
+        "sms": "SMS"
+      },
+      "button": {
+        "history": "Notification history",
+        "send": "Send"
+      },
+      "toast": {
+        "sent": "Sent {count} cashout notifications (mockup)",
+        "sent_bid_win": "Sent {count} bid winner notifications (mockup)"
+      },
+      "hint": {
+        "line_unbound": "Some recipients not linked to LINE; other channels will be used"
+      },
+      "summary": {
+        "title": "{count} bids selected",
+        "empty": "No bids selected yet"
+      }
+    },
+    "notify_history": {
+      "title": "Notification History (by Session)",
+      "title_single": "Notification history — Bid {bidId}",
+      "column": {
+        "created_at": "Created at",
+        "trigger": "Notification Type",
+        "sessions": "Session",
+        "count": "Count",
+        "result": "Result",
+        "notify_type": "Notification type",
+        "channel": "Channel",
+        "status": "Status"
+      },
+      "result": {
+        "pending": "Pending: {count}",
+        "success": "Success: {count}",
+        "fail": "Failed: {count}",
+        "error": "Error: {count}"
+      },
+      "status": {
+        "success": "Success",
+        "fail": "Fail",
+        "pending": "Pending"
+      },
+      "button": {
+        "close": "Close"
+      },
+      "trigger": {
+        "bid_win": "Bid Notification",
+        "cashout": "Checkout Notification"
+      },
+      "empty_single": "No notification history for this bid"
+    },
+    "manual_bid": {
+      "title": "Manual Bid",
+      "filter": {
+        "all": "All",
+        "live_shopping": "Live shopping",
+        "community_shopping": "Community shopping",
+        "multi_cart": "Multi-cart",
+        "all_session": "All sessions",
+        "placeholder": "Search name / product"
+      },
+      "column": {
+        "submitted_at": "Submitted at",
+        "media": "Media",
+        "bid_number": "Bid No.",
+        "product": "Product",
+        "amount": "Amount",
+        "actions": "Actions"
+      },
+      "button": {
+        "search": "Search",
+        "create": "Add manual bid",
+        "edit_bid": "Add / Edit tag",
+        "close": "Close",
+        "new_manual_bid_from_records": "+ Add manual bid"
+      },
+      "records_note": {
+        "select_all": "Select all",
+        "column_select": "Select",
+        "column_winner": "Winner",
+        "from_records": "From bid records"
+      },
+      "tab": {
+        "bid_records": "Bid Records",
+        "create_manual_bid": "+ Add Manual Bid"
+      },
+      "session_records": {
+        "step": {
+          "select_session": "Select session",
+          "select_product": "Select product",
+          "select_member": "Select member"
+        },
+        "back": "Back",
+        "empty_session": "No sessions",
+        "empty_product": "No products in this session",
+        "empty_member": "No matching members",
+        "product": {
+          "keyword": "Keyword",
+          "price": "Unit price"
+        },
+        "member": {
+          "filter_label": "Candidate source",
+          "search_placeholder": "Search member ID / name / account / last 4 digits / email",
+          "source": {
+            "all_pool": "All candidates",
+            "smart_match": "Smart match",
+            "comment_unpaired": "Unmatched comments in this session",
+            "session_buyer": "Buyers in this session",
+            "product_buyer": "Past buyers of this product",
+            "recent": "Recently active",
+            "all": "Search all members"
+          },
+          "field": {
+            "member_code": "Member code",
+            "social": "Social account",
+            "phone_last4": "Phone last 4",
+            "email": "Email"
+          },
+          "vip": "VIP",
+          "select_all_current": "Select all shown",
+          "quantity_each": "Qty",
+          "batch_quantity_label": "Batch qty per member",
+          "batch_apply": "Apply",
+          "selected_summary": "{count} selected · {items} items total",
+          "stock_info": "Stock left: {stock}",
+          "stock_preorder": "Preorder (stock not enforced)",
+          "stock_oversell": "Oversell allowed (stock not enforced)",
+          "stock_over_warning": "Selected quantity exceeds stock. Confirm below to continue.",
+          "ignore_stock": "I acknowledge low stock and want to continue",
+          "submit_batch": "Create manual bids for {count} members",
+          "clear_selection": "Clear selection",
+          "confirm_toast": "Selected {count} members, opening manual bid form"
+        }
+      }
+    },
+    "product_picker": {
+      "title": "Select product",
+      "keyword": "Keyword",
+      "placeholder": "Search by name / keyword",
+      "search": "Search",
+      "empty": "No products",
+      "cancel": "Cancel",
+      "confirm": "Select",
+      "preorder": "Preorder",
+      "oversell": "Oversell",
+      "column": {
+        "product": "Product",
+        "keyword": "Keyword",
+        "price": "Price",
+        "stock": "Stock"
+      }
+    },
+    "manual_form": {
+      "title": "Manual Order",
+      "title_blank": "Create blank bid",
+      "title_manual": "Create manual bid",
+      "label": {
+        "order_source": "Order source",
+        "bid_source": "Bid source",
+        "session": "Session name",
+        "multi_cart_name": "Cart name",
+        "buyer_name": "Buyer name",
+        "member_id": "Member ID",
+        "product": "Product",
+        "quantity": "Quantity",
+        "unit_price": "Unit price",
+        "total": "Total",
+        "note": "Note",
+        "buyer": "Buyer"
+      },
+      "order_search": {
+        "type_label": "Search type",
+        "type_name": "Name search",
+        "type_id": "ID search",
+        "placeholder_name": "Enter a name or social account (e.g. \"Peter\")",
+        "placeholder_id": "Enter a member ID, FB ID, TikTok ID, IG ID or LiveBuy ID",
+        "search": "Search",
+        "result_title": "Search results ({count})",
+        "result_empty_hint": "Enter a keyword and click Search",
+        "result_no_match": "No matching members",
+        "already_added": "Already added",
+        "add": "Add",
+        "added_toast": "Added {name}",
+        "duplicated_toast": "{name} is already in the buyer list"
+      },
+      "order_source": {
+        "live": "Live",
+        "fan_post": "Fan-page post",
+        "community_post": "Community post",
+        "mall": "Mall"
+      },
+      "placeholder": {
+        "buyer_name": "Search name",
+        "note": "Enter note"
+      },
+      "button": {
+        "import": "Import file",
+        "download_sample": "Download sample",
+        "select_product": "Select product",
+        "change_product": "Change product",
+        "cancel": "Cancel",
+        "create": "Create",
+        "create_batch": "Create {count} manual bids"
+      },
+      "batch": {
+        "winners_label": "Winners in this batch",
+        "picked_product_label": "Picked product",
+        "column_member": "Winner",
+        "column_quantity": "Qty",
+        "column_subtotal": "Subtotal",
+        "column_actions": "Actions",
+        "remove": "Remove",
+        "total_summary": "{count} winners · {items} items · ${amount}",
+        "created_toast": "Created {count} manual bids"
+      }
+    },
+    "cart_type": {
+      "label": "Type",
+      "multi": "Multi cart",
+      "preorder": "Preorder"
+    },
+    "edit_bid": {
+      "title": "Edit Bid Data",
+      "field": {
+        "order_method": "Order method",
+        "live_source": "Bid source",
+        "session": "Session name",
+        "product_name": "Product name",
+        "product_code": "Product code",
+        "current_stock": "Current stock",
+        "unit_price": "Unit price",
+        "quantity": "Quantity",
+        "spec": "Spec",
+        "spec_note": "Spec note",
+        "multi_cart_name": "Cart name",
+        "logistics_type": "Delivery Type",
+        "weight": "Weight (kg)",
+        "initial_stock": "Initial Stock"
+      },
+      "option": {
+        "logistics_normal": "Ambient",
+        "logistics_cold": "Chilled"
+      },
+      "hint": {
+        "no_change": "Leave the fields below unchanged unless needed",
+        "winner_click": "View member info",
+        "batch_price_note": "When batch-updating the unit price, watch for individual price differences within the same bid",
+        "batch_qty_locked": "This field cannot be changed in batch update",
+        "keep_spec_note_help": "When switching the spec, the system overwrites the spec note with the new spec name. If you have entered a custom note (e.g. buyer instructions), check this to keep it from being overwritten.",
+        "transferred_locked": "This field cannot be edited after the bid is converted",
+        "spec_stock_set": "(Spec-level stock is set)",
+        "batch_weight_note": "Batch edit refills this field with total weight ÷ quantity"
+      },
+      "text": {
+        "no_image": "No product photo uploaded",
+        "spec_note_auto": "Spec: {spec}",
+        "or": "or"
+      },
+      "button": {
+        "manual_bid": "Manual bid",
+        "save": "Save",
+        "back": "Back",
+        "batch_save": "Batch update"
+      },
+      "section": {
+        "winner_info": "Winner info"
+      },
+      "dialog": {
+        "batch_scope_confirm": "Batch update applies to ALL bids of the same product created in the same batch that have not been converted (including bids on other pages, regardless of list selection). Quantity is not included in batch update. Continue?"
+      },
+      "checkbox": {
+        "keep_spec_note": "Keep note when switching spec"
+      },
+      "placeholder": {
+        "multi_cart_select": "Select an existing multi-cart",
+        "multi_cart_new_name": "Enter a new multi-cart name"
+      },
+      "action": {
+        "set_multi_cart_freight": "Set Multi-Cart Shipping Fee"
+      },
+      "toast": {
+        "freight_link_mock": "Multi-cart shipping fee setting is not available yet (prototype)"
+      }
+    },
+    "price_history": {
+      "title": "Price History Lookup",
+      "placeholder": "Please pick a product",
+      "column": {
+        "created_at": "Created at",
+        "image": "Card image",
+        "product_id": "Product ID",
+        "session": "Session",
+        "spec": "Spec",
+        "winner": "Winner",
+        "source": "Order source",
+        "order_method": "Order method",
+        "status": "Status",
+        "bid_amount": "Bid amount",
+        "actions": "Actions"
+      },
+      "order_method": {
+        "live": "Live order",
+        "post": "Post order",
+        "group": "Group order"
+      },
+      "source": {
+        "fb": "Facebook",
+        "ig": "IG",
+        "tiktok": "TikTok",
+        "livebuy": "LiveBuy"
+      },
+      "status": {
+        "unfinished": "Incomplete",
+        "completed": "Transferred to completed",
+        "transferred": "Transferred to order",
+        "discarded": "Discarded"
+      },
+      "advanced": {
+        "placeholder": {
+          "date_range": "YYYY/MM/DD - YYYY/MM/DD",
+          "status": "Bid status",
+          "source": "Order source",
+          "order_method": "Order method",
+          "session": "Session"
+        },
+        "trigger_label": {
+          "status": "Bid status ({count})",
+          "source": "Order source ({count})",
+          "order_method": "Order method ({count})",
+          "session": "Session ({count})"
+        },
+        "clear_multi": "✕ Clear ({count})"
+      },
+      "summary": {
+        "count": "Records",
+        "average": "Average",
+        "max": "Max",
+        "min": "Min",
+        "discard_rate": "Discard rate"
+      },
+      "chart": {
+        "x_axis": "Created at",
+        "y_axis": "Bid amount",
+        "title": "This product's price history trend",
+        "dataset_label": "Bid amount"
+      },
+      "action": {
+        "go_session": "Go to session",
+        "copy_price": "Copy this price"
+      },
+      "toast": {
+        "cleared": "Query conditions cleared",
+        "exported": "Exported (mockup)",
+        "go_session": "Would jump to session {session} (mockup)",
+        "price_copied": "Copied price ${amount} (mockup)"
+      },
+      "empty": "No price history records",
+      "hint": {
+        "please_pick_product": "Pick a product to look up its price history"
+      },
+      "button": {
+        "close": "Close",
+        "export": "Export",
+        "pick_product": "Pick product",
+        "change_product": "Change product",
+        "clear": "Clear"
+      },
+      "picker": {
+        "title": "Select product",
+        "search_placeholder": "Search product name",
+        "empty": "No products found"
+      }
+    },
+    "batch_edit_qty": {
+      "title": "Group view — Batch edit product quantity",
+      "session_prefix": "Session",
+      "search": {
+        "type_label": "Search by",
+        "type": {
+          "product_code": "Product code",
+          "product_name": "Product name"
+        },
+        "placeholder": "Enter keyword",
+        "query": "Search",
+        "clear": "Clear",
+        "result_hint": "Found {count} item(s) for \"{keyword}\""
+      },
+      "button": {
+        "expand_all": "Expand all",
+        "collapse_all": "Collapse all",
+        "clear": "Reset",
+        "save": "Save",
+        "close": "Close"
+      },
+      "stepper": {
+        "decrement": "Decrease",
+        "increment": "Increase"
+      },
+      "empty": "No matching product",
+      "toast": {
+        "saved": "Product quantity changes saved (mockup)",
+        "cleared": "All quantities reset to 0"
+      }
+    },
+    "product_sales": {
+      "title": "Live Product Sales",
+      "filter": {
+        "date_range": "Created at:",
+        "date_range_placeholder": "YYYY/MM/DD - YYYY/MM/DD",
+        "go": "Go!"
+      },
+      "summary": {
+        "sales_total": "Sales total: {amount}",
+        "cost_total": "Cost total: {amount}"
+      },
+      "column": {
+        "created_at": "Created at",
+        "photo": "Photo",
+        "product": "Product",
+        "init_stock": "Init stock",
+        "bid_summary": "Bid summary",
+        "discard": "Discarded",
+        "subtotal_qty": "Subtotal qty",
+        "subtotal_amount": "Subtotal amount",
+        "init_subtotal": "Init subtotal",
+        "remaining_stock": "Remaining",
+        "discard_rate": "Cost rate",
+        "cost": "Cost",
+        "profit": "Profit",
+        "actions": "Actions"
+      },
+      "cell": {
+        "bid_count": "Bids: {count}",
+        "bid_quantity": "Qty: {quantity}"
+      },
+      "button": {
+        "edit": "Edit",
+        "close": "Close"
+      }
+    },
+    "batch_done": {
+      "title": "Notice",
+      "message": "Done",
+      "button": {
+        "ok": "OK"
+      }
+    },
+    "convert_fbid": {
+      "title": "Transfer Bid",
+      "field": {
+        "bid_number": "Bid number",
+        "buyer": "Buyer",
+        "product": "Product",
+        "psid": "PSID",
+        "convert_to": "Convert to"
+      },
+      "placeholder": {
+        "name": "Search by member name or social account name",
+        "fbid": "Search by Facebook ID"
+      },
+      "button": {
+        "cancel": "Cancel",
+        "submit": "Save"
+      },
+      "toast": {
+        "success": "Bid transferred"
+      },
+      "search": {
+        "type_name": "Name search",
+        "type_fbid": "FB ID search",
+        "no_match": "No matching member",
+        "selected": "Transfer to",
+        "clear": "Reselect"
+      }
+    },
+    "winner_profile": {
+      "title": "Member profile",
+      "tooltip_prefix": "Facebook ID: ",
+      "tooltip_psid_prefix": "   PSID: ",
+      "field": {
+        "platform": "Winning platform",
+        "facebook_id": "Facebook ID",
+        "psid": "PSID",
+        "line_binding": "LINE binding",
+        "member_id": "Member ID",
+        "member_name": "Member name"
+      },
+      "line_bound": "Bound",
+      "line_unbound": "Not bound",
+      "button": {
+        "close": "Close"
+      }
+    },
+    "quick_filter": {
+      "title": "Quick filters",
+      "show_incomplete": "Incomplete",
+      "show_completed": "Transferred to completed",
+      "show_transferred_to_order": "Transferred to order",
+      "show_discarded": "Discarded"
+    },
+    "export": {
+      "button": {
+        "export": "Export",
+        "cancel": "Cancel"
+      },
+      "section": {
+        "options": "Options",
+        "sort": "Sort"
+      },
+      "option": {
+        "separate_addon": "Separate add-on section",
+        "with_photos": "Include photos",
+        "sort_by_customer": "Sort by customer"
+      },
+      "sort": {
+        "newest_first": "Newest first",
+        "oldest_first": "Oldest first"
+      },
+      "toast": {
+        "started": "Export started; the file will download when ready"
+      },
+      "tooltip": {
+        "need_date_range": "Select a start and end date to export"
+      },
+      "dialog": {
+        "title": "Export"
+      }
+    }
+  }
+}

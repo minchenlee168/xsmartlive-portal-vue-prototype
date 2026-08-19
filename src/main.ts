@@ -11,6 +11,8 @@ import router from './router'
 import './style.css'
 import './admin/style.css'
 import './admin/fontawesome'
+import './admin/views/live/bid-list/fontawesome-bid-list'
+import './admin/views/member/member-list/fontawesome-member-list'
 import { i18n } from './admin/i18n'
 import { vPermission } from './admin/directives/vPermission'
 import App from './App.vue'
@@ -52,6 +54,14 @@ import Panel from 'primevue/panel'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import MultiSelect from 'primevue/multiselect'
+import Popover from 'primevue/popover'
+import Rating from 'primevue/rating'
+import ToggleSwitch from 'primevue/toggleswitch'
+import Card from 'primevue/card'
+import Chart from 'primevue/chart'
 
 // 橋接：把 Aura 的 primary semantic token 對應到既有 CSS 變數，
 // 讓執行時的 8 套主題切換器（theme.ts 寫 documentElement.style）也能
@@ -171,5 +181,13 @@ app.component('Panel', Panel)
 app.component('AccordionPanel', AccordionPanel)
 app.component('AccordionHeader', AccordionHeader)
 app.component('AccordionContent', AccordionContent)
+app.component('DataTable', DataTable)
+app.component('Column', Column)
+app.component('MultiSelect', MultiSelect)
+app.component('Popover', Popover)
+app.component('Rating', Rating)
+app.component('ToggleSwitch', ToggleSwitch)
+app.component('Card', Card)
+app.component('Chart', Chart)
 
 app.mount('#app')

@@ -4,11 +4,13 @@
   },
   "nav": {
     "live": "直播收單區",
+    "live_commerce": "綜合收單區",
     "live_order": "直播收單",
     "live_order_post": "貼文收單",
     "live_order_post_list": "貼文收單(列表式)",
     "live_order_community": "社團收單",
     "live_records": "收單紀錄",
+    "bid_list": "得標清單",
     "multi_cart_settings": "多購物車設定",
     "product": {
       "product": "商品管理",
@@ -19,6 +21,8 @@
     },
     "order": "訂單管理",
     "order_list": "訂單列表",
+    "member": "會員管理",
+    "member_list": "會員列表",
     "invoice": {
       "invoice": "電子發票",
       "operations": "發票作業",
@@ -39,8 +43,10 @@
     "live_order_post_list": "貼文收單(列表式)",
     "live_order_community": "社團收單",
     "live_records": "收單紀錄",
+    "bid_list": "得標清單",
     "multi_cart_settings": "多購物車設定",
     "order_list": "訂單列表",
+    "member_list": "會員列表",
     "invoice_operations": "發票作業",
     "invoice_manual": "手動開立發票",
     "product_list": "商品列表",
@@ -83,6 +89,9 @@
       "delete": "刪除",
       "confirm": "確認",
       "close": "關閉",
+      "view": "檢視",
+      "clear": "清除",
+      "search": "搜尋",
       "confirm_save": "確定",
       "ok": "確定"
     },

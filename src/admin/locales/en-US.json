@@ -4,10 +4,14 @@
   },
   "nav": {
     "live": "Live Commerce",
+    "live_commerce": "Integrated ordering",
     "live_order": "Live ordering",
     "live_order_post": "Post ordering",
     "live_order_community": "Community ordering",
     "live_records": "Order records",
+    "bid_list": "Bid list",
+    "member": "Member Management",
+    "member_list": "Member List",
     "product": {
       "product": "Products",
       "list": "Product list",
@@ -34,6 +38,8 @@
     "live_order_post": "Post ordering",
     "live_order_community": "Community ordering",
     "live_records": "Order records",
+    "bid_list": "Bid list",
+    "member_list": "Member List",
     "invoice_operations": "Invoice operations",
     "invoice_manual": "Manual invoice",
     "product_list": "Product list",
@@ -76,6 +82,9 @@
       "delete": "Delete",
       "confirm": "Confirm",
       "close": "Close",
+      "view": "View",
+      "clear": "Clear",
+      "search": "Search",
       "confirm_save": "OK",
       "ok": "OK"
     },

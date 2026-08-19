@@ -10,6 +10,7 @@ import {
   MerchantManagementRouteName,
 } from './routes/merchantManagementRoutes'
 import { orderRoutes, OrderRouteName } from './routes/orderRoutes'
+import { memberRoutes, MemberRouteName } from './routes/memberRoutes'
 import { invoiceRoutes, InvoiceRouteName } from './routes/invoiceRoutes'
 import { productRoutes, ProductRouteName } from './routes/productRoutes'
 import { notificationRoutes, NotificationRouteName } from './routes/notificationRoutes'
@@ -27,6 +28,7 @@ export const RouteName = {
   ...MarketingRouteName,
   ...MerchantManagementRouteName,
   ...OrderRouteName,
+  ...MemberRouteName,
   ...InvoiceRouteName,
   ...ProductRouteName,
   ...NotificationRouteName,
@@ -47,6 +49,7 @@ export const adminChildRoutes: RouteRecordRaw[] = [
   ...marketingRoutes,
   ...merchantManagementRoutes,
   ...orderRoutes,
+  ...memberRoutes,
   ...invoiceRoutes,
   ...productRoutes,
   ...notificationRoutes,

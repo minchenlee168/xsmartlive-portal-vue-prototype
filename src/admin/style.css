@@ -3,6 +3,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* 第三方平台品牌色 token（供 text-brand-* / bg-brand-* utility 使用，會員綁定管道圖示等） */
+@theme {
+  --color-brand-facebook: #1877f2;
+  --color-brand-line: #06c755;
+  --color-brand-google: #4285f4;
+  --color-brand-whatsapp: #25d366;
+}
+
 /* 全域字型 */
 :root {
   font-family: 'Noto Sans TC', sans-serif;

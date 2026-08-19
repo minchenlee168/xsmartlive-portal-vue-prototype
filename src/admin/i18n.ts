@@ -14,6 +14,10 @@ import keywordLotteryZhTW from '@/admin/views/marketing/keyword-lottery/locales/
 import keywordLotteryEnUS from '@/admin/views/marketing/keyword-lottery/locales/en-US.json'
 import storeManagementZhTW from '@/admin/views/merchant-management/store-management/locales/zh-TW.json'
 import storeManagementEnUS from '@/admin/views/merchant-management/store-management/locales/en-US.json'
+import bidListZhTW from '@/admin/views/live/bid-list/locales/zh-TW.json'
+import bidListEnUS from '@/admin/views/live/bid-list/locales/en-US.json'
+import memberListZhTW from '@/admin/views/member/member-list/locales/zh-TW.json'
+import memberListEnUS from '@/admin/views/member/member-list/locales/en-US.json'
 
 /**
  * 合併 app 級與各 view 級 locale；後者覆寫前者。
@@ -34,6 +38,8 @@ const messages = {
     bidGiftLotteryZhTW,
     keywordLotteryZhTW,
     storeManagementZhTW,
+    bidListZhTW,
+    memberListZhTW,
   ),
   'en-US': mergeMessages(
     appEnUS,
@@ -43,6 +49,8 @@ const messages = {
     bidGiftLotteryEnUS,
     keywordLotteryEnUS,
     storeManagementEnUS,
+    bidListEnUS,
+    memberListEnUS,
   ),
 }
 
