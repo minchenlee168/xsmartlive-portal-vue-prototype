@@ -317,7 +317,7 @@ function groupsOfScope(scope: string): FeeGroup[] {
   return scope === 'dom' ? domGroupsForTemp.value : cbGroupsForTemp.value
 }
 
-// ── 運費區塊：地區改為「獨立區塊」而非同表的欄 ──
+// ── 運費區塊：國內／跨境各一區塊，同一區塊內各地區以欄呈現 ──
 interface FeeBlock {
   /** feeEdit / reset 狀態用的唯一鍵 */
   key: string
@@ -326,12 +326,11 @@ interface FeeBlock {
   /** 此區塊要顯示的地區欄；idx 為 6 格運費索引中的地區序（本島=0、離島=1；跨境馬來=0、香港=1），name 供表頭與 aria-label 用 */
   regions: Array<{ name: string; idx: number }>
 }
-/** 國內拆成「國內配送（本島）」「離島配送（離島）」兩塊；跨境維持單一區塊（兩目的地欄） */
+/** 國內配送為單一區塊，本島／離島各為一欄；跨境維持單一區塊（兩目的地欄） */
 const feeBlocks = computed<FeeBlock[]>(() => {
   const blocks: FeeBlock[] = []
   if (domesticGroups.value.length) {
-    blocks.push({ key: 'dom-main', title: '國內配送', dataScope: 'dom', regions: [{ name: DOMESTIC_REGIONS[0], idx: 0 }] })
-    blocks.push({ key: 'dom-island', title: '離島配送', dataScope: 'dom', regions: [{ name: DOMESTIC_REGIONS[1], idx: 1 }] })
+    blocks.push({ key: 'dom', title: '國內配送', dataScope: 'dom', regions: DOMESTIC_REGIONS.map((name, idx) => ({ name, idx })) })
   }
   if (showCrossBorder.value) {
     blocks.push({ key: 'cb', title: '跨境配送', dataScope: 'cb', regions: CB_REGIONS.map((name, idx) => ({ name, idx })) })
@@ -559,7 +558,7 @@ function onSave(): void {
         </div>
 
         <template v-else>
-          <!-- 國內配送（本島）／離島配送（離島）／跨境配送 各為獨立區塊 -->
+          <!-- 國內配送（本島／離島兩欄）／跨境配送 各為獨立區塊 -->
           <template v-for="block in feeBlocks" :key="block.key">
             <div class="flex items-center gap-2 mt-1 flex-wrap">
               <span class="text-sm font-bold text-[var(--p-text-color)]">{{ block.title }}</span>
