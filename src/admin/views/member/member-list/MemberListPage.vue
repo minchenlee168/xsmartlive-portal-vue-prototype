@@ -208,7 +208,7 @@ function handleResetFilter() {
         table-style="min-width: 100rem"
       >
       <template #bindings="{ data }">
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-2">
           <span
             v-for="channel in BINDING_CHANNELS"
             :key="channel.key"
@@ -233,7 +233,7 @@ function handleResetFilter() {
 
       <template #stars="{ data }">
         <span
-          class="inline-flex items-center gap-1 tabular-nums"
+          class="inline-flex items-center gap-2 tabular-nums"
           :aria-label="$t('member.stars.rating', { count: data.stars })"
         >
           {{ data.stars }}
@@ -256,7 +256,7 @@ function handleResetFilter() {
       </template>
 
       <template #actions="{ data }">
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-2">
           <Button
             v-for="action in primaryActions"
             :key="action.key"
