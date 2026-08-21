@@ -25,6 +25,8 @@ const localPoints = ref(0);
 const localHistory = ref<MockPointHistory[]>([]);
 const adjustType = ref<'add' | 'sub'>('add');
 const adjustAmount = ref<number | null>(null);
+/** 點數有效天數（自發放日起算）；預設 365。 */
+const adjustValidDays = ref<number | null>(365);
 const adjustReason = ref('');
 
 const typeOptions = computed(() => [
@@ -40,6 +42,7 @@ watch(
     localHistory.value = member ? genMemberPointHistory(member) : [];
     adjustType.value = 'add';
     adjustAmount.value = null;
+    adjustValidDays.value = 365;
     adjustReason.value = '';
   },
   { immediate: true },
@@ -76,6 +79,7 @@ function handleConfirm() {
   });
 
   adjustAmount.value = null;
+  adjustValidDays.value = 365;
   adjustReason.value = '';
   showSuccess({ detail: t('member.points.adjust_stub') });
 }
@@ -95,48 +99,73 @@ function handleConfirm() {
       {{ $t('member.points.unit') }}
     </div>
 
-    <span class="text-muted-color mb-1.5 block text-sm">{{ $t('member.points.adjust') }}</span>
-    <div class="flex flex-wrap items-center gap-2">
-      <SelectButton
-        v-model="adjustType"
-        :options="typeOptions"
-        option-label="label"
-        option-value="value"
-        :allow-empty="false"
-      />
-      <InputNumber
-        v-model="adjustAmount"
-        :min="1"
-        :placeholder="$t('member.points.amount_placeholder')"
-        show-buttons
-        button-layout="horizontal"
-        fluid
-        class="w-52"
+    <span class="text-muted-color mb-2 block text-sm">{{ $t('member.points.adjust') }}</span>
+    <SelectButton
+      v-model="adjustType"
+      :options="typeOptions"
+      option-label="label"
+      option-value="value"
+      :allow-empty="false"
+    />
+
+    <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="flex flex-col gap-2">
+        <label
+          for="points-amount"
+          class="text-sm font-medium"
+        >{{ $t('member.points.field_amount') }} <span class="text-red-500">*</span></label>
+        <InputNumber
+          v-model="adjustAmount"
+          input-id="points-amount"
+          :min="1"
+          :placeholder="$t('member.points.amount_placeholder')"
+          show-buttons
+          button-layout="horizontal"
+          fluid
+        >
+          <template #incrementbuttonicon>
+            <i class="pi pi-plus" />
+          </template>
+          <template #decrementbuttonicon>
+            <i class="pi pi-minus" />
+          </template>
+        </InputNumber>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label
+          for="points-valid-days"
+          class="text-sm font-medium"
+        >{{ $t('member.points.field_valid_days') }} <span class="text-red-500">*</span></label>
+        <InputNumber
+          v-model="adjustValidDays"
+          input-id="points-valid-days"
+          :min="1"
+          fluid
+        />
+        <small class="text-muted-color text-xs">{{ $t('member.points.valid_days_help') }}</small>
+      </div>
+    </div>
+
+    <InputText
+      v-model="adjustReason"
+      class="mt-4 w-full"
+      :placeholder="$t('member.points.reason_placeholder')"
+    />
+
+    <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+      <p
+        v-if="afterPoints !== null"
+        class="text-muted-color text-sm"
       >
-        <template #incrementbuttonicon>
-          <i class="pi pi-plus" />
-        </template>
-        <template #decrementbuttonicon>
-          <i class="pi pi-minus" />
-        </template>
-      </InputNumber>
+        {{ $t('member.points.preview', { after: formatSpend(afterPoints), before: formatSpend(localPoints) }) }}
+      </p>
+      <span v-else />
       <Button
         :label="$t('common.button.confirm')"
-        :disabled="!adjustAmount || adjustAmount <= 0"
+        :disabled="!adjustAmount || adjustAmount <= 0 || !adjustValidDays || adjustValidDays <= 0"
         @click="handleConfirm"
       />
     </div>
-    <InputText
-      v-model="adjustReason"
-      class="mt-2 w-full"
-      :placeholder="$t('member.points.reason_placeholder')"
-    />
-    <p
-      v-if="afterPoints !== null"
-      class="text-muted-color mt-2 text-sm"
-    >
-      {{ $t('member.points.preview', { after: formatSpend(afterPoints), before: formatSpend(localPoints) }) }}
-    </p>
 
     <p class="section-title">{{ $t('member.points.history') }}</p>
     <DataTable
