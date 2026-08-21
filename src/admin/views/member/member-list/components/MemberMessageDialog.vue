@@ -3,7 +3,8 @@
  * ⚠️ mock 版面預覽：發送訊息彈窗。可用管道依綁定 / 資料判定；送出為 stub，未接後端。
  */
 import type { MockMemberRow } from '../mock/mockMembers';
-import { MESSAGE_CHANNELS, type MessageChannel } from '../utils/mockMemberDetail';
+import { MESSAGE_CHANNELS, formatDateTime, genMemberSentMessages, type MessageChannel } from '../utils/mockMemberDetail';
+import Empty from '@/admin/components/portal-ui/Empty.vue';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 
 import { computed, ref, watch } from 'vue';
@@ -24,6 +25,11 @@ const MAX_LENGTH = 300;
 const selectedChannels = ref<string[]>(['inapp']);
 const templateText = ref<string | null>(null);
 const content = ref('');
+
+/** 已發送訊息紀錄（mock，依會員 deterministic 產生）。 */
+const sentMessages = computed(() => (props.member ? genMemberSentMessages(props.member) : []));
+/** 已發送訊息區塊展開狀態（可展開／收合，預設展開）。 */
+const historyExpanded = ref(true);
 
 const templateOptions = computed(() => [
   { label: t('member.message.template.live.label'), value: t('member.message.template.live.text') },
@@ -79,6 +85,7 @@ function handleSend() {
     modal
     :header="$t('member.message.title')"
     :style="{ width: '34rem', maxWidth: '95vw' }"
+    :pt="{ content: { class: 'max-h-[75vh] overflow-y-auto' } }"
   >
     <p
       v-if="member"
@@ -137,6 +144,57 @@ function handleSend() {
     />
     <div class="text-muted-color mt-1 text-right text-xs tabular-nums">{{ content.length }} / {{ MAX_LENGTH }}</div>
 
+    <button
+      type="button"
+      class="section-title flex w-full items-center justify-between"
+      :aria-expanded="historyExpanded"
+      @click="historyExpanded = !historyExpanded"
+    >
+      <span>
+        {{ $t('member.message.history') }}
+        <span
+          v-if="sentMessages.length"
+          class="text-muted-color font-normal tabular-nums"
+        >（{{ sentMessages.length }}）</span>
+      </span>
+      <FontAwesomeIcon
+        :icon="['far', 'chevron-down']"
+        class="text-xs transition-transform"
+        :class="{ '-rotate-90': !historyExpanded }"
+      />
+    </button>
+    <DataTable
+      v-show="historyExpanded"
+      :value="sentMessages"
+      data-key="id"
+      size="small"
+      striped-rows
+      scrollable
+      scroll-height="16rem"
+    >
+      <Column :header="$t('member.message.column.time')">
+        <template #body="{ data }">
+          <span class="text-muted-color whitespace-nowrap">{{ formatDateTime(data.sentAt) }}</span>
+        </template>
+      </Column>
+      <Column :header="$t('member.message.column.content')">
+        <template #body="{ data }">
+          <span class="line-clamp-2">{{ data.content }}</span>
+        </template>
+      </Column>
+      <Column :header="$t('member.message.column.read')">
+        <template #body="{ data }">
+          <Tag
+            :severity="data.read ? 'success' : 'secondary'"
+            :value="data.read ? $t('member.message.read.read') : $t('member.message.read.unread')"
+          />
+        </template>
+      </Column>
+      <template #empty>
+        <Empty />
+      </template>
+    </DataTable>
+
     <template #footer>
       <Button
         :label="$t('common.button.cancel')"
@@ -158,3 +216,13 @@ function handleSend() {
     </template>
   </Dialog>
 </template>
+
+<style scoped>
+@reference "tailwindcss";
+
+.section-title {
+  @apply mt-6 mb-2 border-b pb-2 text-base font-semibold;
+  color: var(--p-text-muted-color);
+  border-color: var(--p-content-border-color);
+}
+</style>

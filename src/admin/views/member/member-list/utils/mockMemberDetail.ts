@@ -147,6 +147,39 @@ export function genMemberPointHistory(member: MockMemberRow): MockPointHistory[]
   return chrono.reverse();
 }
 
+/** 已發送訊息紀錄（mock）。 */
+export interface MockSentMessage {
+  id: number;
+  /** 發送時間（ISO） */
+  sentAt: string;
+  content: string;
+  /** 是否已讀 */
+  read: boolean;
+}
+
+/** 已發送訊息內容範例（deterministic 取用）。 */
+const SENT_MESSAGE_SAMPLES = [
+  '您關注的商品即將於今晚開播，別錯過！',
+  '您有一張優惠券即將到期，記得把握使用。',
+  '購物車還有商品尚未結帳，前往完成訂單享優惠。',
+];
+
+/**
+ * 依會員 deterministic 產生已發送訊息紀錄（部分會員回空陣列以呈現空狀態）。
+ * ⚠️ mock：實際發送紀錄待後端提供。
+ */
+export function genMemberSentMessages(member: MockMemberRow): MockSentMessage[] {
+  const count = member.id % 3; // 0～2：部分會員無紀錄（空狀態）
+  if (count === 0) return [];
+  const base = new Date(member.lastOrderAt ?? member.createdAt).getTime();
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    sentAt: new Date(base - i * 5 * 86400000).toISOString(),
+    content: SENT_MESSAGE_SAMPLES[(member.id + i) % SENT_MESSAGE_SAMPLES.length],
+    read: (member.id + i) % 2 === 0,
+  }));
+}
+
 /** 發送訊息管道（mock）。 */
 export interface MessageChannel {
   key: string;
