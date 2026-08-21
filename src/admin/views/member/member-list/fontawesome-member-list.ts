@@ -11,6 +11,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 // far（Pro kit classic/regular）— 頁面模板保留 ['far', X] 的線框圖示
 import {
   faArrowUpRightFromSquare,
+  faBadgeDollar,
   faBan,
   faBell,
   faChevronLeft,
@@ -22,15 +23,16 @@ import {
   faEyeSlash,
   faLock,
   faLockOpen,
+  faMobile,
   faPaperPlane,
+  faReceipt,
   faRectangleList,
   faSearch,
   faStar as faStarRegular,
 } from '@awesome.me/kit-979923bcd0/icons/classic/regular'
 
-// fas（free-solid）— 星等實心、紅利點數
+// fas（free-solid）— 星等實心
 import {
-  faCoins,
   faStar as faStarSolid,
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -38,6 +40,7 @@ import {
 import {
   faFacebook,
   faGoogle,
+  faInstagram,
   faLine,
   faTiktok,
   faWhatsapp,
@@ -45,6 +48,7 @@ import {
 
 library.add(
   faArrowUpRightFromSquare,
+  faBadgeDollar,
   faBan,
   faBell,
   faChevronLeft,
@@ -56,14 +60,16 @@ library.add(
   faEyeSlash,
   faLock,
   faLockOpen,
+  faMobile,
   faPaperPlane,
+  faReceipt,
   faRectangleList,
   faSearch,
   faStarRegular,
-  faCoins,
   faStarSolid,
   faFacebook,
   faGoogle,
+  faInstagram,
   faLine,
   faTiktok,
   faWhatsapp,

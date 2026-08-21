@@ -64,19 +64,23 @@ export const MEMBER_STATUS_SEVERITY: Record<MockMemberStatus, TagSeverity> = {
   blacklisted: 'danger',
 };
 
-/** 第三方綁定管道呈現設定（顯示順序、圖示、品牌色 class）。 */
+/** 綁定管道呈現設定（顯示順序、圖示、品牌色 class）。 */
 export interface BindingChannel {
   /** 對應 `MockMemberBindings` 的欄位鍵 */
   key: BindingChannelKey;
-  /** 品牌顯示名（專有名詞，不進 i18n） */
-  name: string;
+  /** 顯示名：品牌專有名詞用 `name`（不進 i18n）；一般語彙用 `nameKey`（走 i18n） */
+  name?: string;
+  /** i18n key（優先於 name，用於非品牌名的通用語彙，如「手機」） */
+  nameKey?: string;
   icon: IconProp;
-  /** 已綁定時的品牌色 class；TikTok 隨主題翻轉不用固定黑 */
+  /** 已綁定時的顯示色 class；TikTok 隨主題翻轉不用固定黑 */
   boundClass: string;
 }
 
 export const BINDING_CHANNELS: BindingChannel[] = [
+  { key: 'phone', nameKey: 'member.binding.phone', icon: ['far', 'mobile'], boundClass: 'text-surface-900 dark:text-surface-100' },
   { key: 'facebook', name: 'Facebook', icon: ['fab', 'facebook'], boundClass: 'text-brand-facebook' },
+  { key: 'instagram', name: 'Instagram', icon: ['fab', 'instagram'], boundClass: 'text-brand-instagram' },
   { key: 'line', name: 'LINE', icon: ['fab', 'line'], boundClass: 'text-brand-line' },
   { key: 'google', name: 'Google', icon: ['fab', 'google'], boundClass: 'text-brand-google' },
   { key: 'whatsapp', name: 'WhatsApp', icon: ['fab', 'whatsapp'], boundClass: 'text-brand-whatsapp' },

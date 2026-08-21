@@ -42,7 +42,9 @@ const starOptions = computed<{ label: string; value: number }[]>(() =>
   [5, 4, 3, 2, 1].map((count) => ({ label: t('member.stars.rating', { count }), value: count })),
 );
 
-const bindingOptions = computed(() => BINDING_CHANNELS.map((channel) => ({ label: channel.name, value: channel.key })));
+const bindingOptions = computed(() =>
+  BINDING_CHANNELS.map((channel) => ({ label: channel.nameKey ? t(channel.nameKey) : channel.name ?? '', value: channel.key })),
+);
 
 /** 更新單一篩選欄位（維持不可變更新，觸發 v-model）。 */
 function update<K extends keyof MemberMockFilter>(key: K, value: MemberMockFilter[K]) {

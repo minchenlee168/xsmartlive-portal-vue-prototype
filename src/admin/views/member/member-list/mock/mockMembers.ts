@@ -16,9 +16,12 @@ export type MockMemberStatus = 'normal' | 'suspended' | 'blacklisted';
 /** 性別（走 i18n，不存中文字串）。 */
 export type MockMemberGender = 'male' | 'female' | null;
 
-/** 第三方綁定管道開通狀態。 */
+/** 綁定管道開通狀態（手機號碼 + 第三方社群）。 */
 export interface MockMemberBindings {
+  /** 是否已綁定手機號碼 */
+  phone: boolean;
   facebook: boolean;
+  instagram: boolean;
   line: boolean;
   google: boolean;
   whatsapp: boolean;
@@ -97,7 +100,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 1, no: 'M10101', name: '陳小美', mobileMasked: '+886 9•••••112', phoneFull: '+886 912-345-112',
     email: 'may@example.com', address: '台北市信義區松高路 1 號 5 樓', gender: 'female', birthday: '1993-05-09',
-    bindings: { facebook: true, line: true, google: false, whatsapp: false, tiktok: false },
+    bindings: { phone: true, facebook: true, instagram: true, line: true, google: false, whatsapp: false, tiktok: false },
     level: 'gold', stars: 5, starNote: '回購穩定、少客訴', spend: 132500, points: 12800,
     orders: 38, completedOrders: 36, bids: 45, abandonedBids: 2, notifLiveEnabled: true,
     createdAt: '2025-11-02T10:15:00Z', lastOrderAt: '2026-07-12T20:10:00Z',
@@ -106,7 +109,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 2, no: 'M10102', name: '林大明', mobileMasked: '+886 9•••••233', phoneFull: '+886 955-123-233',
     email: 'ming@example.com', address: '新北市板橋區文化路二段 20 號', gender: 'male', birthday: '1985-01-30',
-    bindings: { facebook: false, line: false, google: true, whatsapp: false, tiktok: false },
+    bindings: { phone: true, facebook: false, instagram: false, line: false, google: true, whatsapp: false, tiktok: false },
     level: 'gold', stars: 4, starNote: '', spend: 87600, points: 8400,
     orders: 24, completedOrders: 20, bids: 30, abandonedBids: 5, notifLiveEnabled: false,
     createdAt: '2025-10-15T09:05:00Z', lastOrderAt: '2026-03-24T14:00:00Z',
@@ -115,7 +118,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 3, no: 'M10103', name: '黃佩珊', mobileMasked: '+886 9•••••566', phoneFull: '+886 966-101-566',
     email: 'pei@example.com', address: '台南市東區長榮路一段 88 號', gender: 'female', birthday: '1987-02-14',
-    bindings: { facebook: true, line: true, google: false, whatsapp: false, tiktok: false },
+    bindings: { phone: true, facebook: true, instagram: true, line: true, google: false, whatsapp: false, tiktok: false },
     level: 'gold', stars: 5, starNote: '高消費、常參與直播', spend: 210300, points: 21000,
     orders: 56, completedOrders: 55, bids: 62, abandonedBids: 3, notifLiveEnabled: true,
     createdAt: '2025-08-11T08:00:00Z', lastOrderAt: '2026-07-17T21:45:00Z',
@@ -124,7 +127,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 4, no: 'M10104', name: '王曉華', mobileMasked: '+886 9•••••344', phoneFull: '+886 933-222-344',
     email: 'hua@example.com', address: '台中市西屯區台灣大道三段 100 號', gender: 'female', birthday: '1990-11-11',
-    bindings: { facebook: true, line: true, google: true, whatsapp: true, tiktok: false },
+    bindings: { phone: true, facebook: true, instagram: false, line: true, google: true, whatsapp: true, tiktok: false },
     level: 'silver', stars: 3, starNote: '', spend: 29800, points: 3200,
     orders: 9, completedOrders: 8, bids: 12, abandonedBids: 2, notifLiveEnabled: true,
     createdAt: '2026-01-20T14:40:00Z', lastOrderAt: '2026-07-04T11:20:00Z',
@@ -133,7 +136,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 5, no: 'M10105', name: '吳建志', mobileMasked: '+886 9•••••677', phoneFull: '+886 900-456-677',
     email: 'chih@example.com', address: '桃園市中壢區中正路 200 號', gender: 'male', birthday: '1982-09-19',
-    bindings: { facebook: false, line: true, google: true, whatsapp: false, tiktok: false },
+    bindings: { phone: true, facebook: false, instagram: true, line: true, google: true, whatsapp: false, tiktok: false },
     level: 'gold', stars: 2, starNote: '曾多次棄標', spend: 94100, points: 9600,
     orders: 27, completedOrders: 22, bids: 40, abandonedBids: 12, notifLiveEnabled: false,
     createdAt: '2025-12-28T16:30:00Z', lastOrderAt: '2026-05-19T10:05:00Z',
@@ -142,7 +145,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 6, no: 'M10106', name: '張家豪', mobileMasked: '+886 9•••••455', phoneFull: '+886 921-888-455',
     email: '', address: '', gender: 'male', birthday: '1998-07-02',
-    bindings: { facebook: false, line: true, google: false, whatsapp: false, tiktok: true },
+    bindings: { phone: true, facebook: false, instagram: false, line: true, google: false, whatsapp: false, tiktok: true },
     level: 'bronze', stars: 2, starNote: '', spend: 5400, points: 600,
     orders: 2, completedOrders: 2, bids: 4, abandonedBids: 1, notifLiveEnabled: true,
     createdAt: '2026-05-30T18:22:00Z', lastOrderAt: '2026-06-09T16:30:00Z',
@@ -151,7 +154,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 7, no: 'M10107', name: '周雅婷', mobileMasked: '+886 9•••••788', phoneFull: '+886 912-777-788',
     email: 'ya@example.com', address: '', gender: 'female', birthday: '2000-03-25',
-    bindings: { facebook: true, line: false, google: false, whatsapp: false, tiktok: true },
+    bindings: { phone: true, facebook: true, instagram: true, line: false, google: false, whatsapp: false, tiktok: true },
     level: 'normal', stars: 3, starNote: '', spend: 1200, points: 150,
     orders: 1, completedOrders: 1, bids: 2, abandonedBids: 1, notifLiveEnabled: true,
     createdAt: '2026-06-20T11:11:00Z', lastOrderAt: '2026-07-01T09:30:00Z',
@@ -160,7 +163,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 8, no: 'M10108', name: '黃俊傑', mobileMasked: '+886 9•••••899', phoneFull: '+886 988-333-899',
     email: 'jun@example.com', address: '新竹市東區光復路二段 50 號', gender: 'male', birthday: '1994-12-08',
-    bindings: { facebook: true, line: true, google: true, whatsapp: false, tiktok: false },
+    bindings: { phone: true, facebook: true, instagram: true, line: true, google: true, whatsapp: false, tiktok: false },
     level: 'gold', stars: 4, starNote: '', spend: 41700, points: 4500,
     orders: 14, completedOrders: 13, bids: 18, abandonedBids: 2, notifLiveEnabled: true,
     createdAt: '2026-02-15T13:00:00Z', lastOrderAt: '2026-07-08T19:00:00Z',
@@ -169,7 +172,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 9, no: 'M10109', name: '劉宗翰', mobileMasked: '+886 9•••••021', phoneFull: null,
     email: '', address: '', gender: null, birthday: null,
-    bindings: { facebook: false, line: false, google: false, whatsapp: false, tiktok: false },
+    bindings: { phone: false, facebook: false, instagram: false, line: false, google: false, whatsapp: false, tiktok: false },
     level: 'normal', stars: 1, starNote: '', spend: 0, points: 0,
     orders: 0, completedOrders: 0, bids: 1, abandonedBids: 0, notifLiveEnabled: false,
     createdAt: '2026-06-08T08:02:00Z', lastOrderAt: null,
@@ -178,7 +181,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 10, no: 'M10110', name: '蔡怡君', mobileMasked: '+886 9•••••330', phoneFull: '+886 977-654-330',
     email: 'chun@example.com', address: '高雄市前鎮區中山二路 5 號', gender: 'female', birthday: '1996-06-06',
-    bindings: { facebook: true, line: true, google: false, whatsapp: true, tiktok: false },
+    bindings: { phone: true, facebook: true, instagram: true, line: true, google: false, whatsapp: true, tiktok: false },
     level: 'silver', stars: 5, starNote: '', spend: 16400, points: 1800,
     orders: 5, completedOrders: 5, bids: 7, abandonedBids: 1, notifLiveEnabled: true,
     createdAt: '2026-03-05T15:20:00Z', lastOrderAt: '2026-05-29T15:20:00Z',
@@ -187,7 +190,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 11, no: 'M10111', name: '楊志偉', mobileMasked: '+886 9•••••742', phoneFull: '+886 934-111-742',
     email: 'wei@example.com', address: '台北市中山區南京東路二段 100 號', gender: 'male', birthday: '1989-08-21',
-    bindings: { facebook: false, line: true, google: false, whatsapp: false, tiktok: false },
+    bindings: { phone: true, facebook: false, instagram: false, line: true, google: false, whatsapp: false, tiktok: false },
     level: 'bronze', stars: 1, starNote: '棄標率偏高', spend: 4200, points: 420,
     orders: 4, completedOrders: 2, bids: 9, abandonedBids: 5, notifLiveEnabled: false,
     createdAt: '2026-04-01T13:10:00Z', lastOrderAt: '2026-04-18T13:10:00Z',
@@ -196,7 +199,7 @@ export const mockMembers: MockMemberRow[] = [
   {
     id: 12, no: 'M10112', name: '許淑芬', mobileMasked: '+886 9•••••158', phoneFull: '+886 988-777-158',
     email: 'fen@example.com', address: '台中市北區三民路三段 200 號', gender: 'female', birthday: '1991-04-17',
-    bindings: { facebook: true, line: true, google: true, whatsapp: false, tiktok: true },
+    bindings: { phone: true, facebook: true, instagram: true, line: true, google: true, whatsapp: false, tiktok: true },
     level: 'gold', stars: 4, starNote: '', spend: 68900, points: 7000,
     orders: 21, completedOrders: 20, bids: 24, abandonedBids: 3, notifLiveEnabled: true,
     createdAt: '2025-09-18T18:40:00Z', lastOrderAt: '2026-06-30T18:40:00Z',

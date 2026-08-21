@@ -26,8 +26,12 @@ export function deriveBindingAccountId(member: MockMemberRow, key: BindingChanne
   const n = memberSeq(member.no);
   const seq = String(n).padStart(6, '0');
   switch (key) {
+    case 'phone':
+      return member.mobileMasked || EMPTY_FIELD;
     case 'facebook':
       return `1023040${seq}${String((n * 7) % 1000).padStart(4, '0')}`;
+    case 'instagram':
+      return `@ig_user_${seq}`;
     case 'line':
       return `U${((n * 2654435761) >>> 0).toString(16).padStart(8, '0')}a2c…`;
     case 'google':

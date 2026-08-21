@@ -47,19 +47,23 @@ const activeMoreRow = ref<MockMemberRow | null>(null);
 /** 操作欄前兩顆 icon 按鈕（檢視 / 訂單紀錄）。 */
 const primaryActions = computed<{ key: string; icon: IconProp; label: string; onClick: (row: MockMemberRow) => void }[]>(() => [
   { key: 'view', icon: ['far', 'eye'], label: t('common.button.view'), onClick: handleView },
-  { key: 'orders', icon: ['far', 'rectangle-list'], label: t('member.action.orders'), onClick: handleOrders },
+  { key: 'orders', icon: ['far', 'receipt'], label: t('member.action.orders'), onClick: handleOrders },
 ]);
 
-/** 「更多」選單項（第 3 個以後：紅利點數 / 停權 / 發送訊息）。 */
-const moreMenuItems = computed(() => [
-  { faIcon: ['fas', 'coins'] as IconProp, label: t('member.action.points'), command: handlePoints },
-  {
-    faIcon: ['far', 'ban'] as IconProp,
-    label: activeMoreRow.value?.status === 'blacklisted' ? t('member.action.remove_blacklist') : t('member.action.ban'),
-    command: handleBan,
-  },
-  { faIcon: ['far', 'envelope'] as IconProp, label: t('member.action.message'), command: handleMessage },
-]);
+/** 「更多」選單項（紅利點數 / 加入黑名單 / 發送訊息）。加入黑名單為破壞性操作，以上鎖 icon＋紅色標示。 */
+const moreMenuItems = computed(() => {
+  const isBlacklisted = activeMoreRow.value?.status === 'blacklisted';
+  return [
+    { faIcon: ['far', 'badge-dollar'] as IconProp, label: t('member.action.points'), command: handlePoints },
+    { faIcon: ['far', 'paper-plane'] as IconProp, label: t('member.action.message'), command: handleMessage },
+    {
+      faIcon: (isBlacklisted ? ['far', 'lock-open'] : ['far', 'lock']) as IconProp,
+      label: isBlacklisted ? t('member.action.remove_blacklist') : t('member.action.ban'),
+      command: handleBan,
+      danger: !isBlacklisted,
+    },
+  ];
+});
 
 /** 開啟該列的「更多」彈出選單。 */
 function openMoreMenu(event: Event, row: MockMemberRow) {
@@ -165,6 +169,7 @@ const rows = computed(() =>
     spendLabel: formatSpend(member.spend),
     lastOrderLabel: formatLastOrderDate(member.lastOrderAt),
     abandonRate: getAbandonRate(member.bids, member.abandonedBids),
+    abandonRateValue: member.bids > 0 ? member.abandonedBids / member.bids : 0,
   })),
 );
 
@@ -212,13 +217,13 @@ function handleResetFilter() {
           <span
             v-for="channel in BINDING_CHANNELS"
             :key="channel.key"
-            v-tooltip.top="`${channel.name}：${data.bindings[channel.key] ? $t('member.binding.bound') : $t('member.binding.unbound')}`"
+            v-tooltip.top="`${channel.nameKey ? $t(channel.nameKey) : channel.name}：${data.bindings[channel.key] ? $t('member.binding.bound') : $t('member.binding.unbound')}`"
             class="inline-flex"
           >
             <FontAwesomeIcon
               :icon="channel.icon"
               :class="data.bindings[channel.key] ? channel.boundClass : BINDING_UNBOUND_CLASS"
-              :aria-label="`${channel.name} ${data.bindings[channel.key] ? $t('member.binding.bound') : $t('member.binding.unbound')}`"
+              :aria-label="`${channel.nameKey ? $t(channel.nameKey) : channel.name} ${data.bindings[channel.key] ? $t('member.binding.bound') : $t('member.binding.unbound')}`"
             />
           </span>
         </div>
@@ -322,6 +327,7 @@ function handleResetFilter() {
         <a
           v-bind="props.action"
           class="flex items-center gap-2"
+          :class="{ 'text-red-600 dark:text-red-400': item.danger }"
         >
           <FontAwesomeIcon
             :icon="item.faIcon"
