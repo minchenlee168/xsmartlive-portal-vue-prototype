@@ -11,19 +11,19 @@ import { useI18n } from 'vue-i18n';
  * 後端尚未提供，目前以 mock 假資料呈現（見 `../mock/mockMembers.ts`）。
  */
 const baseColumns = [
-  { field: 'id', headerKey: 'member.table.column.id' },
-  { field: 'no', headerKey: 'member.table.column.no' },
-  { field: 'name', headerKey: 'member.table.column.name' },
-  { field: 'mobileMasked', headerKey: 'member.table.column.mobile' },
+  { field: 'id', headerKey: 'member.table.column.id', sortable: true },
+  { field: 'no', headerKey: 'member.table.column.no', nowrap: true },
+  { field: 'name', headerKey: 'member.table.column.name', nowrap: true },
+  { field: 'mobileMasked', headerKey: 'member.table.column.mobile', nowrap: true },
   { field: 'bindings', headerKey: 'member.table.column.bindings', slot: 'bindings' },
-  { field: 'level', headerKey: 'member.table.column.level', slot: 'level' },
-  { field: 'stars', headerKey: 'member.table.column.stars', slot: 'stars' },
-  { field: 'spendLabel', headerKey: 'member.table.column.spend' },
-  { field: 'bids', headerKey: 'member.table.column.bids' },
-  { field: 'abandonedBids', headerKey: 'member.table.column.abandoned_bids' },
-  { field: 'abandonRate', headerKey: 'member.table.column.abandon_rate', slot: 'abandonRate' },
-  { field: 'lastOrderLabel', headerKey: 'member.table.column.last_order' },
-  { field: 'status', headerKey: 'member.table.column.status', slot: 'status' },
+  { field: 'level', headerKey: 'member.table.column.level', slot: 'level', nowrap: true },
+  { field: 'stars', headerKey: 'member.table.column.stars', slot: 'stars', nowrap: true },
+  { field: 'spendLabel', headerKey: 'member.table.column.spend', sortable: true, sortField: 'spend', nowrap: true },
+  { field: 'bids', headerKey: 'member.table.column.bids', sortable: true, nowrap: true },
+  { field: 'abandonedBids', headerKey: 'member.table.column.abandoned_bids', sortable: true, nowrap: true },
+  { field: 'abandonRate', headerKey: 'member.table.column.abandon_rate', slot: 'abandonRate', sortable: true, sortField: 'abandonRateValue', nowrap: true },
+  { field: 'lastOrderLabel', headerKey: 'member.table.column.last_order', sortable: true, sortField: 'lastOrderAt', nowrap: true },
+  { field: 'status', headerKey: 'member.table.column.status', slot: 'status', nowrap: true },
   { field: 'actions', headerKey: 'member.table.column.actions', slot: 'actions', frozen: true, alignFrozen: 'right' },
 ] as const;
 

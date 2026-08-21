@@ -9,6 +9,10 @@ interface ColumnItem {
   field: string;
   header: string;
   sortable?: boolean;
+  /** 排序依據欄位（顯示欄為格式化字串/物件時，指定原始數值或日期欄排序）。未指定則以 field 排序。 */
+  sortField?: string;
+  /** 表頭與內容不換行（撐到自然寬度，避免窄欄擠壓斷行）。 */
+  nowrap?: boolean;
   slot?: string;
   /** 是否凍結此欄（向後相容：未指定則不凍結）。 */
   frozen?: boolean;
@@ -125,10 +129,13 @@ function onRowReorder(event: { value: unknown[] | undefined }) {
       v-for="col in props.columns"
       :key="col.field"
       :field="col.field"
+      :sort-field="col.sortField"
       :header="col.header"
       :sortable="col.sortable"
       :frozen="col.frozen"
       :align-frozen="col.alignFrozen"
+      :header-style="col.nowrap ? 'white-space: nowrap' : undefined"
+      :style="col.nowrap ? 'white-space: nowrap' : undefined"
     >
       <template #body="{ data: rowData }">
         <Skeleton v-if="props.loading" />
