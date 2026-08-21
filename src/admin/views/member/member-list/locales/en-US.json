@@ -70,7 +70,8 @@
     },
     "binding": {
       "bound": "Linked",
-      "unbound": "Not linked"
+      "unbound": "Not linked",
+      "phone": "Mobile"
     },
     "stars": {
       "rating": "{count} stars"
@@ -93,12 +94,15 @@
       "rate_label": "Merchant rating",
       "rate_note_placeholder": "Rating note (optional)",
       "reveal_phone": "Show full number",
+      "access_logged": "Logged: {operator} viewed at {time}",
       "unset": "Not set",
       "not_provided": "Not provided",
       "not_filled": "Not filled",
       "save_stub": "Layout preview: rating is not wired to the backend yet",
-      "cod_eligible": "Eligible ({stars} ★ ≥ min {min} ★)",
-      "cod_ineligible": "Not eligible ({stars} ★ < min {min} ★)",
+      "cod_status_eligible": "Eligible",
+      "cod_status_ineligible": "Not eligible",
+      "cod_note_eligible": "{stars} ★ ≥ min {min} ★",
+      "cod_note_ineligible": "{stars} ★ < min {min} ★",
       "section": {
         "basic": "Basic info",
         "binding": "Linked accounts",
@@ -107,7 +111,7 @@
         "suspend": "Account suspension"
       },
       "field": {
-        "mobile_full": "Full mobile",
+        "mobile_full": "Mobile number",
         "address": "Address",
         "gender_birthday": "Gender / Birthday",
         "cod": "COD eligibility",

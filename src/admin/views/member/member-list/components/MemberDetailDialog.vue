@@ -11,7 +11,8 @@ import {
   formatSpend,
   MEMBER_LEVEL_SEVERITY,
 } from '../utils/mockMemberDisplay';
-import { deriveBindingAccountId, getCodEligibility } from '../utils/mockMemberDetail';
+import { deriveBindingAccountId, formatDateTime, getCodEligibility } from '../utils/mockMemberDetail';
+import { useCurrentOperator } from '@/admin/composables/useCurrentOperator';
 import { useGlobalDialog } from '@/admin/composables/useGlobalDialog';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 
@@ -35,6 +36,8 @@ const draftStars = ref(0);
 const draftStarNote = ref('');
 /** 完整手機是否已點開顯示（個資存取為 stub）。 */
 const isPhoneRevealed = ref(false);
+/** 首次點開完整手機的稽核時間（`YYYY/MM/DD HH:mm`）；null 表示本次尚未檢視過。 */
+const phoneAccessLoggedAt = ref<string | null>(null);
 /** 停權狀態草稿（本地 stub，實際切換不接後端）。 */
 const draftSuspended = ref(false);
 
@@ -45,13 +48,36 @@ watch(
     draftStars.value = member?.stars ?? 0;
     draftStarNote.value = member?.starNote ?? '';
     isPhoneRevealed.value = false;
+    phoneAccessLoggedAt.value = null;
     draftSuspended.value = member?.status === 'suspended';
   },
   { immediate: true },
 );
 
+/**
+ * 點開 / 收合完整手機。首次點開時記錄個資存取稽核時間（顯示「已記錄：{操作人員} 於 {時間} 檢視」）。
+ * ⚠️ prototype：僅前端記錄當下時間；實際存取日誌待接後端。
+ */
+function togglePhoneReveal() {
+  isPhoneRevealed.value = !isPhoneRevealed.value;
+  if (isPhoneRevealed.value && !phoneAccessLoggedAt.value) {
+    phoneAccessLoggedAt.value = formatDateTime(new Date().toISOString());
+  }
+}
+
 const initial = computed(() => props.member?.name?.trim().charAt(0).toUpperCase() || '?');
 const cod = computed(() => (props.member ? getCodEligibility(props.member) : null));
+
+/**
+ * 個資頁浮水印：以登入操作人員名稱斜向平鋪，半透明中性灰（明暗色皆可讀）。
+ * 用 inline SVG 當可平鋪的背景圖；`&` 等特殊字元先轉義避免破壞 SVG 標記。
+ */
+const { name: operatorName, displayName: operatorDisplayName } = useCurrentOperator();
+const watermarkStyle = computed(() => {
+  const label = operatorName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='150'><text x='0' y='80' transform='rotate(-30 130 75)' fill='rgba(128,128,128,0.13)' font-family='sans-serif' font-size='15'>${label}</text></svg>`;
+  return { backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")` };
+});
 
 /** 儲存評星（stub）。 */
 function handleSave() {
@@ -81,6 +107,7 @@ async function handleSuspendToggle() {
     :pt="{ content: { class: 'max-h-[75vh] overflow-y-auto' } }"
   >
     <template v-if="member">
+      <div class="relative">
       <!-- Hero -->
       <div class="flex items-center gap-4 border-b border-dashed border-surface-200 pb-4 dark:border-surface-700">
         <div class="bg-primary/10 text-primary flex size-13 shrink-0 items-center justify-center rounded-full text-xl font-bold">
@@ -101,23 +128,25 @@ async function handleSuspendToggle() {
       </div>
 
       <!-- 商家評星 -->
-      <div class="flex flex-wrap items-center gap-3 py-4">
-        <span class="text-muted-color text-sm">{{ $t('member.detail.rate_label') }}</span>
-        <span class="inline-flex gap-1 text-lg">
-          <FontAwesomeIcon
-            v-for="index in 5"
-            :key="index"
-            :icon="index <= draftStars ? ['fas', 'star'] : ['far', 'star']"
-            class="cursor-pointer transition-transform hover:scale-110"
-            :class="index <= draftStars ? 'text-yellow-400 dark:text-yellow-300' : 'text-surface-300 dark:text-surface-600'"
-            @click="draftStars = index"
-          />
-        </span>
-        <span class="text-muted-color text-sm tabular-nums">{{ draftStars }} / 5</span>
+      <div class="py-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="text-muted-color text-sm">{{ $t('member.detail.rate_label') }}</span>
+          <span class="inline-flex gap-1 text-lg">
+            <FontAwesomeIcon
+              v-for="index in 5"
+              :key="index"
+              :icon="index <= draftStars ? ['fas', 'star'] : ['far', 'star']"
+              class="cursor-pointer transition-transform hover:scale-110"
+              :class="index <= draftStars ? 'text-yellow-400 dark:text-yellow-300' : 'text-surface-300 dark:text-surface-600'"
+              @click="draftStars = index"
+            />
+          </span>
+          <span class="text-muted-color text-sm tabular-nums">{{ draftStars }} / 5</span>
+        </div>
         <InputText
           v-model="draftStarNote"
           size="small"
-          class="min-w-40 flex-1"
+          class="mt-3 w-full"
           :placeholder="$t('member.detail.rate_note_placeholder')"
         />
       </div>
@@ -149,13 +178,18 @@ async function handleSuspendToggle() {
               size="small"
               severity="secondary"
               :aria-label="$t('member.detail.reveal_phone')"
-              @click="isPhoneRevealed = !isPhoneRevealed"
+              @click="togglePhoneReveal"
             >
               <template #icon>
                 <FontAwesomeIcon :icon="['far', isPhoneRevealed ? 'eye-slash' : 'eye']" />
               </template>
             </Button>
           </span>
+          <!-- 個資存取稽核：首次點開完整手機後顯示，記錄操作人員與檢視時間 -->
+          <span
+            v-if="phoneAccessLoggedAt"
+            class="text-muted-color text-xs"
+          >{{ $t('member.detail.access_logged', { operator: operatorDisplayName, time: phoneAccessLoggedAt }) }}</span>
         </div>
         <div class="field">
           <span class="field-label">{{ $t('member.detail.field.address') }}</span>
@@ -179,12 +213,17 @@ async function handleSuspendToggle() {
           <span class="field-label">{{ $t('member.detail.field.cod') }}</span>
           <span
             v-if="cod"
-            class="field-value"
-            :class="cod.eligible ? 'text-green-600 dark:text-green-400' : 'text-muted-color'"
+            class="flex flex-wrap items-center gap-2"
           >
-            {{ cod.eligible
-              ? $t('member.detail.cod_eligible', { stars: cod.memberStars, min: cod.minStar })
-              : $t('member.detail.cod_ineligible', { stars: cod.memberStars, min: cod.minStar }) }}
+            <Tag
+              :severity="cod.eligible ? 'success' : 'secondary'"
+              :value="cod.eligible ? $t('member.detail.cod_status_eligible') : $t('member.detail.cod_status_ineligible')"
+            />
+            <span class="text-muted-color text-xs">
+              {{ cod.eligible
+                ? $t('member.detail.cod_note_eligible', { stars: cod.memberStars, min: cod.minStar })
+                : $t('member.detail.cod_note_ineligible', { stars: cod.memberStars, min: cod.minStar }) }}
+            </span>
           </span>
         </div>
       </div>
@@ -218,7 +257,7 @@ async function handleSuspendToggle() {
             :class="member.bindings[channel.key] ? channel.boundClass : BINDING_UNBOUND_CLASS"
           />
           <div class="min-w-0">
-            <div class="text-muted-color text-xs">{{ channel.name }}</div>
+            <div class="text-muted-color text-xs">{{ channel.nameKey ? $t(channel.nameKey) : channel.name }}</div>
             <div class="truncate text-sm">
               {{ member.bindings[channel.key] ? deriveBindingAccountId(member, channel.key) : $t('member.binding.unbound') }}
             </div>
@@ -298,6 +337,14 @@ async function handleSuspendToggle() {
           </template>
         </Button>
       </div>
+
+      <!-- 個資浮水印：登入操作人員名稱斜向平鋪，覆蓋整個明細（含捲動內容），防截圖外流溯源 -->
+      <div
+        class="pointer-events-none absolute inset-0 bg-repeat"
+        :style="watermarkStyle"
+        aria-hidden="true"
+      />
+      </div>
     </template>
 
     <template #footer>
@@ -319,7 +366,7 @@ async function handleSuspendToggle() {
 @reference "tailwindcss";
 
 .section-title {
-  @apply mt-5 mb-2.5 border-b pb-1.5 text-sm font-semibold;
+  @apply mt-6 mb-2 border-b pb-2 text-base font-semibold;
   color: var(--p-text-muted-color);
   border-color: var(--p-content-border-color);
 }
@@ -327,10 +374,10 @@ async function handleSuspendToggle() {
   @apply flex flex-col gap-1;
 }
 .field-label {
-  @apply text-xs;
+  @apply text-sm;
   color: var(--p-text-muted-color);
 }
 .field-value {
-  @apply text-sm;
+  @apply text-base;
 }
 </style>

@@ -70,7 +70,8 @@
     },
     "binding": {
       "bound": "已綁定",
-      "unbound": "未綁定"
+      "unbound": "未綁定",
+      "phone": "手機"
     },
     "stars": {
       "rating": "{count} 星"
@@ -93,12 +94,15 @@
       "rate_label": "商家評星",
       "rate_note_placeholder": "評星備註（選填）",
       "reveal_phone": "顯示完整號碼",
+      "access_logged": "已記錄：{operator} 於 {time} 檢視",
       "unset": "未設定",
       "not_provided": "未提供",
       "not_filled": "未填寫",
       "save_stub": "版面預覽：評星尚未接後端",
-      "cod_eligible": "符合（{stars} 星 ≥ 門檻 {min} 星）",
-      "cod_ineligible": "不符合（{stars} 星 < 門檻 {min} 星）",
+      "cod_status_eligible": "符合",
+      "cod_status_ineligible": "不符合",
+      "cod_note_eligible": "{stars} 星 ≥ 門檻 {min} 星",
+      "cod_note_ineligible": "{stars} 星 < 門檻 {min} 星",
       "section": {
         "basic": "基本資料",
         "binding": "綁定資訊",
@@ -107,7 +111,7 @@
         "suspend": "帳號停權"
       },
       "field": {
-        "mobile_full": "完整手機",
+        "mobile_full": "手機號碼",
         "address": "地址",
         "gender_birthday": "性別 / 生日",
         "cod": "貨到付款資格",
