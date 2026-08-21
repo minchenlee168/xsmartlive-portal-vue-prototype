@@ -73,6 +73,24 @@
       "unbound": "Not linked",
       "phone": "Mobile"
     },
+    "notif_subscription": "Broadcast notification subscribers: {count}",
+    "export": {
+      "label": "Export CSV",
+      "basic": "Export member list",
+      "detail": "Export member list (with full details)",
+      "note": "Exports the current filtered results — {count} records (not limited by pagination)",
+      "empty": "No data to export for the current filter"
+    },
+    "star_settings": {
+      "title": "Star settings",
+      "cod_min_star": "Minimum star for COD",
+      "cod_min_star_help": "Members at or above this star can use cash on delivery; choose \"Unlimited\" to allow everyone.",
+      "unlimited": "Unlimited",
+      "default_star": "Default star for new members",
+      "default_star_help": "Stars automatically granted to newly joined members.",
+      "summary": "Based on the saved setting, {eligible} / {total} members can use cash on delivery.",
+      "save_stub": "Layout preview: star settings are not wired to the backend yet"
+    },
     "stars": {
       "rating": "{count} stars"
     },
@@ -164,6 +182,9 @@
       "adjust": "Adjust points",
       "add": "Add",
       "sub": "Deduct",
+      "field_amount": "Points",
+      "field_valid_days": "Valid days",
+      "valid_days_help": "Days the points remain valid from the issue date.",
       "amount_placeholder": "Enter points",
       "reason_placeholder": "Reason (optional), e.g. shipping delay compensation",
       "preview": "After adjustment: {after} pts (was {before})",
@@ -195,6 +216,16 @@
       "content_placeholder": "Enter the message to send…",
       "send": "Send",
       "send_stub": "Layout preview: message is not wired to the backend yet",
+      "history": "Sent messages",
+      "column": {
+        "time": "Sent at",
+        "content": "Message",
+        "read": "Read status"
+      },
+      "read": {
+        "read": "Read",
+        "unread": "Unread"
+      },
       "validation": {
         "channel": "Please select at least one channel",
         "content": "Please enter the message"

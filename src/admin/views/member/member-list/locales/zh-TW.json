@@ -73,6 +73,24 @@
       "unbound": "未綁定",
       "phone": "手機"
     },
+    "notif_subscription": "開播通知訂閱：{count} 人",
+    "export": {
+      "label": "匯出 CSV",
+      "basic": "匯出會員列表",
+      "detail": "匯出會員列表（含完整明細）",
+      "note": "依目前篩選條件匯出，共 {count} 筆（不受分頁限制）",
+      "empty": "目前篩選結果為空，無資料可匯出"
+    },
+    "star_settings": {
+      "title": "星等設定",
+      "cod_min_star": "貨到付款最低星等",
+      "cod_min_star_help": "會員星等達到此門檻才可使用貨到付款；選「不限制」則所有會員皆可使用。",
+      "unlimited": "不限制",
+      "default_star": "新註冊會員星等",
+      "default_star_help": "新加入本店的會員自動給予的星等。",
+      "summary": "依目前已儲存的設定，{eligible} / {total} 位會員可使用貨到付款。",
+      "save_stub": "版面預覽：星等設定尚未接後端"
+    },
     "stars": {
       "rating": "{count} 星"
     },
@@ -164,7 +182,10 @@
       "adjust": "調整點數",
       "add": "補點",
       "sub": "扣點",
-      "amount_placeholder": "輸入點數",
+      "field_amount": "點數",
+      "field_valid_days": "有效天數",
+      "valid_days_help": "點數自發放日起算的有效天數。",
+      "amount_placeholder": "請輸入點數",
       "reason_placeholder": "原因（選填）例：出貨延誤補償",
       "preview": "調整後點數：{after} 點（原 {before}）",
       "history": "點數歷程",
@@ -195,6 +216,16 @@
       "content_placeholder": "輸入要發送的訊息…",
       "send": "送出",
       "send_stub": "版面預覽：訊息尚未接後端",
+      "history": "已發送訊息",
+      "column": {
+        "time": "發送時間",
+        "content": "訊息內容",
+        "read": "讀取狀態"
+      },
+      "read": {
+        "read": "已讀",
+        "unread": "未讀"
+      },
       "validation": {
         "channel": "請至少選擇一個發送管道",
         "content": "請輸入訊息內容"

@@ -4,6 +4,8 @@ import MemberFilter from './components/MemberFilter.vue';
 import MemberMessageDialog from './components/MemberMessageDialog.vue';
 import MemberOrdersDialog from './components/MemberOrdersDialog.vue';
 import MemberPointsDialog from './components/MemberPointsDialog.vue';
+import MemberStarSettingsDialog from './components/MemberStarSettingsDialog.vue';
+import { exportMembersCsv } from './utils/exportMembersCsv';
 import { useHorizontalScrollHint } from './composables/useHorizontalScrollHint';
 import { useMemberList } from './composables/useMemberList';
 import { mockMembers, type MemberMockFilter, type MockMemberRow } from './mock/mockMembers';
@@ -33,9 +35,39 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const { confirm } = useGlobalDialog();
-const { showSuccess } = useGlobalToast();
+const { showSuccess, showWarn } = useGlobalToast();
 
 const { columns } = useMemberList();
+
+const starSettingsVisible = ref(false);
+const exportMenu = useTemplateRef<{ toggle: (event: Event) => void }>('exportMenu');
+
+/** 開播通知訂閱人數（已綁定 LINE 且開播通知接收中；全體，不受列表篩選影響）。 */
+const notifSubCount = computed(() => mockMembers.filter((m) => m.bindings.line && m.notifLiveEnabled).length);
+
+/** 匯出下拉選項：基本 / 含完整明細。 */
+const exportItems = computed(() => [
+  { label: t('member.export.basic'), command: () => handleExport(false) },
+  { label: t('member.export.detail'), command: () => handleExport(true) },
+]);
+
+/** 開啟匯出下拉選單。 */
+function toggleExportMenu(event: Event) {
+  exportMenu.value?.toggle(event);
+}
+
+/** 依目前篩選結果匯出 CSV（不受分頁限制）。 */
+function handleExport(detailed: boolean) {
+  const list = filteredMembers.value;
+  if (list.length === 0) {
+    showWarn({ detail: t('member.export.empty') });
+    return;
+  }
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  exportMembersCsv(list, detailed, stamp);
+}
 
 const tableWrapper = useTemplateRef<HTMLElement>('tableWrapper');
 const { canScrollLeft, canScrollRight, headerHeight, frozenRightWidth, scrollByViewport }
@@ -187,11 +219,52 @@ function handleResetFilter() {
   <div class="flex flex-col gap-4">
     <Card>
       <template #content>
-        <PageTitle
-          :title="$t('member.title.list')"
-          :show-back="false"
-          class="mb-4"
-        />
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <PageTitle
+            :title="$t('member.title.list')"
+            :show-back="false"
+          />
+
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <span class="text-muted-color inline-flex items-center gap-2 text-sm">
+              <FontAwesomeIcon
+                :icon="['far', 'bell']"
+                class="text-primary"
+              />
+              {{ $t('member.notif_subscription', { count: notifSubCount }) }}
+            </span>
+
+            <Button
+              :label="$t('member.star_settings.title')"
+              severity="secondary"
+              outlined
+              @click="starSettingsVisible = true"
+            />
+
+            <Button
+              severity="secondary"
+              outlined
+              @click="toggleExportMenu"
+            >
+              {{ $t('member.export.label') }}
+              <FontAwesomeIcon
+                :icon="['far', 'chevron-down']"
+                class="ml-2 text-xs"
+              />
+            </Button>
+            <Menu
+              ref="exportMenu"
+              :model="exportItems"
+              popup
+            >
+              <template #end>
+                <div class="text-muted-color border-t border-surface-200 px-3 py-2 text-xs dark:border-surface-700">
+                  {{ $t('member.export.note', { count: filteredMembers.length }) }}
+                </div>
+              </template>
+            </Menu>
+          </div>
+        </div>
 
         <MemberFilter
           v-model="filter"
@@ -357,6 +430,8 @@ function handleResetFilter() {
       v-model:visible="messageVisible"
       :member="activeMember"
     />
+
+    <MemberStarSettingsDialog v-model:visible="starSettingsVisible" />
   </div>
 </template>
 
