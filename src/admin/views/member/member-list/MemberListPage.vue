@@ -13,6 +13,7 @@ import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import {
   BINDING_CHANNELS,
   BINDING_UNBOUND_CLASS,
+  boundChannelsOf,
   formatLastOrderDate,
   formatSpend,
   getAbandonRate,
@@ -205,13 +206,23 @@ const rows = computed(() =>
   })),
 );
 
+/**
+ * 手機卡片列表分頁（桌面 PaginationTable 內建分頁，手機版另立同步狀態，避免一次渲染整份結果）。
+ * `first` 為當前頁第一筆的索引；每頁 10 筆，比照桌面預設。
+ */
+const MOBILE_PAGE_SIZE = 10;
+const mobileFirst = ref(0);
+const mobileRows = computed(() => rows.value.slice(mobileFirst.value, mobileFirst.value + MOBILE_PAGE_SIZE));
+
 function handleApplyFilter() {
   appliedFilter.value = { ...filter.value };
+  mobileFirst.value = 0;
 }
 
 function handleResetFilter() {
   filter.value = createEmptyFilter();
   appliedFilter.value = createEmptyFilter();
+  mobileFirst.value = 0;
 }
 </script>
 
@@ -276,9 +287,10 @@ function handleResetFilter() {
 
     <Card>
       <template #content>
+        <!-- 桌面：14 欄 DataTable（橫向捲動）；md 以下改用手機卡片列表 -->
         <div
           ref="tableWrapper"
-          class="relative"
+          class="relative hidden md:block"
         >
       <PaginationTable
         :data="rows"
@@ -387,6 +399,141 @@ function handleResetFilter() {
       >
         <FontAwesomeIcon :icon="['far', 'chevron-right']" />
       </button>
+        </div>
+
+        <!--
+          手機：堆疊卡片列表（比照通知中心手機版）。整列可點＝檢視明細（同桌面 eye）；
+          右下保留「訂單紀錄 / 更多」，綁定只顯示已綁定管道。卡片已在外層 Card 內，用 divide-y 分隔（不再巢狀 Card）。
+        -->
+        <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+          <div
+            v-for="row in mobileRows"
+            :key="row.no"
+            class="flex cursor-pointer flex-col gap-2 px-1 py-3"
+            role="button"
+            tabindex="0"
+            :aria-label="$t('member.card.view_detail', { name: row.name })"
+            @click="handleView(row)"
+            @keydown.enter="handleView(row)"
+            @keydown.space.prevent="handleView(row)"
+          >
+            <!-- 第一層：姓名 + 會員編號（左）／狀態 Tag（右） -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-baseline gap-2">
+                <span class="text-color truncate text-sm font-semibold">{{ row.name }}</span>
+                <span class="text-muted-color shrink-0 text-xs tabular-nums">{{ row.no }}</span>
+              </div>
+              <Tag
+                class="shrink-0"
+                :severity="MEMBER_STATUS_SEVERITY[row.status as MockMemberRow['status']]"
+                :value="$t(`member.status.${row.status}`)"
+              />
+            </div>
+
+            <!-- 第二層：等級 + 星等 + 隱碼手機 -->
+            <div class="flex flex-wrap items-center gap-2">
+              <Tag
+                :severity="MEMBER_LEVEL_SEVERITY[row.level as MockMemberRow['level']]"
+                :value="$t(`member.level.${row.level}`)"
+              />
+              <span
+                class="text-color inline-flex items-center gap-2 text-xs tabular-nums"
+                :aria-label="$t('member.stars.rating', { count: row.stars })"
+              >
+                {{ row.stars }}
+                <FontAwesomeIcon
+                  :icon="['fas', 'star']"
+                  class="text-yellow-400 dark:text-yellow-300"
+                />
+              </span>
+              <span class="text-muted-color text-xs tabular-nums">{{ row.mobileMasked }}</span>
+            </div>
+
+            <!-- 第三層（僅已綁定管道）：無綁定則整行省略 -->
+            <div
+              v-if="boundChannelsOf(row.bindings).length"
+              class="flex items-center gap-2"
+            >
+              <FontAwesomeIcon
+                v-for="channel in boundChannelsOf(row.bindings)"
+                :key="channel.key"
+                :icon="channel.icon"
+                :class="channel.boundClass"
+                :aria-label="`${channel.nameKey ? $t(channel.nameKey) : channel.name} ${$t('member.binding.bound')}`"
+              />
+            </div>
+
+            <!-- 第四層：次要指標 2×2 grid（標籤 12px muted、數值 14px 做出層級；min-w-0 + truncate 防窄螢幕溢出） -->
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-color shrink-0">{{ $t('member.table.column.spend') }}</span>
+                <span class="text-color truncate text-sm tabular-nums">{{ row.spendLabel }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-color shrink-0">{{ $t('member.table.column.last_order') }}</span>
+                <span class="text-color truncate text-sm tabular-nums">{{ row.lastOrderLabel }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-color shrink-0">{{ $t('member.card.bids_abandoned') }}</span>
+                <span class="text-color truncate text-sm tabular-nums">{{ row.bids }} / {{ row.abandonedBids }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-color shrink-0">{{ $t('member.table.column.abandon_rate') }}</span>
+                <span
+                  class="truncate text-sm tabular-nums"
+                  :class="row.abandonRate.toneClass || 'text-color'"
+                >{{ row.abandonRate.label }}</span>
+              </div>
+            </div>
+
+            <!-- 第五層：操作（訂單紀錄 / 更多）；stopPropagation 避免觸發整列檢視 -->
+            <div class="flex items-center justify-end gap-2">
+              <Button
+                v-tooltip.top="$t('member.action.orders')"
+                :aria-label="$t('member.action.orders')"
+                rounded
+                size="small"
+                severity="secondary"
+                text
+                @click="(e: MouseEvent) => { e.stopPropagation(); handleOrders(row) }"
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', 'receipt']" />
+                </template>
+              </Button>
+              <Button
+                v-tooltip.top="$t('member.action.more')"
+                :aria-label="$t('member.action.more')"
+                rounded
+                size="small"
+                severity="secondary"
+                text
+                @click="(e: MouseEvent) => { e.stopPropagation(); openMoreMenu(e, row) }"
+              >
+                <template #icon>
+                  <FontAwesomeIcon :icon="['far', 'ellipsis-vertical']" />
+                </template>
+              </Button>
+            </div>
+          </div>
+
+          <div
+            v-if="!rows.length"
+            class="text-muted-color py-12 text-center"
+          >
+            {{ $t('member.card.empty') }}
+          </div>
+
+          <!-- 手機分頁：僅在超過一頁時顯示（對齊 ProductListPage 慣例：透明底、頁碼＋共 N 筆） -->
+          <Paginator
+            v-if="rows.length > MOBILE_PAGE_SIZE"
+            v-model:first="mobileFirst"
+            :rows="MOBILE_PAGE_SIZE"
+            :total-records="rows.length"
+            template="PrevPageLink PageLinks NextPageLink CurrentPageReport"
+            current-page-report-template="{first} - {last} / 共 {totalRecords} 筆"
+            class="!bg-transparent !px-0 !py-2"
+          />
         </div>
       </template>
     </Card>

@@ -57,6 +57,11 @@
       "scroll_prev": "查看左側欄位",
       "scroll_next": "查看右側欄位"
     },
+    "card": {
+      "bids_abandoned": "標單 / 棄標",
+      "empty": "查無符合條件的會員",
+      "view_detail": "檢視 {name} 的會員明細"
+    },
     "status": {
       "normal": "正常",
       "suspended": "停權",

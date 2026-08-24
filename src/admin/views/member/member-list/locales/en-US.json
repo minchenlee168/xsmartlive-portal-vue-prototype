@@ -57,6 +57,11 @@
       "scroll_prev": "Scroll to previous columns",
       "scroll_next": "Scroll to next columns"
     },
+    "card": {
+      "bids_abandoned": "Bids / Abandoned",
+      "empty": "No members match the current filters",
+      "view_detail": "View member details for {name}"
+    },
     "status": {
       "normal": "Normal",
       "suspended": "Suspended",

@@ -3,7 +3,7 @@
  *
  * ⚠️ 服務於 mock 版面預覽（見 `../mock/mockMembers.ts`）；欄位由後端補齊、改接 API 後應一併檢視去留。
  */
-import type { BindingChannelKey, MockMemberLevel, MockMemberStatus } from '../mock/mockMembers';
+import type { BindingChannelKey, MockMemberBindings, MockMemberLevel, MockMemberStatus } from '../mock/mockMembers';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 
 /** 空值佔位符（對齊專案慣例的 `-`）。 */
@@ -89,3 +89,12 @@ export const BINDING_CHANNELS: BindingChannel[] = [
 
 /** 未綁定管道的淡色 class。 */
 export const BINDING_UNBOUND_CLASS = 'text-surface-300 dark:text-surface-600';
+
+/**
+ * 取出「已綁定」的管道（依 `BINDING_CHANNELS` 顯示順序）。
+ *
+ * 手機卡片版只列出已綁定管道（未綁不佔位），避免 7 個 icon 擠壓窄卡片。
+ */
+export function boundChannelsOf(bindings: MockMemberBindings): BindingChannel[] {
+  return BINDING_CHANNELS.filter((channel) => bindings[channel.key]);
+}
