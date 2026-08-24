@@ -299,8 +299,9 @@ function handleSave() {
           {{ $t('member_level.edit_dialog.section.benefits') }}
         </h3>
 
+        <div class="divide-y divide-[var(--p-content-border-color)]">
         <div
-          class="flex flex-col gap-3 rounded-md border border-surface p-4"
+          class="flex flex-col gap-3 pb-4"
           :class="{ 'opacity-60': !birthdayCouponEnabled }"
         >
           <div class="flex items-center justify-between gap-3">
@@ -364,7 +365,7 @@ function handleSave() {
         </div>
 
         <div
-          class="flex flex-col gap-3 rounded-md border border-surface p-4"
+          class="flex flex-col gap-3 pt-4"
           :class="{ 'opacity-60': !upgradePointsEnabled }"
         >
           <div class="flex items-center justify-between gap-3">
@@ -425,6 +426,7 @@ function handleSave() {
           >
             {{ $t('member_level.edit_dialog.text.benefit_off') }}
           </p>
+        </div>
         </div>
       </section>
     </div>
