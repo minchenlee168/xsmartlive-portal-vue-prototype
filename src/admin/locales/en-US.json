@@ -12,6 +12,7 @@
     "bid_list": "Bid list",
     "member": "Member Management",
     "member_list": "Member List",
+    "member_level_setting": "Member Level Settings",
     "product": {
       "product": "Products",
       "list": "Product list",
@@ -40,6 +41,7 @@
     "live_records": "Order records",
     "bid_list": "Bid list",
     "member_list": "Member List",
+    "member_level_setting": "Member Level Settings",
     "invoice_operations": "Invoice operations",
     "invoice_manual": "Manual invoice",
     "product_list": "Product list",

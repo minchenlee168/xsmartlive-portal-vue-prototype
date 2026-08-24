@@ -1,0 +1,173 @@
+{
+  "member_level": {
+    "setting_page": {
+      "title": "會員等級設定",
+      "description": "依會員消費自動分級，套用對應折扣與權益。",
+      "toast": {
+        "updated": "會員等級設定已更新"
+      }
+    },
+    "master": {
+      "title": "開啟會員等級",
+      "description": "開啟後依會員消費自動分級，並套用各等級的折扣與權益；未開啟時所有會員均為一般會員。",
+      "label": {
+        "stats_period": "消費金額計算範圍",
+        "recalculate": "等級更新時間"
+      },
+      "text": {
+        "stats_period_value": "{start} ～ {end}",
+        "stats_period_until": "統計至 {end}",
+        "recalculate_note": "更新需一段時間，非即時生效。"
+      },
+      "option": {
+        "stats_period": {
+          "unlimited": "不限期間",
+          "recent_months": "近 {months} 個月消費",
+          "custom": "自訂期間"
+        },
+        "recalculate_cycle": {
+          "monthly": "每月 1 日",
+          "weekly": "每週一",
+          "custom": "自訂週期"
+        }
+      }
+    },
+    "title": {
+      "levels": "目前級距"
+    },
+    "table": {
+      "column": {
+        "level": "等級",
+        "threshold": "消費門檻",
+        "discount": "購物折扣",
+        "benefits": "權益",
+        "member_count": "會員數",
+        "status": "狀態",
+        "actions": "操作"
+      }
+    },
+    "text": {
+      "levels_note": "系統提供四個層級，可調整內容或停用",
+      "no_threshold": "未達門檻",
+      "member_count": "{count} 人",
+      "fixed_enabled": "固定啟用",
+      "discount": {
+        "none": "無折扣",
+        "value": "{discount} 折"
+      },
+      "benefit": {
+        "birthday_coupon": "每年生日贈送 {amount} 優惠券",
+        "upgrade_points": "初次升等贈送 {points} 紅利點數"
+      },
+      "status_aria": "{name} 啟用狀態"
+    },
+    "disable_setting": {
+      "title": "關閉會員等級",
+      "text": {
+        "lead": "確定要關閉會員等級嗎？關閉後將立即發生：",
+        "effect": {
+          "all_members_base": "全部會員一律視為「一般會員」，持有等級的會員將失去等級",
+          "discount_stops": "各等級的購物折扣停止套用",
+          "benefits_stop": "生日優惠券、升等禮紅利點數等權益不再發放",
+          "issued_unaffected": "已發放的優惠券與點數不受影響"
+        },
+        "footnote": "重新開啟後會依當時的消費金額重新分級。"
+      }
+    },
+    "disable_level": {
+      "title": "停用等級",
+      "text": {
+        "lead": "確定要停用「{name}」嗎？",
+        "effect": {
+          "members_regraded": "屬於此等級的會員將依門檻重新歸級（多數會落到下一階或一般會員）",
+          "discount_stops": "此等級的折扣與權益將停止套用",
+          "issued_unaffected": "已發放的優惠券與點數不受影響"
+        },
+        "footnote": "停用後仍可隨時重新啟用。"
+      }
+    },
+    "members": {
+      "title": "{name} — 共 {count} 人",
+      "title_fallback": "等級會員名單",
+      "text": {
+        "spent_note": "消費金額為統計區間 {start} ～ {end} 內的已付款總額，於等級重算當下算出，之後新增的消費要等下次重算才計入；與會員列表的「累積消費」（全期）不同源。累計訂單數為全期已付款單數，兩者範圍不同，不可相除。",
+        "spent_note_unlimited": "消費金額為統計至 {end} 為止的已付款總額，於等級重算當下算出，之後新增的消費要等下次重算才計入。累計訂單數為全期已付款單數，兩者範圍不同，不可相除。",
+        "spent_note_undated": "消費金額為統計區間內的已付款總額，於等級重算當下算出，之後新增的消費要等下次重算才計入。累計訂單數為全期已付款單數，兩者範圍不同，不可相除。",
+        "footnote": "會員等級依消費金額自動判定，無法手動指定。"
+      },
+      "column": {
+        "member_code": "會員編號",
+        "member_name": "會員姓名",
+        "window_spent": "區間消費",
+        "window_spent_months": "近 {months} 個月消費",
+        "window_spent_unlimited": "全期消費",
+        "paid_order_count": "累計訂單數（全期已付款）"
+      }
+    },
+    "edit_dialog": {
+      "title": "編輯「{name}」",
+      "title_fallback": "編輯等級",
+      "label": {
+        "name": "等級名稱",
+        "threshold": "消費門檻",
+        "discount_rate": "購物折扣",
+        "birthday_coupon_amount": "面額",
+        "birthday_coupon_timing": "發放時機",
+        "upgrade_points": "紅利點數",
+        "upgrade_points_timing": "發放時機"
+      },
+      "placeholder": {
+        "format": {
+          "name": "例：金卡",
+          "threshold": "例：3000",
+          "discount_rate": "例：0.9"
+        }
+      },
+      "validation": {
+        "name": {
+          "required": "請輸入等級名稱"
+        },
+        "threshold": {
+          "between": "門檻須大於 {lower} 且小於 {upper}",
+          "greater_than": "門檻須大於 {lower}"
+        },
+        "discount_rate": {
+          "range": "請輸入 {minimum}～{maximum} 之間的折扣倍率"
+        },
+        "birthday_coupon_amount": {
+          "positive": "面額須大於 0"
+        },
+        "upgrade_points": {
+          "range": "點數須為 {minimum}～{maximum} 之間的整數"
+        }
+      },
+      "description": {
+        "threshold": "會員在統計區間內的累積消費達此金額即屬此等級。",
+        "base_threshold": "一般會員為基礎級，門檻固定為 0（未達其他等級門檻者皆屬此級）。",
+        "discount_rate": "輸入 0.01～1 之間的折扣倍率，例如 0.98＝98 折、0.9＝9 折、1＝無折扣。"
+      },
+      "option": {
+        "birthday_timing": {
+          "birth_month": "生日當月 1 日",
+          "birth_day": "生日當天"
+        },
+        "upgrade_timing": {
+          "on_upgrade": "升等當下",
+          "next_month": "升等次月"
+        }
+      },
+      "section": {
+        "benefits": "會員權益",
+        "birthday_coupon": "生日禮券",
+        "upgrade_points": "升等禮"
+      },
+      "text": {
+        "benefit_off": "已關閉 — 開啟後可設定參數",
+        "birthday_coupon_note": "每年生日贈送一次，會員每年皆可領取。",
+        "upgrade_points_note": "僅限初次升上該等級時贈送一次，降級後再升回不重複贈送。",
+        "discount_preview": "＝ {discount}；定價 {price} 實付 {paid}（省 {saved}）",
+        "no_discount_preview": "＝ 無折扣（定價 {price} 實付 {price}）"
+      }
+    }
+  }
+}

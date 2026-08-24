@@ -118,7 +118,7 @@ export const sidebarMenu: MenuItem[] = [
       },
     ],
   },
-  // 會員管理：目前僅「會員列表」已實作
+  // 會員管理：會員列表 + 會員等級設定
   {
     labelKey: 'nav.member',
     icon: ['far', 'users'],
@@ -127,6 +127,11 @@ export const sidebarMenu: MenuItem[] = [
         labelKey: 'nav.member_list',
         imgSrc: memberListIconUrl,
         to: RouteName.MemberList,
+      },
+      {
+        labelKey: 'nav.member_level_setting',
+        icon: ['far', 'ranking-star'],
+        to: RouteName.MemberLevelSetting,
       },
     ],
   },

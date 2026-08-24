@@ -18,6 +18,8 @@ import bidListZhTW from '@/admin/views/live/bid-list/locales/zh-TW.json'
 import bidListEnUS from '@/admin/views/live/bid-list/locales/en-US.json'
 import memberListZhTW from '@/admin/views/member/member-list/locales/zh-TW.json'
 import memberListEnUS from '@/admin/views/member/member-list/locales/en-US.json'
+import memberLevelZhTW from '@/admin/views/member/member-level/locales/zh-TW.json'
+import memberLevelEnUS from '@/admin/views/member/member-level/locales/en-US.json'
 
 /**
  * 合併 app 級與各 view 級 locale；後者覆寫前者。
@@ -40,6 +42,7 @@ const messages = {
     storeManagementZhTW,
     bidListZhTW,
     memberListZhTW,
+    memberLevelZhTW,
   ),
   'en-US': mergeMessages(
     appEnUS,
@@ -51,6 +54,7 @@ const messages = {
     storeManagementEnUS,
     bidListEnUS,
     memberListEnUS,
+    memberLevelEnUS,
   ),
 }
 

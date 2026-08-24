@@ -5,6 +5,7 @@ import type { RouteRecordRaw } from 'vue-router'
  */
 export const MemberRouteName = {
   MemberList: 'member.list',
+  MemberLevelSetting: 'member.level-setting',
 } as const
 
 export const memberRoutes: RouteRecordRaw[] = [
@@ -14,6 +15,15 @@ export const memberRoutes: RouteRecordRaw[] = [
     component: () => import('@/admin/views/member/member-list/MemberListPage.vue'),
     meta: {
       i18nKey: 'route.member_list',
+      layout: 'default',
+    },
+  },
+  {
+    path: 'member/level-setting',
+    name: MemberRouteName.MemberLevelSetting,
+    component: () => import('@/admin/views/member/member-level/MemberLevelPage.vue'),
+    meta: {
+      i18nKey: 'route.member_level_setting',
       layout: 'default',
     },
   },

@@ -1,0 +1,173 @@
+{
+  "member_level": {
+    "setting_page": {
+      "title": "Member Level Settings",
+      "description": "Members are graded automatically by their spending, with the matching discount and benefits applied.",
+      "toast": {
+        "updated": "Member level settings updated"
+      }
+    },
+    "master": {
+      "title": "Enable Member Levels",
+      "description": "Once enabled, members are graded automatically by their spending and receive each level's discount and benefits. While disabled, every member is treated as a general member.",
+      "label": {
+        "stats_period": "Spending Calculation Period",
+        "recalculate": "Level Update Schedule"
+      },
+      "text": {
+        "stats_period_value": "{start} - {end}",
+        "stats_period_until": "Counted up to {end}",
+        "recalculate_note": "Updating takes a while; it does not take effect instantly."
+      },
+      "option": {
+        "stats_period": {
+          "unlimited": "No Period Limit",
+          "recent_months": "Spending in the Last {months} Months",
+          "custom": "Custom Period"
+        },
+        "recalculate_cycle": {
+          "monthly": "1st of Each Month",
+          "weekly": "Every Monday",
+          "custom": "Custom Schedule"
+        }
+      }
+    },
+    "title": {
+      "levels": "Current Levels"
+    },
+    "table": {
+      "column": {
+        "level": "Level",
+        "threshold": "Spending Threshold",
+        "discount": "Discount",
+        "benefits": "Benefits",
+        "member_count": "Members",
+        "status": "Status",
+        "actions": "Actions"
+      }
+    },
+    "text": {
+      "levels_note": "Four levels are provided; you can edit their content or disable them",
+      "no_threshold": "Below threshold",
+      "member_count": "{count}",
+      "fixed_enabled": "Always enabled",
+      "discount": {
+        "none": "No discount",
+        "value": "{percent}% of list price"
+      },
+      "benefit": {
+        "birthday_coupon": "A {amount} coupon every birthday",
+        "upgrade_points": "{points} bonus points on first upgrade"
+      },
+      "status_aria": "{name} status"
+    },
+    "disable_setting": {
+      "title": "Disable Member Levels",
+      "text": {
+        "lead": "Disable member levels? The following takes effect immediately:",
+        "effect": {
+          "all_members_base": "Every member is treated as a general member; members holding a level lose it",
+          "discount_stops": "Level discounts are no longer applied",
+          "benefits_stop": "Birthday coupons and upgrade bonus points are no longer issued",
+          "issued_unaffected": "Coupons and points already issued are unaffected"
+        },
+        "footnote": "Re-enabling grades members again based on their spending at that time."
+      }
+    },
+    "disable_level": {
+      "title": "Disable Level",
+      "text": {
+        "lead": "Disable \"{name}\"?",
+        "effect": {
+          "members_regraded": "Members on this level are regraded by threshold (most drop to the next level or to general member)",
+          "discount_stops": "This level's discount and benefits stop applying",
+          "issued_unaffected": "Coupons and points already issued are unaffected"
+        },
+        "footnote": "You can re-enable it at any time."
+      }
+    },
+    "members": {
+      "title": "{name} — {count} Members",
+      "title_fallback": "Level Members",
+      "text": {
+        "spent_note": "Spending is the paid total between {start} and {end}, taken when levels were last recalculated; newer orders count only after the next recalculation. It differs from the lifetime \"Total Spending\" on the member list. Total paid orders is a lifetime count, so the two cover different ranges and must not be divided by each other.",
+        "spent_note_unlimited": "Spending is the paid total up to {end}, taken when levels were last recalculated; newer orders count only after the next recalculation. Total paid orders is a lifetime count, so the two cover different ranges and must not be divided by each other.",
+        "spent_note_undated": "Spending is the paid total within the calculation period, taken when levels were last recalculated; newer orders count only after the next recalculation. Total paid orders is a lifetime count, so the two cover different ranges and must not be divided by each other.",
+        "footnote": "Member levels are decided automatically by spending and cannot be assigned manually."
+      },
+      "column": {
+        "member_code": "Member ID",
+        "member_name": "Member Name",
+        "window_spent": "Period Spending",
+        "window_spent_months": "Spending in Last {months} Months",
+        "window_spent_unlimited": "All-time Spending",
+        "paid_order_count": "Total Paid Orders (Lifetime)"
+      }
+    },
+    "edit_dialog": {
+      "title": "Edit \"{name}\"",
+      "title_fallback": "Edit Level",
+      "label": {
+        "name": "Level Name",
+        "threshold": "Spending Threshold",
+        "discount_rate": "Discount",
+        "birthday_coupon_amount": "Coupon Value",
+        "birthday_coupon_timing": "Issued On",
+        "upgrade_points": "Bonus Points",
+        "upgrade_points_timing": "Issued On"
+      },
+      "placeholder": {
+        "format": {
+          "name": "e.g. Gold",
+          "threshold": "e.g. 3000",
+          "discount_rate": "e.g. 0.9"
+        }
+      },
+      "validation": {
+        "name": {
+          "required": "Please enter a level name"
+        },
+        "threshold": {
+          "between": "The threshold must be greater than {lower} and less than {upper}",
+          "greater_than": "The threshold must be greater than {lower}"
+        },
+        "discount_rate": {
+          "range": "Enter a rate between {minimum} and {maximum}"
+        },
+        "birthday_coupon_amount": {
+          "positive": "The coupon value must be greater than 0"
+        },
+        "upgrade_points": {
+          "range": "Enter a whole number between {minimum} and {maximum}"
+        }
+      },
+      "description": {
+        "threshold": "Members whose spending in the calculation period reaches this amount belong to this level.",
+        "base_threshold": "General member is the base level; its threshold is fixed at 0 and covers everyone below the other thresholds.",
+        "discount_rate": "Enter a rate between 0.01 and 1, e.g. 0.98 = pay 98%, 0.9 = pay 90%, 1 = no discount."
+      },
+      "option": {
+        "birthday_timing": {
+          "birth_month": "1st of Birthday Month",
+          "birth_day": "On Birthday"
+        },
+        "upgrade_timing": {
+          "on_upgrade": "On Upgrade",
+          "next_month": "Month After Upgrade"
+        }
+      },
+      "section": {
+        "benefits": "Member Benefits",
+        "birthday_coupon": "Birthday Coupon",
+        "upgrade_points": "Upgrade Gift"
+      },
+      "text": {
+        "benefit_off": "Disabled - enable it to configure the parameters",
+        "birthday_coupon_note": "Issued once a year; every member can claim it each birthday.",
+        "upgrade_points_note": "Issued only the first time a member reaches this level; downgrading and returning does not issue it again.",
+        "discount_preview": "= {discount}; a {price} item costs {paid} (saving {saved})",
+        "no_discount_preview": "= No discount (a {price} item costs {price})"
+      }
+    }
+  }
+}

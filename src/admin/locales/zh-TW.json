@@ -23,6 +23,7 @@
     "order_list": "訂單列表",
     "member": "會員管理",
     "member_list": "會員列表",
+    "member_level_setting": "會員等級設定",
     "invoice": {
       "invoice": "電子發票",
       "operations": "發票作業",
@@ -47,6 +48,7 @@
     "multi_cart_settings": "多購物車設定",
     "order_list": "訂單列表",
     "member_list": "會員列表",
+    "member_level_setting": "會員等級設定",
     "invoice_operations": "發票作業",
     "invoice_manual": "手動開立發票",
     "product_list": "商品列表",
