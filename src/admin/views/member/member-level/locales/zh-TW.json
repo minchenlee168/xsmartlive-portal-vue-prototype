@@ -59,7 +59,9 @@
         "birthday_coupon": "每年生日贈送 {amount} 優惠券",
         "upgrade_points": "初次升等贈送 {points} 紅利點數"
       },
-      "status_aria": "{name} 啟用狀態"
+      "status_aria": "{name} 啟用狀態",
+      "status_on": "啟用",
+      "status_off": "停用"
     },
     "disable_setting": {
       "title": "關閉會員等級",

@@ -88,7 +88,8 @@ function handleConfirmDisable() {
       <span class="text-xs text-muted-color">{{ $t('member_level.text.levels_note') }}</span>
     </div>
 
-    <div class="overflow-x-auto">
+    <!-- 桌面：DataTable 橫向捲動；手機改用下方堆疊卡片 -->
+    <div class="hidden overflow-x-auto md:block">
       <DataTable
         :value="props.rows"
         data-key="sortOrder"
@@ -165,7 +166,10 @@ function handleConfirmDisable() {
             :label="$t('member_level.text.member_count', { count: formatThousands(data.memberCount) })"
             @click="emit('view-members', data.sortOrder)"
           />
-          <span v-else>{{ $t('member_level.text.member_count', { count: 0 }) }}</span>
+          <span
+            v-else
+            class="text-color text-sm tabular-nums"
+          >{{ $t('member_level.text.member_count', { count: 0 }) }}</span>
         </template>
       </Column>
 
@@ -179,14 +183,22 @@ function handleConfirmDisable() {
             v-if="data.isBase"
             class="text-sm text-muted-color"
           >{{ $t('member_level.text.fixed_enabled') }}</span>
-          <ToggleSwitch
+          <span
             v-else
-            :key="`${data.sortOrder}-${props.resyncToken}`"
-            :model-value="data.isEnabled"
-            :disabled="props.isSaving"
-            :aria-label="$t('member_level.text.status_aria', { name: data.name })"
-            @update:model-value="handleToggle(data, $event)"
-          />
+            class="inline-flex items-center gap-2"
+          >
+            <ToggleSwitch
+              :key="`${data.sortOrder}-${props.resyncToken}`"
+              :model-value="data.isEnabled"
+              :disabled="props.isSaving"
+              :aria-label="$t('member_level.text.status_aria', { name: data.name })"
+              @update:model-value="handleToggle(data, $event)"
+            />
+            <span
+              class="text-sm"
+              :class="data.isEnabled ? 'text-color' : 'text-muted-color'"
+            >{{ data.isEnabled ? $t('member_level.text.status_on') : $t('member_level.text.status_off') }}</span>
+          </span>
         </template>
       </Column>
 
@@ -210,6 +222,122 @@ function handleConfirmDisable() {
         </template>
         </Column>
       </DataTable>
+    </div>
+
+    <!--
+      手機：堆疊卡片列表（比照會員列表手機版）。卡片本身不設點擊事件——每張卡有開關 /
+      會員人數連結 / 編輯鈕多個互動元素，整卡再包一層點擊會與子元素打架且違反 a11y。
+      資訊由上而下依重要性排：等級＋狀態 → 門檻／折扣 → 權益 → 會員人數 → 編輯。
+    -->
+    <div class="divide-y divide-[var(--p-content-border-color)] md:hidden">
+      <div
+        v-for="data in props.rows"
+        :key="data.sortOrder"
+        class="flex flex-col gap-2 px-1 py-3"
+      >
+        <!-- 第一層：等級 Tag（左）／狀態開關 + 文字（右） -->
+        <div class="flex items-center justify-between gap-2">
+          <Tag
+            :severity="BADGE_SEVERITY[data.badgeVariant]"
+            class="min-w-0 max-w-full truncate"
+            :title="data.name"
+          >
+            {{ data.name }}
+          </Tag>
+          <span
+            v-if="data.isBase"
+            class="text-sm text-muted-color shrink-0"
+          >{{ $t('member_level.text.fixed_enabled') }}</span>
+          <span
+            v-else
+            class="inline-flex items-center gap-2 shrink-0"
+          >
+            <ToggleSwitch
+              :key="`${data.sortOrder}-${props.resyncToken}`"
+              :model-value="data.isEnabled"
+              :disabled="props.isSaving"
+              :aria-label="$t('member_level.text.status_aria', { name: data.name })"
+              @update:model-value="handleToggle(data, $event)"
+            />
+            <span
+              class="text-sm"
+              :class="data.isEnabled ? 'text-color' : 'text-muted-color'"
+            >{{ data.isEnabled ? $t('member_level.text.status_on') : $t('member_level.text.status_off') }}</span>
+          </span>
+        </div>
+
+        <!-- 第二層：門檻 + 折扣（2 欄短數值） -->
+        <div class="grid grid-cols-2 gap-x-4 text-xs">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.threshold') }}</span>
+            <span
+              class="truncate text-sm tabular-nums"
+              :class="data.isBase ? 'text-muted-color' : 'text-color'"
+            >{{ data.thresholdDisplay }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.discount') }}</span>
+            <span class="text-color truncate text-sm tabular-nums">{{ data.discountDisplay }}</span>
+          </div>
+        </div>
+
+        <!-- 第三層：權益（變長清單，獨立區塊 label 在上） -->
+        <div class="flex flex-col gap-1 text-xs">
+          <span class="text-muted-color">{{ $t('member_level.table.column.benefits') }}</span>
+          <span
+            v-if="data.benefits.length === 0"
+            class="text-muted-color"
+          >{{ EMPTY_FIELD }}</span>
+          <ul
+            v-else
+            class="space-y-0.5 text-sm text-muted-color"
+          >
+            <li
+              v-for="benefit in data.benefits"
+              :key="benefit.kind"
+            >
+              {{ benefit.text }}
+            </li>
+          </ul>
+        </div>
+
+        <!-- 第四層：會員人數（可互動連結，整行獨立） -->
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.member_count') }}</span>
+          <span
+            v-if="data.memberCount === null"
+            class="text-muted-color"
+          >{{ EMPTY_FIELD }}</span>
+          <Button
+            v-else-if="data.memberCount > 0"
+            link
+            size="small"
+            class="p-0"
+            :label="$t('member_level.text.member_count', { count: formatThousands(data.memberCount) })"
+            @click="emit('view-members', data.sortOrder)"
+          />
+          <span
+            v-else
+            class="text-color text-sm tabular-nums"
+          >{{ $t('member_level.text.member_count', { count: 0 }) }}</span>
+        </div>
+
+        <!-- 第五層：操作（編輯） -->
+        <div class="flex items-center justify-end">
+          <Button
+            v-tooltip.top="$t('common.button.edit')"
+            :aria-label="$t('common.button.edit')"
+            text
+            size="small"
+            :disabled="props.isSaving"
+            @click="emit('edit', data.sortOrder)"
+          >
+            <template #icon>
+              <i class="pi pi-pen-to-square" />
+            </template>
+          </Button>
+        </div>
+      </div>
     </div>
 
     <LevelDisableConfirmDialog

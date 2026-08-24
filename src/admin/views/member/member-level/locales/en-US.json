@@ -59,7 +59,9 @@
         "birthday_coupon": "A {amount} coupon every birthday",
         "upgrade_points": "{points} bonus points on first upgrade"
       },
-      "status_aria": "{name} status"
+      "status_aria": "{name} status",
+      "status_on": "Enabled",
+      "status_off": "Disabled"
     },
     "disable_setting": {
       "title": "Disable Member Levels",
