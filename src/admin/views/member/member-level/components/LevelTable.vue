@@ -282,7 +282,7 @@ function handleConfirmDisable() {
         </div>
 
         <!-- 第三層：權益（變長清單，獨立區塊 label 在上） -->
-        <div class="flex flex-col gap-1 text-xs">
+        <div class="flex flex-col gap-2 text-xs">
           <span class="text-muted-color">{{ $t('member_level.table.column.benefits') }}</span>
           <span
             v-if="data.benefits.length === 0"
