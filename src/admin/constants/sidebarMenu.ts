@@ -130,7 +130,7 @@ export const sidebarMenu: MenuItem[] = [
       },
       {
         labelKey: 'nav.member_level_setting',
-        icon: ['far', 'ranking-star'],
+        icon: ['far', 'medal'],
         to: RouteName.MemberLevelSetting,
       },
     ],
