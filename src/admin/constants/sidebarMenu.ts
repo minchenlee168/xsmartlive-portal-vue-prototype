@@ -1,7 +1,6 @@
 import type { PermissionKey } from '@/admin/constants/permissions'
 import { RouteName } from '@/admin/router'
 import liveLogoUrl from '@/admin/assets/live-logo.svg'
-import memberListIconUrl from '@/admin/assets/icons/icon-member-list.svg'
 
 export interface MenuItem {
   labelKey: string
@@ -125,7 +124,7 @@ export const sidebarMenu: MenuItem[] = [
     items: [
       {
         labelKey: 'nav.member_list',
-        imgSrc: memberListIconUrl,
+        icon: ['far', 'rectangle-history-circle-user'],
         to: RouteName.MemberList,
       },
       {
