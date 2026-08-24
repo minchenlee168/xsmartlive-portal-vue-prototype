@@ -266,19 +266,17 @@ function handleConfirmDisable() {
           </span>
         </div>
 
-        <!-- 第二層：門檻 + 折扣（2 欄短數值） -->
-        <div class="grid grid-cols-2 gap-x-4 text-xs">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.threshold') }}</span>
-            <span
-              class="truncate text-sm tabular-nums"
-              :class="data.isBase ? 'text-muted-color' : 'text-color'"
-            >{{ data.thresholdDisplay }}</span>
-          </div>
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.discount') }}</span>
-            <span class="text-color truncate text-sm tabular-nums">{{ data.discountDisplay }}</span>
-          </div>
+        <!-- 第二層：消費門檻、購物折扣（各自整行，數值靠右對齊右緣） -->
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.threshold') }}</span>
+          <span
+            class="truncate text-sm tabular-nums"
+            :class="data.isBase ? 'text-muted-color' : 'text-color'"
+          >{{ data.thresholdDisplay }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.discount') }}</span>
+          <span class="text-color truncate text-sm tabular-nums">{{ data.discountDisplay }}</span>
         </div>
 
         <!-- 第三層：權益（變長清單，獨立區塊 label 在上） -->
@@ -301,7 +299,7 @@ function handleConfirmDisable() {
           </ul>
         </div>
 
-        <!-- 第四層：會員人數（可互動連結，整行獨立） -->
+        <!-- 第四層：會員人數（可互動連結）。整行、數值靠右，與門檻/折扣對齊右緣 -->
         <div class="flex items-center justify-between gap-2 text-xs">
           <span class="text-muted-color shrink-0">{{ $t('member_level.table.column.member_count') }}</span>
           <span
