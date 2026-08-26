@@ -358,6 +358,7 @@
 | **次要按鈕樣式** | 次要按鈕可選用**紫色框線**樣式（outlined + 主色 `#7008E7`），與主要實心紫按鈕形成階層 |
 | **新增按鈕 icon** | 「新增」類按鈕（新增 XXX、Add、Create 等）一律用 `icon="pi pi-plus"`（PrimeIcon），不用 FontAwesome `circle-plus` / `plus` 或其他變體。目的：跨頁面視覺一致 |
 | **Dialog 主色按鈕不加 icon** | Dialog footer 的主色 CTA 按鈕（`確認 / 儲存 / 送出 / 合併` 等）**不加 icon**（**覆蓋上面的「Icon 使用」規則**）;Dialog 內文字已聚焦、footer 空間有限,按鈕文字已足夠表意,加 icon 反而視覺雜訊。次要按鈕（取消、關閉）本來就不加 icon |
+| **「送出申請」按鈕規格** | 申請送出類動作（金鑰申請、配號模式異動申請等）一律統一：label 用「**送出申請**」、icon 用 FontAwesome `['far', 'paper-plane']`（透過 `#icon` slot）、**主色實心**（`<Button>` 不指定 `severity`）。paper-plane 為此類動作的識別標記，**跨頁面一致**。此為上一列「Dialog 主色按鈕不加 icon」的**具名例外**——一般 `送出` 表單仍不加 icon，唯「送出**申請**」需 paper-plane 強化「提出申請」語意 |
 
 ### 7.5 Table 規範
 
@@ -373,6 +374,7 @@
 | **緊湊模式** | 對話框內或空間受限時加 `size="small"`（≈8-10px 縱 / 12px 橫 padding），不關掉 `striped-rows` |
 | **格線模式** | 需要顯示縱橫格線時加 `show-gridlines`；適用場景：規格表 / 群組合併，以及**列印預覽 / 出貨單 / 發票 / 收據等**需列印或視覺對照的表格（讓每格邊界清楚，印刷後仍能辨識欄位）；**一般資料列表不開**，避免視覺過重 |
 | **凍結欄 + 橫向捲動提示** | Table 用**凍結欄**（如固定在右側的「操作」欄）且資料會橫向捲動時，**一律加捲動可發現性提示**，避免使用者不知後面還有隱藏欄位：<br>① 水平捲軸**常駐可見**（`overflow-x: scroll` + `scrollbar-gutter: stable`）；<br>② 在可捲資料區左右邊緣疊**漸層 fade + 可點的 chevron**（`‹` / `›`，點擊捲動約 60% 視寬）；右側提示要**貼齊凍結欄內側**（`right: 凍結欄寬`，避免蓋到操作 icon）；<br>③ 依捲動位置顯示：捲到最左隱藏 `‹`、最右隱藏 `›`。判斷「還能往右」時**要扣掉常駐捲軸保留的殘差**：`scrollWidth − (scrollLeft + clientWidth) > ~16px` 才算，否則捲到底 `›` 仍會誤顯示；<br>④ 提示顏色一律走 `var(--p-*)` token（深色安全）。實作範例見 `OrderListPage.vue` |
+| **窄螢幕改手機卡片列表** | 資料表格在 `< md`（<768px）**改用手機卡片列表**，不要讓多欄表格在手機硬橫向捲動（捲動僅適用桌機超寬表格，見上一列）。做法（雙渲染，純 Tailwind 斷點、無 JS）：<br>① 桌機 DataTable 加 `class="hidden md:block"`；<br>② 另以 `<div class="md:hidden divide-y divide-[var(--p-content-border-color)]">` 渲染卡片列——**每列用 `divide-y` 分隔，不各自包 `border`/`rounded` 卡片**（表格已在外層 Card 內，避免巢狀 Card，見 6.5）；<br>③ 每列 `flex flex-col gap-2 px-1 py-3`，由上而下分層：**主要識別**（`text-sm font-semibold`，如名稱／抬頭）＋同列右側放**狀態 Tag**（`shrink-0`）→ **次要 metadata**（`text-xs text-surface-500 dark:text-surface-400`）→ **操作列靠右**（`flex justify-end gap-2`）；<br>④ 手機操作鈕**加回文字 label**（tooltip 在觸控裝置不觸發，不用 icon-only）；<br>⑤ 空狀態放兩個容器之外或各自渲染一次，`py-12 text-center`；長名稱／抬頭 `break-words` 不 truncate。實作範例見 `BlankListPage.vue`（下載空白發票號碼檔）；原型參照為會員列表 `MemberListPage.vue` |
 
 ### 7.6 搜尋區規範
 
@@ -429,16 +431,18 @@
 | **選填 label** | label 後面加淺灰 `<span class="text-xs text-[var(--p-text-muted-color)]">（選填）</span>` |
 | **輔助說明位置** | 欄位下方，用 `text-xs text-[var(--p-text-muted-color)]`（Helper 12px） |
 | **InputNumber 用 fluid 撐滿寬度** | PrimeVue 4 的 InputNumber **內部 `<input>` 預設不會填滿 container**（focus area 會比外框窄）→ 一律加 `fluid` prop 讓 input flex-grow 撐滿。**不要**用 `class="w-full"` 代替（w-full 只作用在最外層 wrapper，input 內部還是不填滿） |
+| **InputNumber 增減鈕（stepper）樣式** | 數字欄需要 stepper 時一律用 `<InputNumber show-buttons button-layout="horizontal">`（左右 `−  值  +`，非上下 stacked），並用 `#incrementbuttonicon` / `#decrementbuttonicon` slot 覆寫成 FontAwesome `['far', 'plus']` / `['far', 'minus']`，統一顯示 **−／＋** 符號，**不留 PrimeVue 預設 chevron**。全站數量／時數等數字欄一致採此樣式（如標單設定、編輯資料、手動下標彈窗）：<br>`<InputNumber show-buttons button-layout="horizontal" fluid><template #incrementbuttonicon><FontAwesomeIcon :icon="['far', 'plus']" /></template><template #decrementbuttonicon><FontAwesomeIcon :icon="['far', 'minus']" /></template></InputNumber>` |
 | **表單區塊間距** | 兩個 field 群組間 `gap-4`（16px）；同一群組內欄位 `gap-2`（8px） |
 
 ### 7.9 日期時間格式
 
 | 規則 | 範例 | 說明 |
 | --- | --- | --- |
-| **日期** | `2026-07-01` | 一律 `YYYY-MM-DD`，分隔符用連字號 `-`，不用 `/` 或 `.` |
-| **日期 + 時間** | `2026-07-01 14:26` | 日期後空一格接 24 小時制 `HH:mm`，**不顯示秒** |
-| **DatePicker 顯示** | `date-format="yy-mm-dd"` | PrimeVue DatePicker 用 `yy-mm-dd`（等於 `YYYY-MM-DD`） |
-| **例外：需要精確到秒** | `2026-07-01 14:26:23` | 僅日誌 / 稽核 / 交易紀錄等需要秒級精度的情境使用 `HH:mm:ss`；一般列表 / metadata 不加秒 |
+| **日期** | `2026/07/01` | 一律 `YYYY/MM/DD`，分隔符用斜線 `/`，不用 `-` 或 `.` |
+| **日期 + 時間** | `2026/07/01 14:26` | 日期後空一格接 24 小時制 `HH:mm`，**不顯示秒** |
+| **DatePicker 顯示** | `date-format="yy/mm/dd"` | PrimeVue DatePicker 用 `yy/mm/dd`（等於 `YYYY/MM/DD`） |
+| **日期區間（DatePicker）** | `2026/07/01 - 2026/07/14` | 原生 DatePicker range 模式，起訖以內建 ` - ` 分隔；空欄 placeholder 統一顯示格式提示 `YYYY/MM/DD - YYYY/MM/DD` |
+| **例外：需要精確到秒** | `2026/07/01 14:26:23` | 僅日誌 / 稽核 / 交易紀錄等需要秒級精度的情境使用 `HH:mm:ss`；一般列表 / metadata 不加秒 |
 
 ### 7.10 Sidebar 選單狀態
 
