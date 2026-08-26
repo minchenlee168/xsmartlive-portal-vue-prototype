@@ -9,6 +9,8 @@
       "status_all": "全部狀態",
       "star_all": "全部星等",
       "binding_placeholder": "全部",
+      "binding_all": "全部",
+      "binding_remove": "移除 {name}",
       "binding_hint": "（可多選，需全部符合）",
       "created_at_range_placeholder": "帳號建立日期",
       "blacklist_only": "只看黑名單會員",

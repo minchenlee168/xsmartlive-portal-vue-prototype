@@ -46,6 +46,36 @@ const bindingOptions = computed(() =>
   BINDING_CHANNELS.map((channel) => ({ label: channel.nameKey ? t(channel.nameKey) : channel.name ?? '', value: channel.key })),
 );
 
+/** 綁定管道所有選項的值集合，供面板頂端「全部」全選 checkbox 使用。 */
+const allBindingValues = computed<BindingChannelKey[]>(() =>
+  bindingOptions.value.map((option) => option.value),
+);
+
+/** 「全部」checkbox 的勾選狀態：所有管道皆選取時為 true。 */
+const allBindingsSelected = computed(
+  () =>
+    allBindingValues.value.length > 0 &&
+    filter.value.bindings.length === allBindingValues.value.length,
+);
+
+/** 切換「全部」：勾選時選滿所有管道，取消時清空。 */
+function toggleAllBindings(checked: boolean) {
+  update('bindings', checked ? [...allBindingValues.value] : []);
+}
+
+/** 取單一管道的顯示名稱（供觸發列 chip 用）。 */
+function bindingLabel(key: BindingChannelKey): string {
+  return bindingOptions.value.find((option) => option.value === key)?.label ?? key;
+}
+
+/** 從已選管道移除單一項（觸發列 chip 的 ✕）。 */
+function removeBinding(key: BindingChannelKey) {
+  update(
+    'bindings',
+    filter.value.bindings.filter((selected) => selected !== key),
+  );
+}
+
 /** 更新單一篩選欄位（維持不可變更新，觸發 v-model）。 */
 function update<K extends keyof MemberMockFilter>(key: K, value: MemberMockFilter[K]) {
   filter.value = { ...filter.value, [key]: value };
@@ -112,11 +142,60 @@ function handleKeywordEnter() {
         option-label="label"
         option-value="value"
         :placeholder="t('member.filter.label.bindings')"
-        :max-selected-labels="2"
+        :show-toggle-all="false"
         show-clear
         class="w-full"
         @update:model-value="(value: BindingChannelKey[]) => update('bindings', value)"
-      />
+      >
+        <template #value="{ value, placeholder }">
+          <span
+            v-if="!value || value.length === 0"
+            class="text-muted-color"
+          >
+            {{ placeholder }}
+          </span>
+          <span v-else-if="allBindingsSelected">
+            {{ t('member.filter.binding_all') }}
+          </span>
+          <span
+            v-else
+            class="flex flex-wrap items-center gap-1"
+          >
+            <span
+              v-for="key in value"
+              :key="key"
+              class="inline-flex items-center gap-1 rounded-md bg-[var(--p-content-hover-background)] py-0.5 pl-2 pr-1 text-sm"
+            >
+              {{ bindingLabel(key) }}
+              <button
+                type="button"
+                class="flex items-center text-muted-color hover:text-color"
+                :aria-label="t('member.filter.binding_remove', { name: bindingLabel(key) })"
+                @mousedown.stop.prevent="removeBinding(key)"
+              >
+                <i class="pi pi-times-circle text-xs"></i>
+              </button>
+            </span>
+          </span>
+        </template>
+
+        <template #header>
+          <div class="flex items-center gap-2 px-4 pt-3 pb-1">
+            <Checkbox
+              :model-value="allBindingsSelected"
+              input-id="member-binding-all"
+              binary
+              @update:model-value="(value: boolean) => toggleAllBindings(value)"
+            />
+            <label
+              for="member-binding-all"
+              class="cursor-pointer text-sm"
+            >
+              {{ t('member.filter.binding_all') }}
+            </label>
+          </div>
+        </template>
+      </MultiSelect>
 
       <DatePicker
         :model-value="filter.createdAtRange ?? undefined"

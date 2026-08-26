@@ -9,6 +9,8 @@
       "status_all": "All statuses",
       "star_all": "All ratings",
       "binding_placeholder": "All",
+      "binding_all": "All",
+      "binding_remove": "Remove {name}",
       "binding_hint": "(multi-select, match all)",
       "created_at_range_placeholder": "Registered date range",
       "blacklist_only": "Blacklisted only",
