@@ -6,7 +6,7 @@ import { formatMoney } from './formatMoney';
 export type LevelBadgeVariant = 'base' | 'bronze' | 'silver' | 'gold';
 
 /** 權益種類；兩個權益各有獨立開關，種類即該筆權益的身分（供列表 `:key`）。 */
-export type LevelBenefitKind = 'birthday_coupon' | 'upgrade_points';
+export type LevelBenefitKind = 'birthday_gift' | 'upgrade_points';
 
 /** 單筆權益文案。 */
 export interface LevelBenefit {
@@ -67,11 +67,11 @@ export function mapLevelToRow(level: MemberLevel, translate: TranslateFn): Membe
 function buildBenefits(level: MemberLevel, translate: TranslateFn): LevelBenefit[] {
   const benefits: LevelBenefit[] = [];
 
-  if (level.birthdayCouponEnabled) {
+  if (level.birthdayGiftEnabled) {
     benefits.push({
-      kind: 'birthday_coupon',
-      text: translate('member_level.text.benefit.birthday_coupon', {
-        amount: formatMoney(level.birthdayCouponAmount ?? 0),
+      kind: 'birthday_gift',
+      text: translate('member_level.text.benefit.birthday_gift', {
+        points: (level.birthdayGiftPoints ?? 0).toLocaleString('en-US'),
       }),
     });
   }

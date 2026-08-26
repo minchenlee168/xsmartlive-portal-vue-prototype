@@ -6,7 +6,7 @@
  */
 import type {
   MemberLevel,
-  MemberLevelBirthdayCouponTiming,
+  MemberLevelBirthdayGiftTiming,
   MemberLevelUpgradePointsTiming,
 } from '../types';
 import type { TranslateFn } from './formatDiscount';
@@ -20,9 +20,13 @@ export const DISCOUNT_RATE_MAX = 1;
 export const DISCOUNT_PERCENT_MIN = 1;
 export const DISCOUNT_PERCENT_MAX = 100;
 
-/** 升等禮點數值域 */
-export const UPGRADE_POINTS_MIN = 1;
-export const UPGRADE_POINTS_MAX = 4294967295;
+/** 生日禮／升等禮紅利點數值域 */
+export const GIFT_POINTS_MIN = 1;
+export const GIFT_POINTS_MAX = 4294967295;
+
+/** 點數效期（天）值域；最長十年 */
+export const EXPIRE_DAYS_MIN = 1;
+export const EXPIRE_DAYS_MAX = 3650;
 
 /** 逐欄的值域錯誤內容；`key` 進 i18n、`params` 為插值。 */
 export interface FieldError {
@@ -41,11 +45,13 @@ export interface LevelEditFormValues {
   threshold: number | null;
   /** 購物折扣倍率 0.01~1 */
   discountRate: number | null;
-  birthdayCouponEnabled: boolean;
-  birthdayCouponAmount: number | null;
-  birthdayCouponTiming: MemberLevelBirthdayCouponTiming;
+  birthdayGiftEnabled: boolean;
+  birthdayGiftPoints: number | null;
+  birthdayGiftExpireDays: number | null;
+  birthdayGiftTiming: MemberLevelBirthdayGiftTiming;
   upgradePointsEnabled: boolean;
   upgradePoints: number | null;
+  upgradePointsExpireDays: number | null;
   upgradePointsTiming: MemberLevelUpgradePointsTiming;
 }
 
@@ -62,7 +68,7 @@ export function toDiscountPercent(rate: number): number {
 /**
  * 把表單值寫回級距，交回可直接落庫的級距內容。
  *
- * 權益關閉時面額／點數交回 null（對齊欄位語意），但發放時機仍交回目前選取值（timing 欄位不可為
+ * 權益關閉時點數／效期交回 null（對齊欄位語意），但發放時機仍交回目前選取值（timing 欄位不可為
  * null）。
  */
 export function buildEditedLevel(source: MemberLevel, values: LevelEditFormValues): MemberLevel {
@@ -72,11 +78,15 @@ export function buildEditedLevel(source: MemberLevel, values: LevelEditFormValue
     // base 級距門檻固定 0，其餘級距的門檻已由表單擋掉空值
     threshold: source.isBase ? 0 : values.threshold ?? 0,
     discountPercent: toDiscountPercent(values.discountRate ?? DISCOUNT_RATE_MAX),
-    birthdayCouponEnabled: values.birthdayCouponEnabled,
-    birthdayCouponAmount: values.birthdayCouponEnabled ? values.birthdayCouponAmount ?? 0 : null,
-    birthdayCouponTiming: values.birthdayCouponTiming,
+    birthdayGiftEnabled: values.birthdayGiftEnabled,
+    birthdayGiftPoints: values.birthdayGiftEnabled ? values.birthdayGiftPoints ?? 0 : null,
+    birthdayGiftExpireDays: values.birthdayGiftEnabled ? values.birthdayGiftExpireDays ?? 0 : null,
+    birthdayGiftTiming: values.birthdayGiftTiming,
     upgradePointsEnabled: values.upgradePointsEnabled,
     upgradePoints: values.upgradePointsEnabled ? values.upgradePoints ?? 0 : null,
+    upgradePointsExpireDays: values.upgradePointsEnabled
+      ? values.upgradePointsExpireDays ?? 0
+      : null,
     upgradePointsTiming: values.upgradePointsTiming,
   };
 }
@@ -91,8 +101,10 @@ type LevelEditErrorField =
   | 'name'
   | 'threshold'
   | 'discountRate'
-  | 'birthdayCouponAmount'
-  | 'upgradePoints';
+  | 'birthdayGiftPoints'
+  | 'birthdayGiftExpireDays'
+  | 'upgradePoints'
+  | 'upgradePointsExpireDays';
 
 /** 有錯的欄位 → 錯誤內容；空物件代表這一級可以送出。 */
 export type LevelEditFormErrors = Partial<Record<LevelEditErrorField, FieldError>>;
@@ -150,25 +162,60 @@ export function validateLevelEditForm(
     };
   }
 
-  // 0 / 0.00 這類發了等於沒發的面額不是合法面額
-  if (
-    values.birthdayCouponEnabled &&
-    (values.birthdayCouponAmount === null || values.birthdayCouponAmount <= 0)
-  ) {
-    errors.birthdayCouponAmount = {
-      key: 'member_level.edit_dialog.validation.birthday_coupon_amount.positive',
-    };
+  if (values.birthdayGiftEnabled) {
+    const birthdayPoints = values.birthdayGiftPoints;
+    if (
+      birthdayPoints === null ||
+      !Number.isInteger(birthdayPoints) ||
+      birthdayPoints < GIFT_POINTS_MIN ||
+      birthdayPoints > GIFT_POINTS_MAX
+    ) {
+      errors.birthdayGiftPoints = {
+        key: 'member_level.edit_dialog.validation.gift_points.range',
+        params: { minimum: GIFT_POINTS_MIN, maximum: GIFT_POINTS_MAX },
+      };
+    }
+
+    const birthdayExpire = values.birthdayGiftExpireDays;
+    if (
+      birthdayExpire === null ||
+      !Number.isInteger(birthdayExpire) ||
+      birthdayExpire < EXPIRE_DAYS_MIN ||
+      birthdayExpire > EXPIRE_DAYS_MAX
+    ) {
+      errors.birthdayGiftExpireDays = {
+        key: 'member_level.edit_dialog.validation.expire_days.range',
+        params: { minimum: EXPIRE_DAYS_MIN, maximum: EXPIRE_DAYS_MAX },
+      };
+    }
   }
 
-  const points = values.upgradePoints;
-  if (
-    values.upgradePointsEnabled &&
-    (points === null || !Number.isInteger(points) || points < UPGRADE_POINTS_MIN || points > UPGRADE_POINTS_MAX)
-  ) {
-    errors.upgradePoints = {
-      key: 'member_level.edit_dialog.validation.upgrade_points.range',
-      params: { minimum: UPGRADE_POINTS_MIN, maximum: UPGRADE_POINTS_MAX },
-    };
+  if (values.upgradePointsEnabled) {
+    const points = values.upgradePoints;
+    if (
+      points === null ||
+      !Number.isInteger(points) ||
+      points < GIFT_POINTS_MIN ||
+      points > GIFT_POINTS_MAX
+    ) {
+      errors.upgradePoints = {
+        key: 'member_level.edit_dialog.validation.gift_points.range',
+        params: { minimum: GIFT_POINTS_MIN, maximum: GIFT_POINTS_MAX },
+      };
+    }
+
+    const upgradeExpire = values.upgradePointsExpireDays;
+    if (
+      upgradeExpire === null ||
+      !Number.isInteger(upgradeExpire) ||
+      upgradeExpire < EXPIRE_DAYS_MIN ||
+      upgradeExpire > EXPIRE_DAYS_MAX
+    ) {
+      errors.upgradePointsExpireDays = {
+        key: 'member_level.edit_dialog.validation.expire_days.range',
+        params: { minimum: EXPIRE_DAYS_MIN, maximum: EXPIRE_DAYS_MAX },
+      };
+    }
   }
 
   return errors;

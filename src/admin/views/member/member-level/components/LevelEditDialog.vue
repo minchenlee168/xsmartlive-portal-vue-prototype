@@ -11,10 +11,10 @@ import { useI18n } from 'vue-i18n';
 
 import FormField from '@/admin/components/ui/FormField.vue';
 import {
-  MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING,
+  MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING,
   MEMBER_LEVEL_UPGRADE_POINTS_TIMING,
   type MemberLevel,
-  type MemberLevelBirthdayCouponTiming,
+  type MemberLevelBirthdayGiftTiming,
   type MemberLevelUpgradePointsTiming,
 } from '../types';
 import { formatDiscount } from '../utils/formatDiscount';
@@ -24,11 +24,13 @@ import {
   DISCOUNT_PERCENT_MAX,
   DISCOUNT_RATE_MAX,
   DISCOUNT_RATE_MIN,
+  EXPIRE_DAYS_MAX,
+  EXPIRE_DAYS_MIN,
   formatFieldError,
+  GIFT_POINTS_MAX,
+  GIFT_POINTS_MIN,
   resolveThresholdBounds,
   toDiscountPercent,
-  UPGRADE_POINTS_MAX,
-  UPGRADE_POINTS_MIN,
   validateLevelEditForm,
   type LevelEditFormErrors,
   type LevelEditFormValues,
@@ -63,27 +65,29 @@ const name = ref('');
 const threshold = ref<number | null>(null);
 /** 購物折扣倍率 0.01~1；交回前才換算成百分比整數 */
 const discountRate = ref<number | null>(DISCOUNT_RATE_MAX);
-const birthdayCouponEnabled = ref(true);
-const birthdayCouponAmount = ref<number | null>(null);
-const birthdayCouponTiming = ref<MemberLevelBirthdayCouponTiming>(
-  MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING.BIRTH_MONTH,
+const birthdayGiftEnabled = ref(true);
+const birthdayGiftPoints = ref<number | null>(null);
+const birthdayGiftExpireDays = ref<number | null>(null);
+const birthdayGiftTiming = ref<MemberLevelBirthdayGiftTiming>(
+  MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING.BIRTH_MONTH,
 );
 const upgradePointsEnabled = ref(true);
 const upgradePoints = ref<number | null>(null);
+const upgradePointsExpireDays = ref<number | null>(null);
 const upgradePointsTiming = ref<MemberLevelUpgradePointsTiming>(
   MEMBER_LEVEL_UPGRADE_POINTS_TIMING.ON_UPGRADE,
 );
 
 const isBase = computed(() => props.level?.isBase === true);
 
-const birthdayCouponTimingOptions = computed(() => [
+const birthdayGiftTimingOptions = computed(() => [
   {
     label: t('member_level.edit_dialog.option.birthday_timing.birth_month'),
-    value: MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING.BIRTH_MONTH,
+    value: MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING.BIRTH_MONTH,
   },
   {
     label: t('member_level.edit_dialog.option.birthday_timing.birth_day'),
-    value: MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING.BIRTH_DAY,
+    value: MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING.BIRTH_DAY,
   },
 ]);
 
@@ -123,11 +127,13 @@ const formValues = computed<LevelEditFormValues>(() => ({
   name: name.value,
   threshold: threshold.value,
   discountRate: discountRate.value,
-  birthdayCouponEnabled: birthdayCouponEnabled.value,
-  birthdayCouponAmount: birthdayCouponAmount.value,
-  birthdayCouponTiming: birthdayCouponTiming.value,
+  birthdayGiftEnabled: birthdayGiftEnabled.value,
+  birthdayGiftPoints: birthdayGiftPoints.value,
+  birthdayGiftExpireDays: birthdayGiftExpireDays.value,
+  birthdayGiftTiming: birthdayGiftTiming.value,
   upgradePointsEnabled: upgradePointsEnabled.value,
   upgradePoints: upgradePoints.value,
+  upgradePointsExpireDays: upgradePointsExpireDays.value,
   upgradePointsTiming: upgradePointsTiming.value,
 }));
 
@@ -144,10 +150,16 @@ const errors = computed<LevelEditFormErrors>(() =>
 const nameError = computed(() => formatFieldError(errors.value.name, t));
 const thresholdError = computed(() => formatFieldError(errors.value.threshold, t));
 const discountRateError = computed(() => formatFieldError(errors.value.discountRate, t));
-const birthdayCouponAmountError = computed(() =>
-  formatFieldError(errors.value.birthdayCouponAmount, t),
+const birthdayGiftPointsError = computed(() =>
+  formatFieldError(errors.value.birthdayGiftPoints, t),
+);
+const birthdayGiftExpireDaysError = computed(() =>
+  formatFieldError(errors.value.birthdayGiftExpireDays, t),
 );
 const upgradePointsError = computed(() => formatFieldError(errors.value.upgradePoints, t));
+const upgradePointsExpireDaysError = computed(() =>
+  formatFieldError(errors.value.upgradePointsExpireDays, t),
+);
 
 const thresholdHint = computed(() =>
   isBase.value
@@ -165,12 +177,14 @@ function fillForm(level: MemberLevel | null) {
   threshold.value = level === null ? null : level.threshold;
   discountRate.value =
     level === null ? DISCOUNT_RATE_MAX : Number((level.discountPercent / 100).toFixed(2));
-  birthdayCouponEnabled.value = level?.birthdayCouponEnabled ?? true;
-  birthdayCouponAmount.value = level?.birthdayCouponAmount ?? null;
-  birthdayCouponTiming.value =
-    level?.birthdayCouponTiming ?? MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING.BIRTH_MONTH;
+  birthdayGiftEnabled.value = level?.birthdayGiftEnabled ?? true;
+  birthdayGiftPoints.value = level?.birthdayGiftPoints ?? null;
+  birthdayGiftExpireDays.value = level?.birthdayGiftExpireDays ?? null;
+  birthdayGiftTiming.value =
+    level?.birthdayGiftTiming ?? MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING.BIRTH_MONTH;
   upgradePointsEnabled.value = level?.upgradePointsEnabled ?? true;
   upgradePoints.value = level?.upgradePoints ?? null;
+  upgradePointsExpireDays.value = level?.upgradePointsExpireDays ?? null;
   upgradePointsTiming.value =
     level?.upgradePointsTiming ?? MEMBER_LEVEL_UPGRADE_POINTS_TIMING.ON_UPGRADE;
 }
@@ -299,62 +313,95 @@ function handleSave() {
           {{ $t('member_level.edit_dialog.section.benefits') }}
         </h3>
 
-        <div class="divide-y divide-[var(--p-content-border-color)]">
+        <!-- 生日禮 -->
         <div
-          class="flex flex-col gap-3 pb-4"
-          :class="{ 'opacity-60': !birthdayCouponEnabled }"
+          class="flex flex-col gap-4 rounded-lg border border-[var(--p-content-border-color)] p-4"
+          :class="{ 'opacity-60': !birthdayGiftEnabled }"
         >
           <div class="flex items-center justify-between gap-3">
-            <span class="font-medium">{{
-              $t('member_level.edit_dialog.section.birthday_coupon')
+            <span class="text-base font-semibold">{{
+              $t('member_level.edit_dialog.section.birthday_gift')
             }}</span>
             <ToggleSwitch
-              v-model="birthdayCouponEnabled"
-              :aria-label="$t('member_level.edit_dialog.section.birthday_coupon')"
+              v-model="birthdayGiftEnabled"
+              :aria-label="$t('member_level.edit_dialog.section.birthday_gift')"
             />
           </div>
 
-          <template v-if="birthdayCouponEnabled">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <template v-if="birthdayGiftEnabled">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FormField
-                :label="$t('member_level.edit_dialog.label.birthday_coupon_amount')"
+                :label="$t('member_level.edit_dialog.label.gift_points')"
                 required
                 class-name="max-w-none"
               >
                 <InputNumber
-                  v-model="birthdayCouponAmount"
+                  v-model="birthdayGiftPoints"
                   fluid
-                  :min="0"
+                  :min="GIFT_POINTS_MIN"
+                  :max="GIFT_POINTS_MAX"
                   :max-fraction-digits="0"
-                  :invalid="!!birthdayCouponAmountError"
-                  prefix="NT$ "
+                  :invalid="!!birthdayGiftPointsError"
                 />
                 <Message
-                  v-if="birthdayCouponAmountError"
+                  v-if="birthdayGiftPointsError"
                   size="small"
                   severity="error"
                   variant="simple"
                 >
-                  {{ birthdayCouponAmountError }}
+                  {{ birthdayGiftPointsError }}
                 </Message>
               </FormField>
 
               <FormField
-                :label="$t('member_level.edit_dialog.label.birthday_coupon_timing')"
+                :label="$t('member_level.edit_dialog.label.gift_timing')"
                 class-name="max-w-none"
               >
                 <Select
-                  v-model="birthdayCouponTiming"
+                  v-model="birthdayGiftTiming"
                   fluid
-                  :options="birthdayCouponTimingOptions"
+                  :options="birthdayGiftTimingOptions"
                   option-label="label"
                   option-value="value"
                 />
               </FormField>
+
+              <FormField
+                :label="$t('member_level.edit_dialog.label.expire_days')"
+                required
+                class-name="max-w-none"
+              >
+                <div class="flex items-center gap-2">
+                  <InputNumber
+                    v-model="birthdayGiftExpireDays"
+                    class="min-w-0 flex-1"
+                    fluid
+                    :min="EXPIRE_DAYS_MIN"
+                    :max="EXPIRE_DAYS_MAX"
+                    :max-fraction-digits="0"
+                    :invalid="!!birthdayGiftExpireDaysError"
+                    :aria-label="`${$t('member_level.edit_dialog.label.expire_days')}（${$t('member_level.edit_dialog.text.expire_days_suffix')}）`"
+                  />
+                  <span class="shrink-0 text-muted-color">{{
+                    $t('member_level.edit_dialog.text.expire_days_suffix')
+                  }}</span>
+                </div>
+                <Message
+                  v-if="birthdayGiftExpireDaysError"
+                  size="small"
+                  severity="error"
+                  variant="simple"
+                >
+                  {{ birthdayGiftExpireDaysError }}
+                </Message>
+              </FormField>
             </div>
-            <p class="text-sm text-muted-color">
-              {{ $t('member_level.edit_dialog.text.birthday_coupon_note') }}
-            </p>
+            <div
+              class="flex items-start gap-2 rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 text-sm text-muted-color"
+            >
+              <i class="pi pi-info-circle mt-0.5 shrink-0"></i>
+              <span>{{ $t('member_level.edit_dialog.text.birthday_gift_note') }}</span>
+            </div>
           </template>
           <p
             v-else
@@ -364,12 +411,13 @@ function handleSave() {
           </p>
         </div>
 
+        <!-- 升等禮 -->
         <div
-          class="flex flex-col gap-3 pt-4"
+          class="flex flex-col gap-4 rounded-lg border border-[var(--p-content-border-color)] p-4"
           :class="{ 'opacity-60': !upgradePointsEnabled }"
         >
           <div class="flex items-center justify-between gap-3">
-            <span class="font-medium">{{
+            <span class="text-base font-semibold">{{
               $t('member_level.edit_dialog.section.upgrade_points')
             }}</span>
             <ToggleSwitch
@@ -379,17 +427,17 @@ function handleSave() {
           </div>
 
           <template v-if="upgradePointsEnabled">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FormField
-                :label="$t('member_level.edit_dialog.label.upgrade_points')"
+                :label="$t('member_level.edit_dialog.label.gift_points')"
                 required
                 class-name="max-w-none"
               >
                 <InputNumber
                   v-model="upgradePoints"
                   fluid
-                  :min="UPGRADE_POINTS_MIN"
-                  :max="UPGRADE_POINTS_MAX"
+                  :min="GIFT_POINTS_MIN"
+                  :max="GIFT_POINTS_MAX"
                   :max-fraction-digits="0"
                   :invalid="!!upgradePointsError"
                 />
@@ -404,7 +452,7 @@ function handleSave() {
               </FormField>
 
               <FormField
-                :label="$t('member_level.edit_dialog.label.upgrade_points_timing')"
+                :label="$t('member_level.edit_dialog.label.gift_timing')"
                 class-name="max-w-none"
               >
                 <Select
@@ -415,10 +463,43 @@ function handleSave() {
                   option-value="value"
                 />
               </FormField>
+
+              <FormField
+                :label="$t('member_level.edit_dialog.label.expire_days')"
+                required
+                class-name="max-w-none"
+              >
+                <div class="flex items-center gap-2">
+                  <InputNumber
+                    v-model="upgradePointsExpireDays"
+                    class="min-w-0 flex-1"
+                    fluid
+                    :min="EXPIRE_DAYS_MIN"
+                    :max="EXPIRE_DAYS_MAX"
+                    :max-fraction-digits="0"
+                    :invalid="!!upgradePointsExpireDaysError"
+                    :aria-label="`${$t('member_level.edit_dialog.label.expire_days')}（${$t('member_level.edit_dialog.text.expire_days_suffix')}）`"
+                  />
+                  <span class="shrink-0 text-muted-color">{{
+                    $t('member_level.edit_dialog.text.expire_days_suffix')
+                  }}</span>
+                </div>
+                <Message
+                  v-if="upgradePointsExpireDaysError"
+                  size="small"
+                  severity="error"
+                  variant="simple"
+                >
+                  {{ upgradePointsExpireDaysError }}
+                </Message>
+              </FormField>
             </div>
-            <p class="text-sm text-muted-color">
-              {{ $t('member_level.edit_dialog.text.upgrade_points_note') }}
-            </p>
+            <div
+              class="flex items-start gap-2 rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 text-sm text-muted-color"
+            >
+              <i class="pi pi-info-circle mt-0.5 shrink-0"></i>
+              <span>{{ $t('member_level.edit_dialog.text.upgrade_points_note') }}</span>
+            </div>
           </template>
           <p
             v-else
@@ -426,7 +507,6 @@ function handleSave() {
           >
             {{ $t('member_level.edit_dialog.text.benefit_off') }}
           </p>
-        </div>
         </div>
       </section>
     </div>

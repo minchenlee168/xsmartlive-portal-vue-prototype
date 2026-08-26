@@ -56,7 +56,7 @@
         "value": "{discount} 折"
       },
       "benefit": {
-        "birthday_coupon": "每年生日贈送 {amount} 優惠券",
+        "birthday_gift": "每年生日贈送 {points} 紅利點數",
         "upgrade_points": "初次升等贈送 {points} 紅利點數"
       },
       "status_aria": "{name} 啟用狀態",
@@ -70,8 +70,8 @@
         "effect": {
           "all_members_base": "全部會員一律視為「一般會員」，持有等級的會員將失去等級",
           "discount_stops": "各等級的購物折扣停止套用",
-          "benefits_stop": "生日優惠券、升等禮紅利點數等權益不再發放",
-          "issued_unaffected": "已發放的優惠券與點數不受影響"
+          "benefits_stop": "生日禮、升等禮的紅利點數不再發放",
+          "issued_unaffected": "已發放的紅利點數不受影響"
         },
         "footnote": "重新開啟後會依當時的消費金額重新分級。"
       }
@@ -83,7 +83,7 @@
         "effect": {
           "members_regraded": "屬於此等級的會員將依門檻重新歸級（多數會落到下一階或一般會員）",
           "discount_stops": "此等級的折扣與權益將停止套用",
-          "issued_unaffected": "已發放的優惠券與點數不受影響"
+          "issued_unaffected": "已發放的紅利點數不受影響"
         },
         "footnote": "停用後仍可隨時重新啟用。"
       }
@@ -113,10 +113,9 @@
         "name": "等級名稱",
         "threshold": "消費門檻",
         "discount_rate": "購物折扣",
-        "birthday_coupon_amount": "面額",
-        "birthday_coupon_timing": "發放時機",
-        "upgrade_points": "紅利點數",
-        "upgrade_points_timing": "發放時機"
+        "gift_points": "紅利點數",
+        "gift_timing": "發放時機",
+        "expire_days": "效期"
       },
       "placeholder": {
         "format": {
@@ -136,11 +135,11 @@
         "discount_rate": {
           "range": "請輸入 {minimum}～{maximum} 之間的折扣倍率"
         },
-        "birthday_coupon_amount": {
-          "positive": "面額須大於 0"
-        },
-        "upgrade_points": {
+        "gift_points": {
           "range": "點數須為 {minimum}～{maximum} 之間的整數"
+        },
+        "expire_days": {
+          "range": "效期須為 {minimum}～{maximum} 之間的天數"
         }
       },
       "description": {
@@ -160,13 +159,14 @@
       },
       "section": {
         "benefits": "會員權益",
-        "birthday_coupon": "生日禮券",
+        "birthday_gift": "生日禮",
         "upgrade_points": "升等禮"
       },
       "text": {
         "benefit_off": "已關閉 — 開啟後可設定參數",
-        "birthday_coupon_note": "每年生日贈送一次，會員每年皆可領取。",
-        "upgrade_points_note": "僅限初次升上該等級時贈送一次，降級後再升回不重複贈送。",
+        "expire_days_suffix": "天",
+        "birthday_gift_note": "每年生日贈送一次，會員每年皆可領取。",
+        "upgrade_points_note": "僅限初次上升該等級時贈送一次，降級後再升回不重複贈送。",
         "discount_preview": "＝ {discount}；定價 {price} 實付 {paid}（省 {saved}）",
         "no_discount_preview": "＝ 無折扣（定價 {price} 實付 {price}）"
       }

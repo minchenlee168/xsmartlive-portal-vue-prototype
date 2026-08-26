@@ -56,7 +56,7 @@
         "value": "{percent}% of list price"
       },
       "benefit": {
-        "birthday_coupon": "A {amount} coupon every birthday",
+        "birthday_gift": "{points} bonus points every birthday",
         "upgrade_points": "{points} bonus points on first upgrade"
       },
       "status_aria": "{name} status",
@@ -70,8 +70,8 @@
         "effect": {
           "all_members_base": "Every member is treated as a general member; members holding a level lose it",
           "discount_stops": "Level discounts are no longer applied",
-          "benefits_stop": "Birthday coupons and upgrade bonus points are no longer issued",
-          "issued_unaffected": "Coupons and points already issued are unaffected"
+          "benefits_stop": "Birthday and upgrade bonus points are no longer issued",
+          "issued_unaffected": "Bonus points already issued are unaffected"
         },
         "footnote": "Re-enabling grades members again based on their spending at that time."
       }
@@ -83,7 +83,7 @@
         "effect": {
           "members_regraded": "Members on this level are regraded by threshold (most drop to the next level or to general member)",
           "discount_stops": "This level's discount and benefits stop applying",
-          "issued_unaffected": "Coupons and points already issued are unaffected"
+          "issued_unaffected": "Bonus points already issued are unaffected"
         },
         "footnote": "You can re-enable it at any time."
       }
@@ -113,10 +113,9 @@
         "name": "Level Name",
         "threshold": "Spending Threshold",
         "discount_rate": "Discount",
-        "birthday_coupon_amount": "Coupon Value",
-        "birthday_coupon_timing": "Issued On",
-        "upgrade_points": "Bonus Points",
-        "upgrade_points_timing": "Issued On"
+        "gift_points": "Bonus Points",
+        "gift_timing": "Issued On",
+        "expire_days": "Validity"
       },
       "placeholder": {
         "format": {
@@ -136,11 +135,11 @@
         "discount_rate": {
           "range": "Enter a rate between {minimum} and {maximum}"
         },
-        "birthday_coupon_amount": {
-          "positive": "The coupon value must be greater than 0"
-        },
-        "upgrade_points": {
+        "gift_points": {
           "range": "Enter a whole number between {minimum} and {maximum}"
+        },
+        "expire_days": {
+          "range": "Enter a number of days between {minimum} and {maximum}"
         }
       },
       "description": {
@@ -160,12 +159,13 @@
       },
       "section": {
         "benefits": "Member Benefits",
-        "birthday_coupon": "Birthday Coupon",
+        "birthday_gift": "Birthday Gift",
         "upgrade_points": "Upgrade Gift"
       },
       "text": {
         "benefit_off": "Disabled - enable it to configure the parameters",
-        "birthday_coupon_note": "Issued once a year; every member can claim it each birthday.",
+        "expire_days_suffix": "days",
+        "birthday_gift_note": "Issued once a year; every member can claim it each birthday.",
         "upgrade_points_note": "Issued only the first time a member reaches this level; downgrading and returning does not issue it again.",
         "discount_preview": "= {discount}; a {price} item costs {paid} (saving {saved})",
         "no_discount_preview": "= No discount (a {price} item costs {price})"

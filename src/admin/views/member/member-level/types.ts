@@ -6,16 +6,16 @@
  * toast。金額在 prototype 一律以整數（TWD，minorUnit 0）處理，不做面值字串換算。
  */
 
-/** 生日禮券發放時機。 */
-export const MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING = {
+/** 生日禮發放時機。 */
+export const MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING = {
   /** 生日當月 1 日 */
   BIRTH_MONTH: 1,
   /** 生日當天 */
   BIRTH_DAY: 2,
 } as const;
 
-export type MemberLevelBirthdayCouponTiming =
-  (typeof MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING)[keyof typeof MEMBER_LEVEL_BIRTHDAY_COUPON_TIMING];
+export type MemberLevelBirthdayGiftTiming =
+  (typeof MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING)[keyof typeof MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING];
 
 /** 升等禮點數發放時機。 */
 export const MEMBER_LEVEL_UPGRADE_POINTS_TIMING = {
@@ -49,7 +49,8 @@ export const MEMBER_LEVEL_STATS_PERIOD = {
  * 會員等級的單一級距。
  *
  * 會員等級依統計區間內的消費自動分級，與星等（後台手動指派）是兩個獨立概念。
- * 生日禮／升等禮兩組欄位各自由 `birthdayCouponEnabled` / `upgradePointsEnabled` 控制。
+ * 生日禮／升等禮兩組欄位各自由 `birthdayGiftEnabled` / `upgradePointsEnabled` 控制。
+ * 兩者發放的都是紅利點數，各自帶「效期（天）」。
  */
 export interface MemberLevel {
   /** 級距順序 0~3，0 為基礎級距（與 `isBase` 同義），同時是列的識別鍵 */
@@ -64,13 +65,17 @@ export interface MemberLevel {
   isEnabled: boolean;
   /** 該級距的會員數；該店還沒算過等級時為 null（不可當 0 顯示） */
   memberCount: number | null;
-  birthdayCouponEnabled: boolean;
-  /** 生日禮券面額；從未設定過該權益時為 null */
-  birthdayCouponAmount: number | null;
-  birthdayCouponTiming: MemberLevelBirthdayCouponTiming;
+  birthdayGiftEnabled: boolean;
+  /** 生日禮紅利點數；從未設定過該權益時為 null */
+  birthdayGiftPoints: number | null;
+  /** 生日禮點數效期（天）；從未設定過該權益時為 null */
+  birthdayGiftExpireDays: number | null;
+  birthdayGiftTiming: MemberLevelBirthdayGiftTiming;
   upgradePointsEnabled: boolean;
-  /** 升等禮點數；從未設定過該權益時為 null */
+  /** 升等禮紅利點數；從未設定過該權益時為 null */
   upgradePoints: number | null;
+  /** 升等禮點數效期（天）；從未設定過該權益時為 null */
+  upgradePointsExpireDays: number | null;
   upgradePointsTiming: MemberLevelUpgradePointsTiming;
 }
 
