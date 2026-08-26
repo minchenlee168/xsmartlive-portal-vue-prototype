@@ -4,7 +4,17 @@
       "list": "Member List"
     },
     "filter": {
-      "keyword_placeholder": "Member No. / Name / Full mobile",
+      "keyword_field_label": "Search field",
+      "keyword_field": {
+        "name": "Name",
+        "code": "Member No.",
+        "phone": "Full mobile"
+      },
+      "keyword_placeholder_by_field": {
+        "name": "Enter name",
+        "code": "Enter member no.",
+        "phone": "Enter full mobile"
+      },
       "level_all": "All levels",
       "status_all": "All statuses",
       "star_all": "All ratings",
@@ -65,6 +75,7 @@
       "view_detail": "View member details for {name}"
     },
     "status": {
+      "all": "All",
       "normal": "Normal",
       "suspended": "Suspended",
       "blacklisted": "Blacklisted"
@@ -99,6 +110,7 @@
       "save_stub": "Layout preview: star settings are not wired to the backend yet"
     },
     "stars": {
+      "all": "All",
       "rating": "{count} stars"
     },
     "action": {

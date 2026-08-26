@@ -155,6 +155,7 @@ const appliedFilter = ref<MemberMockFilter>(createEmptyFilter());
 
 function createEmptyFilter(): MemberMockFilter {
   return {
+    keywordField: 'name',
     keyword: '',
     level: null,
     status: null,
@@ -176,12 +177,21 @@ function dayEnd(date: Date): number {
 
 /** 依已套用條件做客端過濾（對齊 mockup 搜尋區各條件；綁定管道為多選、需全部符合）。 */
 const filteredMembers = computed<MockMemberRow[]>(() => {
-  const { keyword, level, status, stars, bindings, createdAtRange, blacklistOnly } = appliedFilter.value;
+  const { keywordField, keyword, level, status, stars, bindings, createdAtRange, blacklistOnly } =
+    appliedFilter.value;
   const kw = keyword.trim().toLowerCase();
   const [from, to] = createdAtRange ?? [];
 
   return mockMembers.filter((member) => {
-    if (kw && !member.name.toLowerCase().includes(kw) && !member.no.toLowerCase().includes(kw)) return false;
+    if (kw) {
+      const haystack =
+        keywordField === 'code'
+          ? member.no
+          : keywordField === 'phone'
+            ? member.phoneFull ?? ''
+            : member.name;
+      if (!haystack.toLowerCase().includes(kw)) return false;
+    }
     if (level !== null && member.level !== level) return false;
     if (status !== null && member.status !== status) return false;
     if (stars !== null && member.stars !== stars) return false;

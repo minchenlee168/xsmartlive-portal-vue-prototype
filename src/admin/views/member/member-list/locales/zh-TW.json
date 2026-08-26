@@ -4,7 +4,17 @@
       "list": "會員列表"
     },
     "filter": {
-      "keyword_placeholder": "會員編號 / 姓名 / 完整手機號碼",
+      "keyword_field_label": "搜尋欄位",
+      "keyword_field": {
+        "name": "姓名",
+        "code": "會員編號",
+        "phone": "完整手機號碼"
+      },
+      "keyword_placeholder_by_field": {
+        "name": "輸入姓名",
+        "code": "輸入會員編號",
+        "phone": "輸入完整手機號碼"
+      },
       "level_all": "全部等級",
       "status_all": "全部狀態",
       "star_all": "全部星等",
@@ -65,6 +75,7 @@
       "view_detail": "檢視 {name} 的會員明細"
     },
     "status": {
+      "all": "全部",
       "normal": "正常",
       "suspended": "停權",
       "blacklisted": "黑名單"
@@ -99,6 +110,7 @@
       "save_stub": "版面預覽：星等設定尚未接後端"
     },
     "stars": {
+      "all": "全部",
       "rating": "{count} 星"
     },
     "action": {

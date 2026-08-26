@@ -85,7 +85,12 @@ export interface MockMemberRow {
  * `status` 下拉僅提供 正常／停權；黑名單改由 `blacklistOnly` 快切。
  * `bindings` 為多選，語意為「需全部符合」（AND）。
  */
+/** 關鍵字搜尋的目標欄位（姓名／會員編號／完整手機號碼）。 */
+export type MemberKeywordField = 'name' | 'code' | 'phone';
+
 export interface MemberMockFilter {
+  /** 關鍵字搜尋的目標欄位 */
+  keywordField: MemberKeywordField;
   keyword: string;
   level: MockMemberLevel | null;
   status: MockMemberStatus | null;
