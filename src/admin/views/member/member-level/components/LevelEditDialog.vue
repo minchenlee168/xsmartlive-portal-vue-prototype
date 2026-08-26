@@ -313,13 +313,14 @@ function handleSave() {
           {{ $t('member_level.edit_dialog.section.benefits') }}
         </h3>
 
+        <div class="divide-y divide-[var(--p-content-border-color)]">
         <!-- 生日禮 -->
         <div
-          class="flex flex-col gap-4 rounded-lg border border-[var(--p-content-border-color)] p-4"
+          class="flex flex-col gap-4 pb-5"
           :class="{ 'opacity-60': !birthdayGiftEnabled }"
         >
           <div class="flex items-center justify-between gap-3">
-            <span class="text-base font-semibold">{{
+            <span class="font-medium">{{
               $t('member_level.edit_dialog.section.birthday_gift')
             }}</span>
             <ToggleSwitch
@@ -413,11 +414,11 @@ function handleSave() {
 
         <!-- 升等禮 -->
         <div
-          class="flex flex-col gap-4 rounded-lg border border-[var(--p-content-border-color)] p-4"
+          class="flex flex-col gap-4 pt-5"
           :class="{ 'opacity-60': !upgradePointsEnabled }"
         >
           <div class="flex items-center justify-between gap-3">
-            <span class="text-base font-semibold">{{
+            <span class="font-medium">{{
               $t('member_level.edit_dialog.section.upgrade_points')
             }}</span>
             <ToggleSwitch
@@ -507,6 +508,7 @@ function handleSave() {
           >
             {{ $t('member_level.edit_dialog.text.benefit_off') }}
           </p>
+        </div>
         </div>
       </section>
     </div>
