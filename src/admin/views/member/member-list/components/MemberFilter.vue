@@ -50,19 +50,14 @@ const levelOptions = computed<{ label: string; value: MockMemberLevel }[]>(() =>
   { label: t('member.level.gold'), value: 'gold' },
 ]);
 
-/** 下拉「全部」的 sentinel；送出前轉回 null（篩選層以 null 代表不限）。 */
-const ALL = 'all' as const;
-
-const statusOptions = computed<{ label: string; value: MockMemberStatus | typeof ALL }[]>(() => [
-  { label: t('member.status.all'), value: ALL },
+const statusOptions = computed<{ label: string; value: MockMemberStatus }[]>(() => [
   { label: t('member.status.normal'), value: 'normal' },
   { label: t('member.status.suspended'), value: 'suspended' },
 ]);
 
-const starOptions = computed<{ label: string; value: number | typeof ALL }[]>(() => [
-  { label: t('member.stars.all'), value: ALL },
-  ...[5, 4, 3, 2, 1].map((count) => ({ label: t('member.stars.rating', { count }), value: count })),
-]);
+const starOptions = computed<{ label: string; value: number }[]>(() =>
+  [5, 4, 3, 2, 1].map((count) => ({ label: t('member.stars.rating', { count }), value: count })),
+);
 
 const bindingOptions = computed(() =>
   BINDING_CHANNELS.map((channel) => ({ label: channel.nameKey ? t(channel.nameKey) : channel.name ?? '', value: channel.key })),
@@ -143,21 +138,23 @@ function handleKeywordEnter() {
       />
 
       <Select
-        :model-value="filter.status ?? ALL"
+        :model-value="filter.status"
         :options="statusOptions"
         option-label="label"
         option-value="value"
         :placeholder="t('member.filter.label.status')"
-        @update:model-value="(value: MockMemberStatus | typeof ALL) => update('status', value === ALL ? null : value)"
+        show-clear
+        @update:model-value="(value: MockMemberStatus | null) => update('status', value)"
       />
 
       <Select
-        :model-value="filter.stars ?? ALL"
+        :model-value="filter.stars"
         :options="starOptions"
         option-label="label"
         option-value="value"
         :placeholder="t('member.filter.label.stars')"
-        @update:model-value="(value: number | typeof ALL) => update('stars', value === ALL ? null : value)"
+        show-clear
+        @update:model-value="(value: number | null) => update('stars', value)"
       />
 
       <MultiSelect

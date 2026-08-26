@@ -75,7 +75,6 @@
       "view_detail": "檢視 {name} 的會員明細"
     },
     "status": {
-      "all": "全部",
       "normal": "正常",
       "suspended": "停權",
       "blacklisted": "黑名單"
@@ -110,7 +109,6 @@
       "save_stub": "版面預覽：星等設定尚未接後端"
     },
     "stars": {
-      "all": "全部",
       "rating": "{count} 星"
     },
     "action": {

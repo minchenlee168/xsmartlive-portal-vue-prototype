@@ -75,7 +75,6 @@
       "view_detail": "View member details for {name}"
     },
     "status": {
-      "all": "All",
       "normal": "Normal",
       "suspended": "Suspended",
       "blacklisted": "Blacklisted"
@@ -110,7 +109,6 @@
       "save_stub": "Layout preview: star settings are not wired to the backend yet"
     },
     "stars": {
-      "all": "All",
       "rating": "{count} stars"
     },
     "action": {
