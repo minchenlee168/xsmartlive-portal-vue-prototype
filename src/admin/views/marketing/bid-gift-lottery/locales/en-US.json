@@ -1,11 +1,15 @@
 {
   "bid_gift_lottery": {
     "title": "Bid Gift Lottery",
+    "breadcrumb": {
+      "parent": "Marketing"
+    },
     "button": {
       "create": "Add Bid Gift Lottery",
       "draw": "Start Draw",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "search": "Search"
     },
     "form": {
       "placeholder": {
@@ -29,7 +33,7 @@
       "points": "Points"
     },
     "status": {
-      "all": "All statuses",
+      "all": "All",
       "in_progress": "In Progress",
       "ended": "Ended"
     },
@@ -37,6 +41,60 @@
       "unlimited": "Unlimited",
       "amount": "{value}",
       "stars": "{value}"
+    },
+    "form_dialog": {
+      "header": {
+        "create": "Add Bid Gift Lottery",
+        "edit": "Edit Bid Gift Lottery"
+      },
+      "section": {
+        "basic": "Basic Info",
+        "prize": "Prize Settings",
+        "draw": "Draw Settings"
+      },
+      "field": {
+        "session_name": "Session Name",
+        "search_date": "Search Date",
+        "star_filter": "Star Filter",
+        "prize_type": "Prize Type",
+        "prize_content": "Prize Content",
+        "required_amount": "Min. Amount",
+        "auto_draw": "Auto Draw",
+        "winner_count": "Number of Winners"
+      },
+      "placeholder": {
+        "session_name": "Enter session name",
+        "search_date": "YYYY/MM/DD - YYYY/MM/DD",
+        "prize_content_product": "Enter product name",
+        "prize_content_points": "Enter points to award"
+      },
+      "validation": {
+        "session_name": "Please enter a session name",
+        "search_date": "Please select a search date",
+        "prize_content": "Please enter the prize content",
+        "winner_count": "At least 1 winner is required"
+      },
+      "hint": {
+        "session_name": "Auto-generated as CODEX_LOTTERY_SESSION_YYYYMMDD_HHMMSS, editable",
+        "required_amount": "0 = Unlimited (only orders paying at least this amount qualify)",
+        "auto_draw": "(Draw automatically when the search end time is reached)"
+      },
+      "star_filter": {
+        "unlimited": "Unlimited"
+      },
+      "unit": {
+        "yuan": "TWD"
+      },
+      "button": {
+        "regenerate": "Regenerate",
+        "cancel": "Cancel",
+        "create": "Add",
+        "save": "Save"
+      },
+      "toast": {
+        "created": "Bid gift lottery added",
+        "updated": "Bid gift lottery updated"
+      }
     }
   },
   "bid_gift_lottery_draw": {

@@ -27,5 +27,7 @@ export interface BidGiftLotteryRow {
   requiredAmount: number | null;
   /** 星等過濾，null 代表不限 */
   starFilter: number | null;
+  /** 指定中獎人數；開獎頁用來預設「連抽數量」 */
+  winnerCount: number;
   status: LotteryStatus;
 }

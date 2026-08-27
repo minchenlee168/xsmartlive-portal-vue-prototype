@@ -2,7 +2,7 @@
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 import { RouteName } from '@/admin/router';
-import { mockLotteryList } from './mockData';
+import { findLotteryRow } from './lotteryStore';
 import { generateCandidates } from './candidateMock';
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue';
@@ -15,7 +15,7 @@ const { t } = useI18n();
 const { showInfo, showSuccess, showError } = useGlobalToast();
 
 const lotteryId = computed(() => String(route.params.id ?? ''));
-const lottery = computed(() => mockLotteryList.find((row) => row.id === lotteryId.value));
+const lottery = computed(() => findLotteryRow(lotteryId.value));
 // 場次名稱優先讀 query（讓不同抽獎類型可共用此頁），否則回查得標禮 mock
 const sessionName = computed(() => (
   (typeof route.query.session === 'string' && route.query.session)
@@ -136,8 +136,9 @@ const remainingCandidates = computed(() => (
   ))
 ));
 
-// 連抽數量（方案 A）：預設 10，範圍 1..剩餘人數；抽獎中 / 揭曉中不可調整
-const drawCount = ref(10);
+// 連抽數量（方案 A）：預設帶入該場次「指定中獎人數」（無則 10），範圍 1..剩餘人數；抽獎中 / 揭曉中不可調整
+// 剛好等於 1/5/10 時，下方快選膠囊會自動亮起對應值；自訂數字則顯示在 stepper
+const drawCount = ref(lottery.value?.winnerCount ?? 10);
 const maxDraw = computed(() => Math.max(1, remainingCandidates.value.length));
 watch(maxDraw, (max) => {
   if (drawCount.value > max) drawCount.value = max;

@@ -11,6 +11,7 @@ export const mockLotteryList: BidGiftLotteryRow[] = [
     prizeContent: 'test',
     requiredAmount: null,
     starFilter: 4,
+    winnerCount: 1,
     status: LotteryStatus.Ended,
   },
   {
@@ -23,6 +24,7 @@ export const mockLotteryList: BidGiftLotteryRow[] = [
     prizeContent: '200 點',
     requiredAmount: 500,
     starFilter: 3,
+    winnerCount: 5,
     status: LotteryStatus.InProgress,
   },
   {
@@ -35,6 +37,7 @@ export const mockLotteryList: BidGiftLotteryRow[] = [
     prizeContent: '小幫手限定徽章組',
     requiredAmount: 1000,
     starFilter: null,
+    winnerCount: 8,
     status: LotteryStatus.Ended,
   },
 ];

@@ -1,11 +1,15 @@
 {
   "bid_gift_lottery": {
     "title": "得標禮抽獎",
+    "breadcrumb": {
+      "parent": "行銷活動"
+    },
     "button": {
       "create": "新增得標禮抽獎",
       "draw": "開始抽獎",
       "edit": "編輯",
-      "delete": "刪除"
+      "delete": "刪除",
+      "search": "搜尋"
     },
     "form": {
       "placeholder": {
@@ -29,7 +33,7 @@
       "points": "點數"
     },
     "status": {
-      "all": "全部狀態",
+      "all": "全部",
       "in_progress": "進行中",
       "ended": "已結束"
     },
@@ -37,6 +41,60 @@
       "unlimited": "不限",
       "amount": "{value} 元",
       "stars": "{value}"
+    },
+    "form_dialog": {
+      "header": {
+        "create": "新增得標禮抽獎",
+        "edit": "編輯得標禮抽獎"
+      },
+      "section": {
+        "basic": "基本資料",
+        "prize": "獎項設定",
+        "draw": "抽獎設定"
+      },
+      "field": {
+        "session_name": "場次名稱",
+        "search_date": "搜尋日期",
+        "star_filter": "星等過濾",
+        "prize_type": "獎項類型",
+        "prize_content": "獎項內容",
+        "required_amount": "金額須滿足",
+        "auto_draw": "自動抽獎",
+        "winner_count": "指定中獎人數"
+      },
+      "placeholder": {
+        "session_name": "請輸入場次名稱",
+        "search_date": "YYYY/MM/DD - YYYY/MM/DD",
+        "prize_content_product": "輸入商品名稱",
+        "prize_content_points": "輸入贈送點數"
+      },
+      "validation": {
+        "session_name": "請輸入場次名稱",
+        "search_date": "請選擇搜尋日期",
+        "prize_content": "請輸入獎項內容",
+        "winner_count": "指定中獎人數至少 1 位"
+      },
+      "hint": {
+        "session_name": "系統自動產生格式 CODEX_LOTTERY_SESSION_YYYYMMDD_HHMMSS，可手動覆寫",
+        "required_amount": "0＝不限（單筆訂單實付金額至少達到此值才會納入抽獎）",
+        "auto_draw": "（達到搜尋結束時間自動執行抽獎）"
+      },
+      "star_filter": {
+        "unlimited": "不限"
+      },
+      "unit": {
+        "yuan": "元"
+      },
+      "button": {
+        "regenerate": "重新產生",
+        "cancel": "取消",
+        "create": "新增",
+        "save": "儲存"
+      },
+      "toast": {
+        "created": "已新增得標禮抽獎",
+        "updated": "已更新得標禮抽獎"
+      }
     }
   },
   "bid_gift_lottery_draw": {
