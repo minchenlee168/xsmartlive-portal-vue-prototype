@@ -93,6 +93,7 @@ const shippingMethodOptions: FilterOption[] = [
   { label: '宅配',     value: 'home' },
   { label: '超商配送', value: 'cvs' },
   { label: '自取',     value: 'pickup' },
+  { label: '混合配送', value: 'mixed' },
 ]
 const paymentStatusOptions: FilterOption[] = [
   { label: '待付款', value: 'unpaid' },
@@ -114,21 +115,34 @@ const shippingStatusOptions: FilterOption[] = [
   { label: '已取消',   value: 'cancelled' },
   { label: '配送異常', value: 'delivery_abnormal' },
 ]
-const carrierOptions: FilterOption[] = [
-  { label: '7-11 B2C 冷凍到府收件',       value: 'cvs711_b2c_cold' },
-  { label: '7-11 B2C 到府收件',            value: 'cvs711_b2c_normal' },
-  { label: '7-11 交貨便（門市寄件）',      value: 'cvs711_handover' },
-  { label: 'Presco 跨境物流（宅配）',      value: 'presco_home' },
-  { label: 'Presco 跨境物流（超商取貨）',  value: 'presco_cvs' },
-  { label: '全家冷凍到府收件',             value: 'fm_cold_home' },
-  { label: '全家常溫',                     value: 'fm_normal' },
-  { label: '嘉里大榮低溫',                 value: 'kerry_cold' },
-  { label: '嘉里大榮常溫',                 value: 'kerry_normal' },
-  { label: '新竹物流',                     value: 'hct' },
-  { label: '郵局（商家自建）',             value: 'post_self' },
-  { label: '黑貓宅急便',                   value: 'tcat' },
-  { label: '黑貓宅急便（門市寄件）',       value: 'tcat_handover' },
-  { label: '未分類',                       value: 'uncategorized' },
+/** 物流商依配送類型分組(宅配 / 超商配送 / 跨境 / 自取·商家自建 / 其他),供 Select optionGroup 用 */
+const carrierOptionGroups: Array<{ group: string; items: FilterOption[] }> = [
+  { group: '宅配', items: [
+    { label: '新竹物流',       value: 'hct' },
+    { label: '嘉里大榮常溫',   value: 'kerry_normal' },
+    { label: '嘉里大榮低溫',   value: 'kerry_cold' },
+    { label: '嘉里快遞',       value: 'kerry_express' },
+    { label: '黑貓宅急便',     value: 'tcat' },
+  ] },
+  { group: '超商配送', items: [
+    { label: '黑貓宅急便（門市寄件）', value: 'tcat_handover' },
+    { label: '7-11 B2C 到府收件',      value: 'cvs711_b2c_normal' },
+    { label: '7-11 B2C 冷凍到府收件',  value: 'cvs711_b2c_cold' },
+    { label: '7-11 交貨便（門市寄件）', value: 'cvs711_handover' },
+    { label: '全家常溫',               value: 'fm_normal' },
+    { label: '全家冷凍到府收件',       value: 'fm_cold_home' },
+    { label: '全家 C2C 店到店',        value: 'fm_c2c' },
+  ] },
+  { group: '跨境', items: [
+    { label: 'Presco 跨境物流（宅配）',     value: 'presco_home' },
+    { label: 'Presco 跨境物流（超商取貨）', value: 'presco_cvs' },
+  ] },
+  { group: '自取 / 商家自建', items: [
+    { label: '郵局（商家自建）', value: 'post_self' },
+  ] },
+  { group: '其他', items: [
+    { label: '未分類', value: 'uncategorized' },
+  ] },
 ]
 const paymentMethodOptions: FilterOption[] = [
   { label: '信用卡一次付清', value: 'credit_once' },
@@ -296,7 +310,29 @@ function onApplyFilters(): void {
 }
 
 // 快速篩選 chip 點按 → 只更新 applied.quickFilter 即時過濾表格,不需按套用
-watch(quickFilter, (v) => { applied.value.quickFilter = v })
+// 同時把對應的進階篩選下拉自動選到該項(取消時清掉先前同步的值)
+const QUICK_TO_ADVANCED: Partial<Record<QuickFilter, { field: 'shipping' | 'payment' | 'orderStatus'; value: string }>> = {
+  pending:        { field: 'shipping', value: 'pending' },
+  preparing:      { field: 'shipping', value: 'preparing' },
+  shipping:       { field: 'shipping', value: 'shipping' },
+  paid:           { field: 'payment', value: 'paid' },
+  unpaid:         { field: 'payment', value: 'unpaid' },
+  refund_pending: { field: 'payment', value: 'pending_refund' },
+  os_abnormal:    { field: 'orderStatus', value: 'abnormal' },
+  os_pending:     { field: 'orderStatus', value: 'pending' },
+}
+function syncAdvancedField(field: 'shipping' | 'payment' | 'orderStatus', value: string): void {
+  if (field === 'shipping') filterShippingStatus.value = value
+  else if (field === 'payment') filterPayment.value = value
+  else filterOrderStatus.value = value
+}
+watch(quickFilter, (v, old) => {
+  applied.value.quickFilter = v
+  const prev = QUICK_TO_ADVANCED[old]
+  if (prev) syncAdvancedField(prev.field, '')
+  const next = QUICK_TO_ADVANCED[v]
+  if (next) syncAdvancedField(next.field, next.value)
+})
 
 const CART_TAGS: Record<string, { bg: string; color: string }> = {
   '服飾專區': { bg: '#f2ebff', color: '#7008e7' },
@@ -1057,8 +1093,9 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <div class="px-3 py-2 text-xs text-[var(--p-text-muted-color)]">選擇批次動作</div>
               </template>
             </Menu>
-            <!-- 合併訂單:可合併訂單筆數以 Badge 內嵌在 label 後面(button+badge 組合);無可合併時 disabled -->
+            <!-- 合併訂單:先隱藏(功能暫緩) -->
             <Button
+              v-if="false"
               severity="secondary"
               variant="outlined"
               :disabled="mergeableOrderCount === 0"
@@ -1148,7 +1185,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           <Select v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" class="!w-[140px]" show-clear />
           <Select v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="出貨方式" class="!w-[140px]" show-clear />
           <Select v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" class="!w-[140px]" scroll-height="auto" show-clear />
-          <Select v-model="filterCarrier"       :options="carrierOptions"        option-label="label" option-value="value" placeholder="物流商"   class="!w-[140px]" scroll-height="auto" show-clear />
+          <Select v-model="filterCarrier"       :options="carrierOptionGroups"   option-label="label" option-value="value" option-group-label="group" option-group-children="items" placeholder="物流商"   class="!w-[140px]" show-clear />
           <Select v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" class="!w-[140px]" scroll-height="auto" show-clear />
           <Select v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" class="!w-[140px]" scroll-height="auto" show-clear />
           <Select v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" class="!w-[140px]" show-clear />
@@ -1331,9 +1368,9 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                     :value="data.cartTag.label"
                     :pt="{ root: { style: { background: data.cartTag.bg, color: data.cartTag.color } } }"
                   />
-                  <!-- 已分批 N 批 tag（dispatchBatchCount > 0 才顯示） -->
+                  <!-- 已分批 N 批 tag:分批出貨功能先隱藏(移除 false 即恢復) -->
                   <Tag
-                    v-if="(data.dispatchBatchCount ?? 0) > 0"
+                    v-if="false && (data.dispatchBatchCount ?? 0) > 0"
                     :value="`已分批 ${data.dispatchBatchCount} 批`"
                     severity="info"
                   />

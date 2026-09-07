@@ -349,7 +349,8 @@ function onShippingConfigConfirm(payload: { carrierName: string; method: string;
 // ─────────────────────────────────────────────────────────────
 const { getBatches, setBatches } = useShippingBatches()
 const batches = computed<OrderBatch[]>(() => getBatches(props.order.orderNo))
-const isBatched = computed<boolean>(() => batches.value.length > 0)
+// 分批出貨功能先隱藏:一律走未分批版(改回 batches.value.length > 0 即恢復)
+const isBatched = computed<boolean>(() => false && batches.value.length > 0)
 
 // mock 資料中已標記分批（dispatchBatchCount）但 store 尚無批次明細者，
 // 補上示意批次，讓明細分批版與列表「已分批 N 批」一致。
@@ -770,7 +771,8 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           :disabled="!nextStatusInfo"
           @click="openStatusSwitchDialog"
         />
-        <Button label="分批出貨" icon="pi pi-th-large" severity="secondary" variant="outlined" size="small" @click="openSplitPage" />
+        <!-- 分批出貨:先隱藏(功能暫緩) -->
+        <Button v-if="false" label="分批出貨" icon="pi pi-th-large" severity="secondary" variant="outlined" size="small" @click="openSplitPage" />
         <span class="w-px h-6 bg-[var(--p-content-border-color)] mx-1 shrink-0" aria-hidden="true"></span>
         <Button label="列印出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="printDialogVisible = true" />
         <Button label="列印標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" @click="printLabelToast" />
