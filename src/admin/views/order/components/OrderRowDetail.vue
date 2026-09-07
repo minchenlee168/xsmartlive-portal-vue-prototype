@@ -200,6 +200,8 @@ const paymentMethodLabel = computed(() =>
 /** ATM 轉帳對帳末 5 碼（mock：取訂單編號數字末 5 碼） */
 const atmLast5 = computed(() => props.order.orderNo.replace(/\D/g, '').slice(-5).padStart(5, '0'))
 const isAtmTransfer = computed(() => editPaymentMethodValue.value === 'atm')
+/** 結帳編號（mock：以訂單編號數字衍生） */
+const checkoutNo = computed(() => `CHK-${props.order.orderNo.replace(/\D/g, '')}`)
 
 // 切換不同訂單時同步初始值
 watch(() => props.order.id, () => {
@@ -601,13 +603,29 @@ function invoiceReachable(s: InvoiceStatus): InvoiceStatus[] {
   return map[s]
 }
 const editingInvoice = ref(false)
-const editInvoiceStatus = ref<InvoiceStatus>('issued')
+/** 進入編輯時記下原始狀態:供「(目前)」標記與可切換規則判斷(選了新值也不會跟著跑) */
+const invoiceStatusBeforeEdit = ref<InvoiceStatus>('issued')
+/**
+ * Select 直接綁定副本:選了就即時寫入(彈窗底部「儲存」才寫回列表)。
+ * 因此就算沒按卡片上的打勾,底部「儲存」也能捕捉到這次變更並同步到 table。
+ */
+const editInvoiceStatus = computed<InvoiceStatus>({
+  get: () => invoiceStatusValue.value,
+  set: (v) => {
+    props.order.invoiceStatus = v
+    // 由尚未開立 → 已開立:補一組 mock 號碼與時間(prototype)
+    if (v === 'issued' && !props.order.invoiceNumber) {
+      props.order.invoiceNumber = `IV-${props.order.orderNo.replace(/\D/g, '').slice(-8)}`
+      props.order.invoiceIssuedAt = props.order.createdAt
+    }
+  },
+})
 function startEditInvoice(): void {
-  editInvoiceStatus.value = invoiceStatusValue.value
+  invoiceStatusBeforeEdit.value = invoiceStatusValue.value
   editingInvoice.value = true
 }
 function invoiceOptionDisabled(opt: { value: InvoiceStatus }): boolean {
-  return !invoiceReachable(invoiceStatusValue.value).includes(opt.value)
+  return !invoiceReachable(invoiceStatusBeforeEdit.value).includes(opt.value)
 }
 /** 下拉中不可選項目的原因說明(顯示於選項後方灰字) */
 function invoiceDisabledReason(v: InvoiceStatus): string {
@@ -622,15 +640,9 @@ function invoiceDisabledReason(v: InvoiceStatus): string {
   }
 }
 function commitInvoice(): void {
-  const target = editInvoiceStatus.value
-  props.order.invoiceStatus = target
-  // 由尚未開立 → 已開立:補一組 mock 號碼與時間(prototype)
-  if (target === 'issued' && !props.order.invoiceNumber) {
-    props.order.invoiceNumber = `IV-${props.order.orderNo.replace(/\D/g, '').slice(-8)}`
-    props.order.invoiceIssuedAt = props.order.createdAt
-  }
+  // 資料已於 Select 選取當下寫入副本,這裡只收合編輯模式並提示
   editingInvoice.value = false
-  toast.add({ severity: 'success', summary: `訂單 ${props.order.orderNo} 發票狀態已更新為「${invoiceStatusMeta(target).label}」`, life: 2000 })
+  toast.add({ severity: 'success', summary: `訂單 ${props.order.orderNo} 發票狀態已更新為「${invoiceStatusMeta(invoiceStatusValue.value).label}」`, life: 2000 })
 }
 </script>
 
@@ -813,6 +825,11 @@ function commitInvoice(): void {
             :pt="{ label: { class: '!whitespace-nowrap !overflow-visible' } }"
           />
         </div>
+        <!-- 結帳編號:顯示於付款狀態下方 -->
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-[var(--p-text-muted-color)]">結帳編號</span>
+          <span class="text-[var(--p-text-color)]">{{ checkoutNo }}</span>
+        </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">付款方式</span>
           <span v-if="!editingPayment" class="text-[var(--p-text-color)]">
@@ -862,7 +879,7 @@ function commitInvoice(): void {
             <template #option="{ option }">
               <span class="inline-flex items-center gap-1">
                 <span>{{ option.label }}</span>
-                <span v-if="option.value === invoiceStatusValue" class="text-xs text-[var(--p-text-muted-color)]">（目前）</span>
+                <span v-if="option.value === invoiceStatusBeforeEdit" class="text-xs text-[var(--p-text-muted-color)]">（目前）</span>
                 <span v-else-if="invoiceOptionDisabled(option)" class="text-xs text-[var(--p-text-muted-color)]">— {{ invoiceDisabledReason(option.value) }}</span>
               </span>
             </template>

@@ -156,6 +156,7 @@ const paymentMethodOptions: FilterOption[] = [
   { label: 'iPASS MONEY',    value: 'ipass' },
   { label: '超商代碼',       value: 'cvs_code' },
   { label: '數位簽',         value: 'digital_sign' },
+  { label: '取貨現場付款',   value: 'onsite' },
 ]
 const trackingStatusOptions: FilterOption[] = [
   { label: '已取號', value: 'taken' },
