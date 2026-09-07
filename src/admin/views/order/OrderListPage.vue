@@ -60,6 +60,8 @@ interface OrderRow {
   invoiceNumber?: string
   /** 發票開立時間（欄位字典 invoiceIssued.time） */
   invoiceIssuedAt?: string
+  /** 發票狀態(六值);未設時依 invoiceNumber 推 issued / not_issued */
+  invoiceStatus?: 'not_issued' | 'issued' | 'not_required' | 'voided' | 'issue_failed' | 'void_failed'
   /** 收件地址(合併訂單判斷同址依據;沒填則不參與合併) */
   receiverAddress?: string
   /** 交易 ID(合併訂單清單顯示用) */
@@ -547,6 +549,24 @@ function onIssueInvoiceConfirm(payload: { number: string; time: string }): void 
   if (!o) return
   o.invoiceNumber = payload.number
   o.invoiceIssuedAt = payload.time
+  o.invoiceStatus = 'issued'
+}
+
+/** 操作欄發票 icon 外觀:依發票狀態決定 severity / tooltip / 是否顯示已開立勾勾 */
+type InvoiceStatusKey = NonNullable<OrderRow['invoiceStatus']>
+const INVOICE_STATUS_LABEL: Record<InvoiceStatusKey, string> = {
+  not_issued: '尚未開立', issued: '已開立', not_required: '不需開立',
+  voided: '已作廢', issue_failed: '開立失敗', void_failed: '作廢失敗',
+}
+function invoiceStatusOf(o: OrderRow): InvoiceStatusKey {
+  return o.invoiceStatus ?? (o.invoiceNumber ? 'issued' : 'not_issued')
+}
+function invoiceActionMeta(o: OrderRow): { severity: 'success' | 'danger' | 'secondary'; tooltip: string; issued: boolean } {
+  const s = invoiceStatusOf(o)
+  const label = INVOICE_STATUS_LABEL[s]
+  const severity = s === 'issued' ? 'success' : (s === 'voided' || s === 'issue_failed' || s === 'void_failed' ? 'danger' : 'secondary')
+  const tooltip = o.invoiceNumber ? `${label}：${o.invoiceNumber}` : (s === 'not_required' ? '不需開立' : '開立發票')
+  return { severity, tooltip, issued: s === 'issued' }
 }
 
 /**
@@ -651,10 +671,16 @@ const BATCH_CONFIGS: Record<Exclude<BatchMode, null>, BatchConfig> = {
     footerCountLabel: (count) => `將取號 ${count} 筆訂單`,
     confirmActionLabel: '確認取號',
     toastSummary: '批次取號完成',
-    isSelectable: (o) => o.shippingStatus === 'pending' && o.carrierStatus === 'configured' && !o.trackingStatus,
+    // 待出貨且尚未取號皆可批次取號(不限是否已設定物流商)
+    isSelectable: (o) => o.shippingStatus === 'pending' && !o.trackingStatus,
     performAction: (list) => {
       const now = Date.now()
-      list.forEach((o, i) => { o.trackingStatus = `${now}${String(i).padStart(4, '0')}` })
+      list.forEach((o, i) => {
+        o.trackingStatus = `${now}${String(i).padStart(4, '0')}`
+        o.carrierStatus = 'configured'
+        // 取號的當下:待出貨 → 備貨中
+        if (o.shippingStatus === 'pending') o.shippingStatus = 'preparing'
+      })
     },
     rowSecondaryText: (o) => `${o.buyerName} · ${o.carrierName ?? '未設定物流'}`,
   },
@@ -1629,17 +1655,17 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 </span>
                 <span class="relative inline-flex">
                   <Button
-                    v-tooltip.top="data.invoiceNumber ? `已開立：${data.invoiceNumber}` : '開立發票'"
-                    :aria-label="data.invoiceNumber ? `已開立發票：${data.invoiceNumber}` : '開立發票'"
+                    v-tooltip.top="invoiceActionMeta(data).tooltip"
+                    :aria-label="invoiceActionMeta(data).tooltip"
                     icon="pi pi-file"
-                    :severity="data.invoiceNumber ? 'success' : 'secondary'"
+                    :severity="invoiceActionMeta(data).severity"
                     variant="text"
                     size="small"
                     rounded
                     @click="openIssueInvoice(data, $event)"
                   />
                   <i
-                    v-if="data.invoiceNumber"
+                    v-if="invoiceActionMeta(data).issued"
                     class="pi pi-check-circle absolute -top-0.5 -right-0.5 text-green-600 dark:text-green-400 pointer-events-none"
                     style="font-size: 13px; background: var(--p-content-background); border-radius: 9999px"
                   ></i>
