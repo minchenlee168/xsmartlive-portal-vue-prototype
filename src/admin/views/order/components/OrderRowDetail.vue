@@ -245,9 +245,13 @@ const nextStatusInfo = computed(() => {
   if (idx < 0 || idx >= STATUS_FLOW.length - 1) return null
   return STATUS_FLOW[idx + 1]
 })
-/** 「狀態切換」按鈕：目標 = 下一階段 */
+/** 「狀態切換」按鈕：目標 = 下一階段;系統管控物流已進入出貨後階段時鎖定,改跳提示 */
 function openStatusSwitchDialog(): void {
   if (!nextStatusInfo.value) return
+  if (manualSwitchLocked.value) {
+    lockedSwitchDialogVisible.value = true
+    return
+  }
   statusSwitchTarget.value = nextStatusInfo.value.key
   statusSwitchDialogVisible.value = true
 }
@@ -266,13 +270,16 @@ function stageIndexOf(s: OrderRow['shippingStatus']): number {
 function isPostShipStage(s: OrderRow['shippingStatus']): boolean {
   return stageIndexOf(s) >= stageIndexOf('shipping')
 }
-/** 無法手動切換狀態:系統管控物流 + 目前處於出貨後階段 + 往回切 */
+/** 無法手動切換狀態:系統管控物流 + 目前已進入出貨後階段 → 貨態全由系統驅動,不可手動切換(任一方向) */
 const lockedSwitchDialogVisible = ref(false)
+const manualSwitchLocked = computed<boolean>(() =>
+  isSystemCarrier.value && isPostShipStage(props.order.shippingStatus),
+)
 /** 點 stepper 任一階段：目標 = 該階段（同狀態則不動） */
 function onStepClick(key: OrderRow['shippingStatus']): void {
   const current = props.order.shippingStatus
   if (key === current) return
-  if (isSystemCarrier.value && isPostShipStage(current) && stageIndexOf(key) < stageIndexOf(current)) {
+  if (manualSwitchLocked.value) {
     lockedSwitchDialogVisible.value = true
     return
   }
@@ -366,10 +373,10 @@ function onShippingConfigConfirm(payload: { carrierName: string; method: string;
   props.order.carrierStatus = 'configured'
   props.order.carrierName = payload.carrierName
   props.order.trackingStatus = payload.trackingNo
-  // 取號的當下:待出貨 → 備貨中(依 UAT 規範,取到號就推進到備貨中)
-  if (payload.trackingNo && props.order.shippingStatus === 'pending') {
+  // 已設定配送(取號)後:待出貨 → 備貨中(依 UAT 規範,取到號就推進到備貨中)
+  if (props.order.shippingStatus === 'pending') {
     props.order.shippingStatus = 'preparing'
-    toast.add({ severity: 'info', summary: `訂單 ${props.order.orderNo} 已取號,貨態推進為「備貨中」`, life: 2200 })
+    toast.add({ severity: 'info', summary: `訂單 ${props.order.orderNo} 已設定配送,貨態推進為「備貨中」`, life: 2200 })
   }
 }
 
@@ -604,8 +611,8 @@ function invoiceDisabledReason(v: InvoiceStatus): string {
     case 'void_failed': return '由系統回報'
     case 'voided': return '要先開立過'
     case 'issued': return '要先開立'
-    case 'not_issued':
-    case 'not_required': return '不可回退'
+    case 'not_issued': return '不可倒回'
+    case 'not_required': return '目前狀態不適用'
     default: return ''
   }
 }
@@ -898,7 +905,8 @@ function commitInvoice(): void {
           severity="secondary"
           variant="outlined"
           size="small"
-          :disabled="!nextStatusInfo"
+          v-tooltip.top="manualSwitchLocked ? '系統管控物流出貨後由系統驅動,無法手動切換' : undefined"
+          :disabled="!nextStatusInfo || manualSwitchLocked"
           @click="openStatusSwitchDialog"
         />
         <!-- 分批出貨:先隱藏(功能暫緩) -->
