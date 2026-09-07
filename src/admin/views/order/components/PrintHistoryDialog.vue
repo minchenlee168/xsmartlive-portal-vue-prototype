@@ -94,14 +94,20 @@ const sections = computed<Section[]>(() => [
               <span>列印時間</span>
               <span>操作者</span>
             </div>
+            <!-- 超過 5 筆才限高加卷軸(約 5 列高) -->
             <div
-              v-for="(r, i) in s.records"
-              :key="i"
-              class="grid grid-cols-[64px_1fr_1fr] gap-2 items-center"
+              class="flex flex-col gap-1"
+              :class="s.records.length > 5 ? 'max-h-[116px] overflow-y-auto pr-1' : ''"
             >
-              <span class="font-medium text-[var(--p-primary-color)]">第 {{ i + 1 }} 次</span>
-              <span class="text-[var(--p-text-color)]">{{ r.time }}</span>
-              <span class="text-[var(--p-text-color)]">{{ r.operator }}</span>
+              <div
+                v-for="(r, i) in s.records"
+                :key="i"
+                class="grid grid-cols-[64px_1fr_1fr] gap-2 items-center"
+              >
+                <span class="font-medium text-[var(--p-primary-color)]">第 {{ i + 1 }} 次</span>
+                <span class="text-[var(--p-text-color)]">{{ r.time }}</span>
+                <span class="text-[var(--p-text-color)]">{{ r.operator }}</span>
+              </div>
             </div>
           </div>
         </template>

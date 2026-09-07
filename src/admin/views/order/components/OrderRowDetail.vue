@@ -518,7 +518,12 @@ const labelMenuItems = computed<BatchMenuItem[]>(() => [
     command: () => printLabel(`${batchLabel(i)}`),
   })),
 ])
-const { logPrint } = usePrintLog()
+const { logPrint, getLog } = usePrintLog()
+/** 有任一種列印紀錄(出貨單 / 標籤 / 發票)才顯示「列印紀錄」入口 */
+const hasPrintLog = computed<boolean>(() => {
+  const log = getLog(props.order.orderNo)
+  return log.sheet.length + log.label.length + log.invoice.length > 0
+})
 function printLabel(scope: string): void {
   toast.add({ severity: 'info', summary: `列印標籤 · ${props.order.orderNo}（${scope}）`, life: 1800 })
   logPrint(props.order.orderNo, 'label')
@@ -923,7 +928,7 @@ function commitInvoice(): void {
           @click="issueInvoiceDialogVisible = true"
         />
         <Button label="列印發票" icon="pi pi-file-check" severity="secondary" variant="outlined" size="small" @click="printInvoiceToast" />
-        <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
+        <Button v-if="hasPrintLog" label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
       </div>
 
       <!-- 左：配送物流 / 發票 / 出貨進度 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
@@ -1108,7 +1113,7 @@ function commitInvoice(): void {
             @click="issueInvoiceDialogVisible = true"
           />
           <Button label="列印發票" icon="pi pi-file-check" severity="secondary" variant="outlined" size="small" @click="printInvoiceToast" />
-          <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
+          <Button v-if="hasPrintLog" label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
         </div>
 
         <!-- 整單層級配送物流聚合摘要 -->
