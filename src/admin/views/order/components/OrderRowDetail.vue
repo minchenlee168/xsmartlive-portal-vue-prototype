@@ -48,6 +48,8 @@ interface OrderRow {
   dispatchBatchCount?: number
   invoiceNumber?: string
   invoiceIssuedAt?: string
+  /** 發票狀態(六值);未設時依 invoiceNumber 推 issued / not_issued */
+  invoiceStatus?: 'not_issued' | 'issued' | 'not_required' | 'voided' | 'issue_failed' | 'void_failed'
 }
 
 interface Props {
@@ -249,9 +251,31 @@ function openStatusSwitchDialog(): void {
   statusSwitchTarget.value = nextStatusInfo.value.key
   statusSwitchDialogVisible.value = true
 }
+/**
+ * 系統管控物流(有串接 API 自動取號)。自取 / 商家自建(郵局)為手動,商家可自行切狀態。
+ */
+const isSystemCarrier = computed<boolean>(() => {
+  const name = props.order.carrierName ?? ''
+  if (name.includes('自取') || name.includes('商家自建') || name.includes('郵局')) return false
+  return props.order.carrierStatus === 'configured'
+})
+function stageIndexOf(s: OrderRow['shippingStatus']): number {
+  return STATUS_FLOW.findIndex(x => x.key === s)
+}
+/** 出貨後階段:已出貨(含)之後 */
+function isPostShipStage(s: OrderRow['shippingStatus']): boolean {
+  return stageIndexOf(s) >= stageIndexOf('shipping')
+}
+/** 無法手動切換狀態:系統管控物流 + 目前處於出貨後階段 + 往回切 */
+const lockedSwitchDialogVisible = ref(false)
 /** 點 stepper 任一階段：目標 = 該階段（同狀態則不動） */
 function onStepClick(key: OrderRow['shippingStatus']): void {
-  if (key === props.order.shippingStatus) return
+  const current = props.order.shippingStatus
+  if (key === current) return
+  if (isSystemCarrier.value && isPostShipStage(current) && stageIndexOf(key) < stageIndexOf(current)) {
+    lockedSwitchDialogVisible.value = true
+    return
+  }
   statusSwitchTarget.value = key
   statusSwitchDialogVisible.value = true
 }
@@ -519,6 +543,77 @@ const issueInvoiceDialogVisible = ref(false)
 function onInvoiceIssued(payload: { number: string; time: string }): void {
   props.order.invoiceNumber = payload.number
   props.order.invoiceIssuedAt = payload.time
+  props.order.invoiceStatus = 'issued'
+}
+
+// ── 發票資訊卡:發票狀態可編輯,下拉只開放從目前狀態走得通的值 ──
+type InvoiceStatus = NonNullable<OrderRow['invoiceStatus']>
+const INVOICE_STATUS_OPTIONS: Array<{ label: string; value: InvoiceStatus }> = [
+  { label: '尚未開立', value: 'not_issued' },
+  { label: '已開立',   value: 'issued' },
+  { label: '不需開立', value: 'not_required' },
+  { label: '已作廢',   value: 'voided' },
+  { label: '開立失敗', value: 'issue_failed' },
+  { label: '作廢失敗', value: 'void_failed' },
+]
+/** mock 沒設 invoiceStatus 時,依 invoiceNumber 推「已開立 / 尚未開立」 */
+const invoiceStatusValue = computed<InvoiceStatus>(() =>
+  props.order.invoiceStatus ?? (props.order.invoiceNumber ? 'issued' : 'not_issued'),
+)
+function invoiceStatusMeta(s: InvoiceStatus): { label: string; severity: TagSeverity } {
+  const map: Record<InvoiceStatus, { label: string; severity: TagSeverity }> = {
+    not_issued:   { label: '尚未開立', severity: 'warn' },
+    issued:       { label: '已開立',   severity: 'success' },
+    not_required: { label: '不需開立', severity: 'secondary' },
+    voided:       { label: '已作廢',   severity: 'danger' },
+    issue_failed: { label: '開立失敗', severity: 'danger' },
+    void_failed:  { label: '作廢失敗', severity: 'danger' },
+  }
+  return map[s]
+}
+/** 從目前狀態走得通的目標(含自己);開立後只能作廢、作廢後可重開,其餘依規範。 */
+function invoiceReachable(s: InvoiceStatus): InvoiceStatus[] {
+  const map: Record<InvoiceStatus, InvoiceStatus[]> = {
+    issued:       ['issued', 'voided'],
+    voided:       ['voided', 'issued'],
+    not_issued:   ['not_issued', 'issued', 'not_required'],
+    not_required: ['not_required', 'issued'],
+    issue_failed: ['issue_failed', 'issued', 'not_required'],
+    void_failed:  ['void_failed', 'voided', 'issued'],
+  }
+  return map[s]
+}
+const editingInvoice = ref(false)
+const editInvoiceStatus = ref<InvoiceStatus>('issued')
+function startEditInvoice(): void {
+  editInvoiceStatus.value = invoiceStatusValue.value
+  editingInvoice.value = true
+}
+function invoiceOptionDisabled(opt: { value: InvoiceStatus }): boolean {
+  return !invoiceReachable(invoiceStatusValue.value).includes(opt.value)
+}
+/** 下拉中不可選項目的原因說明(顯示於選項後方灰字) */
+function invoiceDisabledReason(v: InvoiceStatus): string {
+  switch (v) {
+    case 'issue_failed':
+    case 'void_failed': return '由系統回報'
+    case 'voided': return '要先開立過'
+    case 'issued': return '要先開立'
+    case 'not_issued':
+    case 'not_required': return '不可回退'
+    default: return ''
+  }
+}
+function commitInvoice(): void {
+  const target = editInvoiceStatus.value
+  props.order.invoiceStatus = target
+  // 由尚未開立 → 已開立:補一組 mock 號碼與時間(prototype)
+  if (target === 'issued' && !props.order.invoiceNumber) {
+    props.order.invoiceNumber = `IV-${props.order.orderNo.replace(/\D/g, '').slice(-8)}`
+    props.order.invoiceIssuedAt = props.order.createdAt
+  }
+  editingInvoice.value = false
+  toast.add({ severity: 'success', summary: `訂單 ${props.order.orderNo} 發票狀態已更新為「${invoiceStatusMeta(target).label}」`, life: 2000 })
 }
 </script>
 
@@ -723,14 +818,45 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         </div>
       </div>
 
-      <!-- 發票資訊（唯讀，依規範不加編輯） -->
+      <!-- 發票資訊：發票狀態可編輯(下拉只開放走得通的值,如已開立只能改已作廢) -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
         <span class="text-sm font-bold text-[var(--p-text-color)]">發票資訊</span>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-[var(--p-text-muted-color)]">發票狀態</span>
+          <!-- 檢視模式：Tag + 鉛筆 -->
+          <span v-if="!editingInvoice" class="inline-flex items-center gap-1">
+            <Tag :value="invoiceStatusMeta(invoiceStatusValue).label" :severity="invoiceStatusMeta(invoiceStatusValue).severity" />
+            <Button v-tooltip.top="'編輯'" aria-label="編輯發票狀態" icon="pi pi-pencil" severity="secondary" variant="text" size="small" rounded @click="startEditInvoice" />
+          </span>
+          <!-- 編輯模式：Select(走不通的值 disabled) + 打勾 / 取消 -->
+          <span v-else class="inline-flex items-center gap-1" @click.stop>
+            <Select
+              v-model="editInvoiceStatus"
+              :options="INVOICE_STATUS_OPTIONS"
+              option-label="label"
+              option-value="value"
+              :option-disabled="invoiceOptionDisabled"
+              size="small"
+              class="!w-[160px]"
+              scroll-height="auto"
+            >
+              <template #option="{ option }">
+                <span class="inline-flex items-center gap-1">
+                  <span>{{ option.label }}</span>
+                  <span v-if="option.value === invoiceStatusValue" class="text-xs text-[var(--p-text-muted-color)]">（目前）</span>
+                  <span v-else-if="invoiceOptionDisabled(option)" class="text-xs text-[var(--p-text-muted-color)]">— {{ invoiceDisabledReason(option.value) }}</span>
+                </span>
+              </template>
+            </Select>
+            <Button v-tooltip.top="'確認'" aria-label="確認發票狀態" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitInvoice" />
+            <Button v-tooltip.top="'取消'" aria-label="取消編輯" icon="pi pi-times" severity="secondary" variant="text" size="small" rounded @click="editingInvoice = false" />
+          </span>
+        </div>
         <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
           <i class="pi pi-id-card text-sm text-[var(--p-text-muted-color)]"></i>
           電子發票（會員載具）
         </div>
-        <!-- 已開立：顯示發票號碼 + 開立時間；未開立：橘字提示 -->
+        <!-- 有發票號碼(已開立 / 已作廢)：顯示號碼 + 開立時間；否則橘字提示 -->
         <div v-if="order.invoiceNumber" class="flex flex-col gap-1 pt-2 border-t border-[var(--p-content-border-color)] text-sm">
           <div class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">發票號碼</span>
@@ -807,24 +933,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             </span>
           </div>
 
-          <!-- 發票狀態（配送物流下方）：開立發票後顯示發票號 + 開立時間；未開立顯示警示 -->
-          <div class="flex items-center gap-2 text-sm">
-            <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">發票</span>
-            <span v-if="order.invoiceNumber" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-              <i class="pi pi-receipt text-[var(--p-primary-color)] text-sm"></i>
-              <span class="font-medium">{{ order.invoiceNumber }}</span>
-              <template v-if="order.invoiceIssuedAt">
-                <span class="text-[var(--p-text-muted-color)]">·</span>
-                <span>{{ order.invoiceIssuedAt }}</span>
-              </template>
-            </span>
-            <span v-else class="inline-flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-              <i class="pi pi-exclamation-circle text-sm"></i>
-              尚未開立
-            </span>
-          </div>
-
-          <!-- 出貨進度 Timeline（左欄內） -->
+          <!-- 出貨進度 Timeline（左欄內；發票已移到上方發票資訊卡,此處不再顯示） -->
           <div class="flex flex-col gap-2">
             <!-- 換貨第 2 次出貨時,標題改為「物流貨態」並標註僅商家可見 -->
             <div v-if="exchangeMode" class="flex items-center gap-2">
@@ -832,7 +941,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
               <Tag :value="shippingBadge.label" :severity="shippingBadge.severity" />
               <span class="text-xs text-[var(--p-text-muted-color)]">（僅商家可見）</span>
             </div>
-            <span v-else class="text-xs text-[var(--p-text-muted-color)]">出貨進度</span>
+            <span v-else class="text-xs text-[var(--p-text-muted-color)]">物流貨態</span>
             <!-- Stepper marker 可點按 → 跳確認彈窗切換到該階段 -->
             <Timeline :value="progressSteps" layout="horizontal" align="top" class="w-full">
               <template #marker="{ item }">
@@ -1204,6 +1313,34 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
       <template #footer>
         <Button label="取消" severity="secondary" variant="outlined" @click="statusSwitchDialogVisible = false" />
         <Button label="確定切換" @click="confirmStatusSwitch" />
+      </template>
+    </Dialog>
+
+    <!-- 無法手動切換狀態:系統管控物流已進入出貨後階段,不可手動往回切 -->
+    <Dialog
+      v-model:visible="lockedSwitchDialogVisible"
+      modal
+      :draggable="false"
+      :style="{ width: 'min(400px, calc(100vw - 32px))' }"
+    >
+      <template #header>
+        <div class="flex items-center gap-3">
+          <div class="size-10 shrink-0 rounded-full bg-yellow-100 dark:bg-yellow-950/40 flex items-center justify-center">
+            <i class="pi pi-lock text-yellow-600 dark:text-yellow-400 text-lg"></i>
+          </div>
+          <span class="text-base font-bold text-[var(--p-text-color)]">無法手動切換狀態</span>
+        </div>
+      </template>
+      <div class="flex flex-col gap-2">
+        <p class="text-sm text-[var(--p-text-color)] leading-snug">
+          此訂單由 <span class="font-medium">{{ order.carrierName }}</span> 系統管控,目前狀態「<span class="font-medium text-yellow-600 dark:text-yellow-400">{{ currentStatusLabel }}</span>」屬出貨後階段,無法手動切換。
+        </p>
+        <p class="text-xs text-[var(--p-text-muted-color)] leading-snug">
+          若需修改貨態,請聯絡物流商或等待系統更新。
+        </p>
+      </div>
+      <template #footer>
+        <Button label="我知道了" @click="lockedSwitchDialogVisible = false" />
       </template>
     </Dialog>
 

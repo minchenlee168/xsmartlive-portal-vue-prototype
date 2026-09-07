@@ -193,17 +193,18 @@ const precisionFieldOptions: FilterOption[] = [
   { label: '結帳編號',       value: 'orderNo' },
 ]
 
-const filterOrderStatus = ref('')
-const filterShipping = ref('')
-const filterPayment = ref('')
-const filterShippingStatus = ref('')
-const filterCarrier = ref('')
-const filterPaymentMethod = ref('')
-const filterTracking = ref('')
-const filterOrderSource = ref('')
-const filterSocialPlatform = ref('')
-const filterMultiCart = ref('')
-const filterSessionName = ref('')
+// 進階篩選改為可複選(MultiSelect):每個下拉存字串陣列
+const filterOrderStatus = ref<string[]>([])
+const filterShipping = ref<string[]>([])
+const filterPayment = ref<string[]>([])
+const filterShippingStatus = ref<string[]>([])
+const filterCarrier = ref<string[]>([])
+const filterPaymentMethod = ref<string[]>([])
+const filterTracking = ref<string[]>([])
+const filterOrderSource = ref<string[]>([])
+const filterSocialPlatform = ref<string[]>([])
+const filterMultiCart = ref<string[]>([])
+const filterSessionName = ref<string[]>([])
 /** 精準欄位篩選：選哪個欄位 + 輸入要比對的值 */
 const filterPrecisionField = ref<string>('buyerName')
 const filterPrecisionValue = ref<string>('')
@@ -217,26 +218,26 @@ const precisionPlaceholder = computed<string>(() => {
 const advancedFilterExpanded = ref(false)
 /** 顯示已套用的進階篩選數量，提示使用者「進階篩選 (N)」 */
 const appliedAdvancedCount = computed<number>(() => {
-  return [
+  const multi = [
     filterOrderStatus.value, filterShipping.value, filterPayment.value, filterShippingStatus.value,
     filterCarrier.value, filterPaymentMethod.value, filterTracking.value,
     filterOrderSource.value, filterSocialPlatform.value, filterMultiCart.value, filterSessionName.value,
-    filterPrecisionValue.value.trim(),
-  ].filter(Boolean).length
+  ].filter(a => a.length > 0).length
+  return multi + (filterPrecisionValue.value.trim() ? 1 : 0)
 })
 /** 一鍵清除所有進階篩選 Select 的值 + 立即從 applied 移除 → 表格重新顯示未過濾結果。 */
 function clearAdvancedFilters(): void {
-  filterOrderStatus.value = ''
-  filterShipping.value = ''
-  filterPayment.value = ''
-  filterShippingStatus.value = ''
-  filterCarrier.value = ''
-  filterPaymentMethod.value = ''
-  filterTracking.value = ''
-  filterOrderSource.value = ''
-  filterSocialPlatform.value = ''
-  filterMultiCart.value = ''
-  filterSessionName.value = ''
+  filterOrderStatus.value = []
+  filterShipping.value = []
+  filterPayment.value = []
+  filterShippingStatus.value = []
+  filterCarrier.value = []
+  filterPaymentMethod.value = []
+  filterTracking.value = []
+  filterOrderSource.value = []
+  filterSocialPlatform.value = []
+  filterMultiCart.value = []
+  filterSessionName.value = []
   filterPrecisionValue.value = ''
   onApplyFilters()
 }
@@ -267,28 +268,28 @@ const orderStatusCounts = computed<Record<OrderStatusKey, number>>(() => {
 interface AppliedFilter {
   keyword: string
   dateRange: Date[] | null
-  orderStatus: string
-  payment: string
-  shippingStatus: string
+  orderStatus: string[]
+  payment: string[]
+  shippingStatus: string[]
   quickFilter: QuickFilter
-  orderSource: string
-  socialPlatform: string
-  multiCart: string
-  sessionName: string
+  orderSource: string[]
+  socialPlatform: string[]
+  multiCart: string[]
+  sessionName: string[]
   precisionField: string
   precisionValue: string
 }
 const applied = ref<AppliedFilter>({
   keyword: '',
   dateRange: null,
-  orderStatus: '',
-  payment: '',
-  shippingStatus: '',
+  orderStatus: [],
+  payment: [],
+  shippingStatus: [],
   quickFilter: 'all',
-  orderSource: '',
-  socialPlatform: '',
-  multiCart: '',
-  sessionName: '',
+  orderSource: [],
+  socialPlatform: [],
+  multiCart: [],
+  sessionName: [],
   precisionField: '',
   precisionValue: '',
 })
@@ -296,14 +297,14 @@ function onApplyFilters(): void {
   applied.value = {
     keyword: keyword.value,
     dateRange: dateRange.value,
-    orderStatus: filterOrderStatus.value,
-    payment: filterPayment.value,
-    shippingStatus: filterShippingStatus.value,
+    orderStatus: [...filterOrderStatus.value],
+    payment: [...filterPayment.value],
+    shippingStatus: [...filterShippingStatus.value],
     quickFilter: quickFilter.value,
-    orderSource: filterOrderSource.value,
-    socialPlatform: filterSocialPlatform.value,
-    multiCart: filterMultiCart.value,
-    sessionName: filterSessionName.value,
+    orderSource: [...filterOrderSource.value],
+    socialPlatform: [...filterSocialPlatform.value],
+    multiCart: [...filterMultiCart.value],
+    sessionName: [...filterSessionName.value],
     precisionField: filterPrecisionField.value,
     precisionValue: filterPrecisionValue.value.trim(),
   }
@@ -322,9 +323,10 @@ const QUICK_TO_ADVANCED: Partial<Record<QuickFilter, { field: 'shipping' | 'paym
   os_pending:     { field: 'orderStatus', value: 'pending' },
 }
 function syncAdvancedField(field: 'shipping' | 'payment' | 'orderStatus', value: string): void {
-  if (field === 'shipping') filterShippingStatus.value = value
-  else if (field === 'payment') filterPayment.value = value
-  else filterOrderStatus.value = value
+  const arr = value ? [value] : []
+  if (field === 'shipping') filterShippingStatus.value = arr
+  else if (field === 'payment') filterPayment.value = arr
+  else filterOrderStatus.value = arr
 }
 watch(quickFilter, (v, old) => {
   applied.value.quickFilter = v
@@ -408,13 +410,13 @@ const filtered = computed<OrderRow[]>(() => {
       return t >= start && t <= end
     })
   }
-  if (a.orderStatus) list = list.filter(o => orderStatusOf(o) === a.orderStatus)
-  if (a.payment) list = list.filter(o => o.paymentStatus === a.payment)
-  if (a.shippingStatus) list = list.filter(o => o.shippingStatus === a.shippingStatus)
-  if (a.orderSource) list = list.filter(o => o.orderSource === a.orderSource)
-  if (a.socialPlatform) list = list.filter(o => o.socialPlatform === a.socialPlatform)
-  if (a.multiCart) list = list.filter(o => o.multiCart === a.multiCart)
-  if (a.sessionName) list = list.filter(o => o.sessionName === a.sessionName)
+  if (a.orderStatus.length) list = list.filter(o => a.orderStatus.includes(orderStatusOf(o)))
+  if (a.payment.length) list = list.filter(o => a.payment.includes(o.paymentStatus))
+  if (a.shippingStatus.length) list = list.filter(o => a.shippingStatus.includes(o.shippingStatus))
+  if (a.orderSource.length) list = list.filter(o => a.orderSource.includes(o.orderSource))
+  if (a.socialPlatform.length) list = list.filter(o => !!o.socialPlatform && a.socialPlatform.includes(o.socialPlatform))
+  if (a.multiCart.length) list = list.filter(o => a.multiCart.includes(o.multiCart))
+  if (a.sessionName.length) list = list.filter(o => !!o.sessionName && a.sessionName.includes(o.sessionName))
   if (a.precisionValue) {
     const v = a.precisionValue
     list = list.filter((o) => {
@@ -711,9 +713,9 @@ const selectedForBatchOrders = computed<OrderRow[]>(() =>
 // ── 匯出 CSV：需先套用任一篩選或勾選 ≥1 筆才可匯出（mock，實際受權限控制）──
 const hasAppliedFilter = computed<boolean>(() => {
   const a = applied.value
-  return a.keyword !== '' || a.dateRange !== null || a.payment !== '' || a.shippingStatus !== ''
-    || a.quickFilter !== 'all' || a.orderSource !== '' || a.socialPlatform !== '' || a.multiCart !== ''
-    || a.sessionName !== '' || a.precisionValue !== ''
+  return a.keyword !== '' || a.dateRange !== null || a.payment.length > 0 || a.shippingStatus.length > 0
+    || a.quickFilter !== 'all' || a.orderSource.length > 0 || a.socialPlatform.length > 0 || a.multiCart.length > 0
+    || a.sessionName.length > 0 || a.orderStatus.length > 0 || a.precisionValue !== ''
 })
 const canExport = computed<boolean>(() => hasAppliedFilter.value || selectedForBatch.value.size > 0)
 const exportMenuRef = ref<PopoverApi | null>(null)
@@ -1182,17 +1184,39 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
         <div v-if="advancedFilterExpanded" class="flex flex-col gap-2 px-5 pb-3">
           <!-- 既有 Select 群 -->
           <div class="flex items-center gap-2 flex-wrap">
-          <Select v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" class="!w-[140px]" show-clear />
-          <Select v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="出貨方式" class="!w-[140px]" show-clear />
-          <Select v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" class="!w-[140px]" scroll-height="auto" show-clear />
-          <Select v-model="filterCarrier"       :options="carrierOptionGroups"   option-label="label" option-value="value" option-group-label="group" option-group-children="items" placeholder="物流商"   class="!w-[140px]" show-clear />
-          <Select v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" class="!w-[140px]" scroll-height="auto" show-clear />
-          <Select v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" class="!w-[140px]" scroll-height="auto" show-clear />
-          <Select v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" class="!w-[140px]" show-clear />
-          <Select v-model="filterOrderSource"   :options="orderSourceOptions"    option-label="label" option-value="value" placeholder="訂單來源" class="!w-[140px]" show-clear />
-          <Select v-model="filterSocialPlatform" :options="socialPlatformOptions" option-label="label" option-value="value" placeholder="社群平台" class="!w-[140px]" show-clear />
-          <Select v-model="filterMultiCart"     :options="multiCartOptions"      option-label="label" option-value="value" placeholder="多購物車" class="!w-[140px]" show-clear />
-          <Select v-model="filterSessionName"   :options="sessionNameOptions"    option-label="label" option-value="value" placeholder="場次名稱" class="!w-[160px]" show-clear />
+          <MultiSelect v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">訂單狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="出貨方式" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">出貨方式<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">出貨狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterCarrier"       :options="carrierOptionGroups"   option-label="label" option-value="value" option-group-label="group" option-group-children="items" placeholder="物流商" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">物流商<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">付款方式<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">付款狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">取號狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterOrderSource"   :options="orderSourceOptions"    option-label="label" option-value="value" placeholder="訂單來源" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">訂單來源<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterSocialPlatform" :options="socialPlatformOptions" option-label="label" option-value="value" placeholder="社群平台" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">社群平台<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterMultiCart"     :options="multiCartOptions"      option-label="label" option-value="value" placeholder="多購物車" :max-selected-labels="0" :show-toggle-all="false" class="!w-[140px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">多購物車<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
+          <MultiSelect v-model="filterSessionName"   :options="sessionNameOptions"    option-label="label" option-value="value" placeholder="場次名稱" :max-selected-labels="0" :show-toggle-all="false" class="!w-[160px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">場次名稱<Badge v-if="value?.length" :value="value.length" /></span></template>
+          </MultiSelect>
           </div>
           <!-- 精準欄位篩選：Select 選欄位 + InputText 輸入要比對的值 -->
           <div class="flex items-stretch gap-2 flex-wrap">
