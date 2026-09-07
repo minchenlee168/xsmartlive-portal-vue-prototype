@@ -30,7 +30,7 @@ interface OrderRow {
   amount: number
   itemCount: number
   shippingMethod: string
-  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund'
+  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
   shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled' | 'returning' | 'return_done' | 'exchanged' | 'delivery_abnormal'
   /** 配送異常原因(物流商回報);delivery_abnormal 時以 tooltip 顯示 */
   abnormalReason?: string
@@ -80,9 +80,12 @@ const shippingBadge = computed<{ label: string; severity: TagSeverity }>(() => {
 })
 /** 付款狀態 badge（已退款＝退貨流程結束後的付款終態） */
 const paymentBadge = computed<{ label: string; severity: TagSeverity }>(() => {
-  if (props.order.paymentStatus === 'paid') return { label: '已付款', severity: 'success' }
-  if (props.order.paymentStatus === 'refunded') return { label: '已退款', severity: 'secondary' }
-  if (props.order.paymentStatus === 'pending_refund') return { label: '待退款', severity: 'warn' }
+  const s = props.order.paymentStatus
+  if (s === 'paid') return { label: '已付款', severity: 'success' }
+  if (s === 'paying') return { label: '付款中', severity: 'info' }
+  if (s === 'payment_failed') return { label: '付款失敗', severity: 'danger' }
+  if (s === 'pending_refund') return { label: '待退款', severity: 'warn' }
+  if (s === 'refunded') return { label: '已退款', severity: 'secondary' }
   return { label: '待付款', severity: 'warn' }
 })
 /** 訂單狀態:依 orderStatus.ts 的貨態×付款矩陣推導(與列表頁一致) */
@@ -168,10 +171,14 @@ const editBuyerPhone = ref<string>(props.order.buyerPhone)
 /** 地址欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
 const shippingAddress = ref<string>('台北市中山區南京東路二段50號')
 
-/** 付款方式卡整卡編輯：付款狀態 + 付款方式 都變 Select */
-const paymentStatusOptions = [
-  { label: '已付款', value: 'paid' as const },
-  { label: '待付款', value: 'unpaid' as const },
+/** 付款方式卡整卡編輯：付款狀態 + 付款方式 都變 Select。付款狀態選項比照進階篩選的六種。 */
+const paymentStatusOptions: Array<{ label: string; value: OrderRow['paymentStatus'] }> = [
+  { label: '待付款',   value: 'unpaid' },
+  { label: '付款中',   value: 'paying' },
+  { label: '已付款',   value: 'paid' },
+  { label: '付款失敗', value: 'payment_failed' },
+  { label: '待退款',   value: 'pending_refund' },
+  { label: '已退款',   value: 'refunded' },
 ]
 const paymentMethodOptions = [
   { label: '信用卡一次付清', value: 'credit_once' },

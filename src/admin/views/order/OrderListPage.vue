@@ -33,7 +33,7 @@ interface OrderRow {
   amount: number
   itemCount: number
   shippingMethod: string
-  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund'
+  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
   shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled' | 'returning' | 'return_done' | 'exchanged' | 'delivery_abnormal'
   /** 配送異常原因(物流商回報);delivery_abnormal 時以 tooltip 顯示 */
   abnormalReason?: string
@@ -237,7 +237,7 @@ const orderStatusQuickFilters: Array<{ value: QuickFilter; label: string; status
 const quickFilters: Array<{ value: QuickFilter; label: string }> = [
   { value: 'pending',   label: '待出貨' },
   { value: 'preparing', label: '備貨中' },
-  { value: 'shipping',  label: '出貨中' },
+  { value: 'shipping',  label: '已出貨' },
   { value: 'paid',      label: '已付款' },
   { value: 'unpaid',    label: '待付款' },
   { value: 'refund_pending', label: '待退款' },
@@ -434,10 +434,14 @@ function onCancelOrderConfirm(_reason: string): void {
   detailDialogVisible.value = false
 }
 
-/** 付款狀態 inline 編輯：點 Tag → Select 模式；按打勾 commit 回 Tag */
-const paymentEditOptions = [
-  { label: '已付款', value: 'paid' as const },
-  { label: '待付款', value: 'unpaid' as const },
+/** 付款狀態 inline 編輯：點 Tag → Select 模式；按打勾 commit 回 Tag。選項比照進階篩選的六種付款狀態。 */
+const paymentEditOptions: Array<{ label: string; value: OrderRow['paymentStatus'] }> = [
+  { label: '待付款',   value: 'unpaid' },
+  { label: '付款中',   value: 'paying' },
+  { label: '已付款',   value: 'paid' },
+  { label: '付款失敗', value: 'payment_failed' },
+  { label: '待退款',   value: 'pending_refund' },
+  { label: '已退款',   value: 'refunded' },
 ]
 const editingPaymentRowId = ref<string | null>(null)
 const editPaymentValueMap = ref<Record<string, OrderRow['paymentStatus']>>({})
@@ -762,10 +766,12 @@ function orderRowStatusMeta(o: OrderRow): { label: string; severity: 'success' |
   return orderStatusMeta(orderStatusOf(o))
 }
 
-/** 付款狀態 → tag 文字/severity(待退款＝退貨進行中,已退款＝退貨結束) */
-function paymentTagMeta(s: OrderRow['paymentStatus']): { label: string; severity: 'success' | 'warn' | 'secondary' } {
-  if (s === 'pending_refund') return { label: '待退款', severity: 'warn' }
+/** 付款狀態 → tag 文字/severity(六種:待付款/付款中/已付款/付款失敗/待退款/已退款) */
+function paymentTagMeta(s: OrderRow['paymentStatus']): { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' } {
   if (s === 'paid') return { label: '已付款', severity: 'success' }
+  if (s === 'paying') return { label: '付款中', severity: 'info' }
+  if (s === 'payment_failed') return { label: '付款失敗', severity: 'danger' }
+  if (s === 'pending_refund') return { label: '待退款', severity: 'warn' }
   if (s === 'refunded') return { label: '已退款', severity: 'secondary' }
   return { label: '待付款', severity: 'warn' }
 }
@@ -1407,7 +1413,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                   option-label="label"
                   option-value="value"
                   size="small"
-                  class="!w-[100px]"
+                  class="!w-[110px]"
+                  scroll-height="auto"
                 />
                 <Button v-tooltip.top="'確認'" aria-label="確認付款狀態" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitPayment(data, $event)" />
                 <Button v-tooltip.top="'取消'" aria-label="取消編輯" icon="pi pi-times" severity="secondary" variant="text" size="small" rounded @click="cancelEditPayment" />

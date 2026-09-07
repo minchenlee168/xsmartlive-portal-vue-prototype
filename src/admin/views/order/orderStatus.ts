@@ -36,19 +36,21 @@ const HUOTAI: Record<string, string> = {
   cancelled: '已取消',
 }
 
-/** 付款狀態 → 對照表欄位(prototype 僅這四種) */
+/** 付款狀態 → 對照表欄位 */
 const PAY: Record<string, string> = {
   unpaid: '待付款',
+  paying: '付款中',
   paid: '已付款',
+  payment_failed: '付款失敗',
   pending_refund: '待退款',
   refunded: '已退款',
 }
 
-type Row = Partial<Record<'待付款' | '已付款' | '待退款' | '已退款', OrderStatusKey>>
+type Row = Partial<Record<'待付款' | '付款中' | '已付款' | '付款失敗' | '待退款' | '已退款', OrderStatusKey>>
 
 /** 表一 線上付款(信用卡 / LINE Pay / ATM / 超商代碼 / 轉帳匯款);未列出的組合＝不該發生＝異常 */
 const ONLINE: Record<string, Row> = {
-  待出貨: { 待付款: 'pending', 已付款: 'pending' },
+  待出貨: { 待付款: 'pending', 付款中: 'processing', 已付款: 'pending' },
   備貨中: { 已付款: 'processing' },
   已出貨: { 已付款: 'processing' },
   已送達: { 已付款: 'processing' },
