@@ -263,12 +263,12 @@ function confirmStatusSwitch(): void {
 }
 
 /**
- * 終止狀態（已完成 / 標記退貨 / 標記換貨）：出貨進度下方常駐三顆 chip。
- * 換貨第 2 次出貨期間改顯示換貨資訊框(exchangeMode)、已取消 / 配送異常等終態不再提供操作,故排除。
+ * 終止狀態（已完成 / 標記退貨 / 標記換貨）：僅「已送達」之後(含退貨/換貨終態)顯示於出貨進度下方。
+ * 換貨第 2 次出貨期間貨態回到待出貨,自然不顯示(改顯示換貨資訊框)。
  */
 const showTerminalStatus = computed(() =>
   !exchangeMode.value
-  && !(['cancelled', 'delivery_abnormal'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
+  && (['arrived', 'completed', 'returned', 'returning', 'return_done', 'exchanged'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
 )
 const isReturned = computed(() =>
   (['returned', 'returning', 'return_done', 'exchanged'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
