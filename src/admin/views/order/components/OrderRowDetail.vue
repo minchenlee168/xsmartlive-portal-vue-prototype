@@ -31,13 +31,15 @@ interface OrderRow {
   itemCount: number
   shippingMethod: string
   paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+  /** 付款方式標籤(如「貨到付款」「信用卡一次付清」「ATM 轉帳」);決定配送方式可否變更 */
+  paymentMethodLabel?: string
   shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled' | 'returning' | 'return_done' | 'exchanged' | 'delivery_abnormal'
   /** 配送異常原因(物流商回報);delivery_abnormal 時以 tooltip 顯示 */
   abnormalReason?: string
   carrierStatus: 'unconfigured' | 'configured'
   trackingStatus: string | null
   carrierName?: string
-  orderSource: 'live' | 'shop'
+  orderSource: 'post' | 'live' | 'group' | 'shop'
   socialPlatform?: 'facebook' | 'line' | 'instagram' | 'tiktok' | 'other'
   multiCart: 'default' | 'main' | 'ice' | 'ice_grocery'
   sessionName?: 'session_0620' | 'session_0622' | 'session_0624' | 'session_0625'
@@ -96,7 +98,13 @@ const orderStatusBadge = computed<{ label: string; severity: TagSeverity }>(() =
 const orderStatusReason = computed<string | null>(() => orderAbnormalReason(props.order))
 
 /** 訂單來源 → 顯示文字 */
-const sourceLabel = computed(() => props.order.orderSource === 'live' ? '直播' : '商城')
+const ORDER_SOURCE_LABEL: Record<OrderRow['orderSource'], { short: string; full: string }> = {
+  post:  { short: '貼文', full: '貼文收單' },
+  live:  { short: '直播', full: '直播收單' },
+  group: { short: '社團', full: '社團收單' },
+  shop:  { short: '商城', full: '商城訂單' },
+}
+const sourceLabel = computed(() => ORDER_SOURCE_LABEL[props.order.orderSource].short)
 const socialLabel = computed(() => {
   const map = { facebook: 'Facebook', line: 'LINE', instagram: 'Instagram', tiktok: 'TikTok', other: '其他' } as const
   return props.order.socialPlatform ? map[props.order.socialPlatform] : '—'
@@ -106,7 +114,7 @@ const sessionLabel = computed(() => {
   return props.order.sessionName ? map[props.order.sessionName] : '—'
 })
 /** 訂單來源卡：直播訂單 / 商城訂單 */
-const orderSourceCardLabel = computed(() => props.order.orderSource === 'live' ? '直播訂單' : '商城訂單')
+const orderSourceCardLabel = computed(() => ORDER_SOURCE_LABEL[props.order.orderSource].full)
 /** 訂單狀態(整體生命週期)→ 依出貨狀態收斂,與列表頁「訂單狀態」欄一致 */
 
 /** 出貨進度 5 階段（用 PrimeVue Timeline 水平顯示） */
@@ -141,24 +149,29 @@ const progressSteps = computed<StepItem[]>(() => {
   }))
 })
 
-/** 商品明細：prototype mock 一筆，依照 cart tag 給名稱 */
-interface ProductRow { name: string; spec: string; source: string; price: number; qty: number }
+const shippingFee = 120
+const couponDiscount = computed(() => props.order.couponDiscount ?? 0)
+const pointsDiscount = computed(() => props.order.pointsDiscount ?? 0)
+/**
+ * 反推商品總額,讓「商品總額 + 運費 - 折抵 = 訂單總計 = 應付金額(order.amount)」對得起來。
+ * 訂單總計即 order.amount,與付款方式卡的「應付金額」一致。
+ */
+const subtotal = computed(() => Math.max(0, props.order.amount - shippingFee + couponDiscount.value + pointsDiscount.value))
+const total = computed(() => props.order.amount)
+
+/** 商品明細：prototype mock 一筆,小計＝商品總額(subtotal),單價由小計 ÷ 數量反推 */
+interface ProductRow { name: string; spec: string; source: string; price: number; qty: number; lineTotal: number }
 const productRows = computed<ProductRow[]>(() => {
-  // mock：用訂單金額 ÷ 商品數量推單價
-  const unitPrice = Math.round(props.order.amount / Math.max(1, props.order.itemCount) - 120 / Math.max(1, props.order.itemCount))
+  const qty = Math.max(1, props.order.itemCount)
   return [{
     name: props.order.cartTag.label === '服飾專區' ? '韓版寬鬆連帽外套（米白）' : '示意商品',
     spec: props.order.cartTag.label === '服飾專區' ? '尺寸 M / 米白色內裡' : '預設規格',
     source: sourceLabel.value,
-    price: unitPrice,
+    price: Math.round(subtotal.value / qty),
     qty: props.order.itemCount,
+    lineTotal: subtotal.value,
   }]
 })
-const subtotal = computed(() => productRows.value.reduce((sum, r) => sum + r.price * r.qty, 0))
-const shippingFee = 120
-const couponDiscount = computed(() => props.order.couponDiscount ?? 0)
-const pointsDiscount = computed(() => props.order.pointsDiscount ?? 0)
-const total = computed(() => subtotal.value + shippingFee - couponDiscount.value - pointsDiscount.value)
 
 /** 配送資訊卡整卡編輯：點筆 icon → 出貨方式 Select + 姓名/電話/地址 InputText；按打勾 commit */
 const shippingMethodOptions = [
@@ -173,7 +186,7 @@ const editBuyerPhone = ref<string>(props.order.buyerPhone)
 /** 地址欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
 const shippingAddress = ref<string>('台北市中山區南京東路二段50號')
 
-/** 付款方式卡整卡編輯：付款狀態 + 付款方式 都變 Select。付款狀態選項比照進階篩選的六種。 */
+/** 付款方式卡編輯:僅「付款狀態」變 Select 可改,「付款方式」固定不可更改。付款狀態選項比照進階篩選的六種。 */
 const paymentStatusOptions: Array<{ label: string; value: OrderRow['paymentStatus'] }> = [
   { label: '待付款',   value: 'unpaid' },
   { label: '付款中',   value: 'paying' },
@@ -182,24 +195,31 @@ const paymentStatusOptions: Array<{ label: string; value: OrderRow['paymentStatu
   { label: '待退款',   value: 'pending_refund' },
   { label: '已退款',   value: 'refunded' },
 ]
-const paymentMethodOptions = [
-  { label: '信用卡一次付清', value: 'credit_once' },
-  { label: 'ATM 轉帳',       value: 'atm' },
-  { label: 'LINE Pay',       value: 'line_pay' },
-  { label: 'Apple Pay',      value: 'apple_pay' },
-  { label: 'iPASS MONEY',    value: 'ipass' },
-  { label: '貨到付款',       value: 'cod' },
-]
 const editingPayment = ref(false)
 const editPaymentStatus = ref<OrderRow['paymentStatus']>(props.order.paymentStatus)
-/** 付款方式欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
-const editPaymentMethodValue = ref<string>('credit_once')
-const paymentMethodLabel = computed(() =>
-  paymentMethodOptions.find(o => o.value === editPaymentMethodValue.value)?.label ?? '—',
-)
+/** 付款方式:直接讀訂單資料;未帶欄位者沿用預設「信用卡一次付清」。待出貨訂單可改(見 canEditPaymentMethod) */
+const paymentMethodLabel = computed(() => props.order.paymentMethodLabel ?? '信用卡一次付清')
+/** 付款方式選項(以中文 label 為值,對齊訂單 paymentMethodLabel) */
+const paymentMethodOptions = [
+  '信用卡一次付清', 'ATM 轉帳', '轉帳匯款', '貨到付款',
+  'LINE Pay', 'Apple Pay', 'iPASS MONEY', '超商代碼', '數位簽', '取貨現場付款',
+].map(label => ({ label }))
+/** 編輯中的付款方式(待出貨可改) */
+const editPaymentMethod = ref<string>(paymentMethodLabel.value)
+/** 待出貨訂單才可調整付款方式;其餘鎖定 */
+const canEditPaymentMethod = computed(() => props.order.shippingStatus === 'pending')
 /** ATM 轉帳對帳末 5 碼（mock：取訂單編號數字末 5 碼） */
 const atmLast5 = computed(() => props.order.orderNo.replace(/\D/g, '').slice(-5).padStart(5, '0'))
-const isAtmTransfer = computed(() => editPaymentMethodValue.value === 'atm')
+const isAtmTransfer = computed(() => paymentMethodLabel.value === 'ATM 轉帳')
+/** 是否為貨到付款 */
+const isCodOrder = computed(() => paymentMethodLabel.value === '貨到付款')
+/**
+ * 可否於配送資訊變更「配送方式」:
+ * - 貨到付款:尚未依線上金流計價,可改
+ * - 待出貨:貨還沒出,仍可調整配送方式
+ * 其餘(已依原配送方式完成計價且已進入出貨流程)不可改,需取消訂單重新下單。
+ */
+const canEditShippingMethod = computed(() => isCodOrder.value || props.order.shippingStatus === 'pending')
 /** 結帳編號（mock：以訂單編號數字衍生） */
 const checkoutNo = computed(() => `CHK-${props.order.orderNo.replace(/\D/g, '')}`)
 
@@ -211,17 +231,21 @@ watch(() => props.order.id, () => {
   shippingAddress.value = '台北市中山區南京東路二段50號'
   editingShipping.value = false
   editPaymentStatus.value = props.order.paymentStatus
+  editPaymentMethod.value = props.order.paymentMethodLabel ?? '信用卡一次付清'
   editingPayment.value = false
 })
 
 function commitShipping(): void {
-  props.order.shippingMethod = editShippingMethod.value
+  // 僅「貨到付款 / 待出貨」可更改配送方式;其餘維持原方式(已依原方式計價)
+  if (canEditShippingMethod.value) props.order.shippingMethod = editShippingMethod.value
   props.order.buyerName = editBuyerName.value
   props.order.buyerPhone = editBuyerPhone.value
   editingShipping.value = false
 }
 function commitPayment(): void {
   props.order.paymentStatus = editPaymentStatus.value
+  // 僅待出貨可調整付款方式
+  if (canEditPaymentMethod.value) props.order.paymentMethodLabel = editPaymentMethod.value
   editingPayment.value = false
 }
 
@@ -520,12 +544,7 @@ const labelMenuItems = computed<BatchMenuItem[]>(() => [
     command: () => printLabel(`${batchLabel(i)}`),
   })),
 ])
-const { logPrint, getLog } = usePrintLog()
-/** 有任一種列印紀錄(出貨單 / 標籤 / 發票)才顯示「列印紀錄」入口 */
-const hasPrintLog = computed<boolean>(() => {
-  const log = getLog(props.order.orderNo)
-  return log.sheet.length + log.label.length + log.invoice.length > 0
-})
+const { logPrint } = usePrintLog()
 function printLabel(scope: string): void {
   toast.add({ severity: 'info', summary: `列印標籤 · ${props.order.orderNo}（${scope}）`, life: 1800 })
   logPrint(props.order.orderNo, 'label')
@@ -711,11 +730,13 @@ function commitInvoice(): void {
           </div>
         </template>
 
-        <!-- 編輯模式：出貨方式 Select + 姓名/電話/地址 InputText（label 常駐可見） -->
+        <!-- 編輯模式：出貨方式（僅貨到付款可改）+ 姓名/電話/地址 InputText（label 常駐可見） -->
         <template v-else>
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-[var(--p-text-muted-color)]">出貨方式</label>
+            <label class="text-xs text-[var(--p-text-muted-color)]">配送方式</label>
+            <!-- 貨到付款 或 待出貨:可更改配送方式 -->
             <Select
+              v-if="canEditShippingMethod"
               v-model="editShippingMethod"
               :options="shippingMethodOptions"
               option-label="label"
@@ -723,6 +744,16 @@ function commitInvoice(): void {
               class="w-full"
               size="small"
             />
+            <!-- 其他(已計價且已進入出貨流程):不可更改;需變更請取消訂單重新下單 -->
+            <template v-else>
+              <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
+                <i class="pi pi-truck text-sm text-[var(--p-text-muted-color)]"></i>
+                {{ order.shippingMethod }}
+              </div>
+              <p class="text-xs text-[var(--p-text-muted-color)] leading-relaxed">
+                此訂單已依原配送方式完成計價,配送方式無法變更。如需變更,請「取消訂單」後重新下單(地址仍可修改)。
+              </p>
+            </template>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs text-[var(--p-text-muted-color)]">收件人</label>
@@ -830,17 +861,18 @@ function commitInvoice(): void {
           <span class="text-[var(--p-text-muted-color)]">結帳編號</span>
           <span class="text-[var(--p-text-color)]">{{ checkoutNo }}</span>
         </div>
+        <!-- 付款方式:待出貨可改(Select),其餘僅供檢視 -->
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">付款方式</span>
-          <span v-if="!editingPayment" class="text-[var(--p-text-color)]">
+          <span v-if="!(editingPayment && canEditPaymentMethod)" class="text-[var(--p-text-color)]">
             {{ paymentMethodLabel }}<template v-if="isAtmTransfer">（末 5 碼：<span class="font-bold text-[var(--p-primary-color)]">{{ atmLast5 }}</span>）</template>
           </span>
           <Select
             v-else
-            v-model="editPaymentMethodValue"
+            v-model="editPaymentMethod"
             :options="paymentMethodOptions"
             option-label="label"
-            option-value="value"
+            option-value="label"
             size="small"
             class="!w-[160px]"
             :pt="{ label: { class: '!whitespace-nowrap !overflow-visible' } }"
@@ -945,7 +977,7 @@ function commitInvoice(): void {
           @click="issueInvoiceDialogVisible = true"
         />
         <Button label="列印發票" icon="pi pi-file-check" severity="secondary" variant="outlined" size="small" @click="printInvoiceToast" />
-        <Button v-if="hasPrintLog" label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
+        <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
       </div>
 
       <!-- 左：配送物流 / 發票 / 出貨進度 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
@@ -1130,7 +1162,7 @@ function commitInvoice(): void {
             @click="issueInvoiceDialogVisible = true"
           />
           <Button label="列印發票" icon="pi pi-file-check" severity="secondary" variant="outlined" size="small" @click="printInvoiceToast" />
-          <Button v-if="hasPrintLog" label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
+          <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
         </div>
 
         <!-- 整單層級配送物流聚合摘要 -->
@@ -1292,7 +1324,7 @@ function commitInvoice(): void {
         </Column>
         <Column header="小計">
           <template #body="{ data }">
-            <span class="font-bold">{{ (data.price * data.qty).toLocaleString() }}</span>
+            <span class="font-bold">{{ data.lineTotal.toLocaleString() }}</span>
           </template>
         </Column>
       </DataTable>
