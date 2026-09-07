@@ -2,7 +2,7 @@
  * 訂單狀態(異常處理 / 待處理 / 處理中 / 已完成 / 已取消)推導。
  *
  * 依 UAT「訂單狀態」對照表(https://uat-pm.xsmartlive.com/Testing/)實作:
- * 1. 特定物流貨態 / 旗標「直接判異常處理」(不看付款) —— prototype 以 delivery_abnormal 代表
+ * 1. 特定出貨狀態 / 旗標「直接判異常處理」(不看付款) —— prototype 以 delivery_abnormal 代表
  *    (對應「備貨中→異常(物流回報配送異常)」;即將逾期 / 轉宅配 / 退門市異常 / 發票開立失敗等旗標未建模)。
  * 2. 其餘依「付款方式(線上 / 貨到)× 貨態 × 付款狀態」兩張主表查表決定。
  *    表格中打叉「不該發生」的組合一律判異常處理。
@@ -76,7 +76,7 @@ const COD: Record<string, Row> = {
 
 /** 依貨態 × 付款狀態 × 付款方式,查出訂單狀態 key。 */
 export function orderStatusOf(o: OrderLike): OrderStatusKey {
-  // 1. 直接判異常的物流貨態 / 旗標
+  // 1. 直接判異常的出貨狀態 / 旗標
   if (o.shippingStatus === 'delivery_abnormal') return 'abnormal'
   // 2. 查表
   const huotai = HUOTAI[o.shippingStatus]

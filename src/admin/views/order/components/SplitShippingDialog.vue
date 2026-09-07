@@ -15,7 +15,7 @@ import ShippingConfigDialog from './ShippingConfigDialog.vue'
  * 遵照 Design.md：
  * - 狀態 / 待分配 chip 用 <Tag :severity>
  * - 商品表用 <DataTable>
- * - 出貨進度用 <Timeline>
+ * - 出貨狀態用 <Timeline>
  * - 圓角走 rounded-md / rounded-lg（Aura token）
  * - 警告色用 Design.md 定義的 #CA8A04
  */

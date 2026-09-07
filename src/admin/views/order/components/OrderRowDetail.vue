@@ -16,7 +16,7 @@ import { orderStatusOf, orderStatusMeta, orderAbnormalReason } from '../orderSta
  *
  * 三大區塊：
  * 1. 上方 4 卡（grid）：配送資訊 / 訂單來源 / 付款方式 / 發票資訊
- * 2. 出貨管理：動作按鈕列 + 配送物流狀態 + 出貨進度 Timeline + 出貨單備註
+ * 2. 出貨管理：動作按鈕列 + 配送物流狀態 + 出貨狀態 Timeline + 出貨單備註
  * 3. 商品明細 table + 訂單總計（運費 / 商品總額 / 總計）
  */
 
@@ -117,7 +117,7 @@ const sessionLabel = computed(() => {
 const orderSourceCardLabel = computed(() => ORDER_SOURCE_LABEL[props.order.orderSource].full)
 /** 訂單狀態(整體生命週期)→ 依出貨狀態收斂,與列表頁「訂單狀態」欄一致 */
 
-/** 出貨進度 5 階段（用 PrimeVue Timeline 水平顯示） */
+/** 出貨狀態 5 階段（用 PrimeVue Timeline 水平顯示） */
 interface StepItem { key: string; label: string; isCurrent: boolean; isPast: boolean; time: string; icon: string }
 const progressSteps = computed<StepItem[]>(() => {
   const order: Array<{ key: OrderRow['shippingStatus']; label: string; icon: string }> = [
@@ -173,7 +173,7 @@ const productRows = computed<ProductRow[]>(() => {
   }]
 })
 
-/** 配送資訊卡整卡編輯：點筆 icon → 出貨方式 Select + 姓名/電話/地址 InputText；按打勾 commit */
+/** 配送資訊卡整卡編輯：點筆 icon → 配送方式 Select + 姓名/電話/地址 InputText；按打勾 commit */
 const shippingMethodOptions = [
   { label: '宅配',      value: '常溫宅配' },
   { label: '超商配送',  value: '超商配送' },
@@ -320,7 +320,7 @@ function confirmStatusSwitch(): void {
 }
 
 /**
- * 終止狀態（已完成 / 標記退貨 / 標記換貨）：僅「已送達」之後(含退貨/換貨終態)顯示於出貨進度下方。
+ * 終止狀態（已完成 / 標記退貨 / 標記換貨）：僅「已送達」之後(含退貨/換貨終態)顯示於出貨狀態下方。
  * 換貨第 2 次出貨期間貨態回到待出貨,自然不顯示(改顯示換貨資訊框)。
  */
 const showTerminalStatus = computed(() =>
@@ -377,7 +377,7 @@ function startExchange(): void {
   }
   exchangeMode.value = true
   props.order.shippingStatus = 'pending'
-  toast.add({ severity: 'info', summary: `訂單 ${props.order.orderNo} 已建立換貨第 2 次出貨`, detail: '物流貨態重置為「待出貨」', life: 2200 })
+  toast.add({ severity: 'info', summary: `訂單 ${props.order.orderNo} 已建立換貨第 2 次出貨`, detail: '出貨狀態重置為「待出貨」', life: 2200 })
 }
 function markExchanged(): void {
   props.order.shippingStatus = 'exchanged'
@@ -730,7 +730,7 @@ function commitInvoice(): void {
           </div>
         </template>
 
-        <!-- 編輯模式：出貨方式（僅貨到付款可改）+ 姓名/電話/地址 InputText（label 常駐可見） -->
+        <!-- 編輯模式：配送方式（僅貨到付款可改）+ 姓名/電話/地址 InputText（label 常駐可見） -->
         <template v-else>
           <div class="flex flex-col gap-1">
             <label class="text-xs text-[var(--p-text-muted-color)]">配送方式</label>
@@ -948,7 +948,7 @@ function commitInvoice(): void {
         <span class="text-sm font-bold text-[var(--p-text-color)]">出貨管理</span>
       </div>
 
-      <!-- ── 未分批：原本的整單出貨管理（動作列 + 配送/發票 + 出貨進度 + 備註） ── -->
+      <!-- ── 未分批：原本的整單出貨管理（動作列 + 配送/發票 + 出貨狀態 + 備註） ── -->
       <template v-if="!isBatched">
       <!-- 動作按鈕列 -->
       <div class="flex items-center gap-2 flex-wrap">
@@ -980,7 +980,7 @@ function commitInvoice(): void {
         <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
       </div>
 
-      <!-- 左：配送物流 / 發票 / 出貨進度 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
+      <!-- 左：配送物流 / 發票 / 出貨狀態 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
       <div class="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4">
         <div class="flex flex-col gap-4 min-w-0">
           <div class="flex items-center gap-2 text-sm">
@@ -999,15 +999,15 @@ function commitInvoice(): void {
             </span>
           </div>
 
-          <!-- 出貨進度 Timeline（左欄內；發票已移到上方發票資訊卡,此處不再顯示） -->
+          <!-- 出貨狀態 Timeline（左欄內；發票已移到上方發票資訊卡,此處不再顯示） -->
           <div class="flex flex-col gap-2">
-            <!-- 換貨第 2 次出貨時,標題改為「物流貨態」並標註僅商家可見 -->
+            <!-- 換貨第 2 次出貨時,標題改為「出貨狀態」並標註僅商家可見 -->
             <div v-if="exchangeMode" class="flex items-center gap-2">
-              <span class="text-xs text-[var(--p-text-muted-color)]">物流貨態</span>
+              <span class="text-sm text-[var(--p-text-muted-color)]">出貨狀態</span>
               <Tag :value="shippingBadge.label" :severity="shippingBadge.severity" />
               <span class="text-xs text-[var(--p-text-muted-color)]">（僅商家可見）</span>
             </div>
-            <span v-else class="text-xs text-[var(--p-text-muted-color)]">物流貨態</span>
+            <span v-else class="text-sm text-[var(--p-text-muted-color)]">出貨狀態</span>
             <!-- Stepper marker 可點按 → 跳確認彈窗切換到該階段 -->
             <Timeline :value="progressSteps" layout="horizontal" align="top" class="w-full">
               <template #marker="{ item }">

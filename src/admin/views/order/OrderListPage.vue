@@ -20,7 +20,7 @@ import { orderStatusOf, orderStatusMeta, orderAbnormalReason, ORDER_STATUS_OPTIO
  * 快速篩選 chips 與訂單 table 全部裝進一張 Card。
  *
  * 欄位：建立時間 / 購物車 + 訂單編號 / 訂購人 / 訂單狀態 / 金額 / 商品數量 /
- * 出貨方式 / 付款狀態 / 出貨狀態 / 物流商資訊 / 取號狀態 / 操作。
+ * 配送方式 / 付款狀態 / 出貨狀態 / 物流商資訊 / 取號狀態 / 操作。
  */
 
 interface OrderRow {
@@ -421,7 +421,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = Object.fromEntries(
 const CARRIER_LABEL: Record<string, string> = Object.fromEntries(
   carrierOptionGroups.flatMap(g => g.items).map(o => [o.value, o.label]),
 )
-/** 出貨方式大類 → 判斷訂單具體配送方式字串是否屬於該類 */
+/** 配送方式大類 → 判斷訂單具體配送方式字串是否屬於該類 */
 const SHIPPING_METHOD_MATCHERS: Record<string, (m: string) => boolean> = {
   home: m => m.includes('宅配'),
   cvs: m => /超商|店到店|交貨便|門市/.test(m),
@@ -451,7 +451,7 @@ const filtered = computed<OrderRow[]>(() => {
     const wanted = new Set(a.paymentMethod.map(v => PAYMENT_METHOD_LABEL[v]).filter(Boolean))
     list = list.filter(o => !!o.paymentMethodLabel && wanted.has(o.paymentMethodLabel))
   }
-  // 出貨方式:選項為配送大類(宅配 / 超商 / 自取 / 混合),訂單存的是具體方式字串 → 以關鍵字歸類比對
+  // 配送方式:選項為配送大類(宅配 / 超商 / 自取 / 混合),訂單存的是具體方式字串 → 以關鍵字歸類比對
   if (a.shipping.length) {
     list = list.filter(o => a.shipping.some(v => SHIPPING_METHOD_MATCHERS[v]?.(o.shippingMethod)))
   }
@@ -1330,8 +1330,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           <MultiSelect v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">訂單狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="出貨方式" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
-            <template #value="{ value }"><span class="inline-flex items-center gap-2">出貨方式<Badge v-if="value?.length" :value="value.length" /></span></template>
+          <MultiSelect v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="配送方式" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+            <template #value="{ value }"><span class="inline-flex items-center gap-2">配送方式<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
           <MultiSelect v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">出貨狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
@@ -1598,7 +1598,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </template>
           </Column>
 
-          <Column header="出貨方式">
+          <Column header="配送方式">
             <template #body="{ data }">
               <span class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
                 <i class="pi pi-truck" style="font-size: 13px; color: var(--p-text-muted-color)"></i>
@@ -1694,7 +1694,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </template>
           </Column>
 
-          <Column header="物流商資訊">
+          <Column header="物流商">
             <template #body="{ data }">
               <!-- 已設定：只顯示物流商名稱（取號另在「取號狀態」欄顯示）；未設定：設定配送按鈕 -->
               <span v-if="data.carrierStatus === 'configured'" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
@@ -2077,7 +2077,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <span v-else class="text-[var(--p-text-muted-color)]">—</span>
               </template>
             </Column>
-            <Column header="出貨方式">
+            <Column header="配送方式">
               <template #body="{ data }">
                 <Tag :value="data.shippingMethod" severity="secondary" />
               </template>
