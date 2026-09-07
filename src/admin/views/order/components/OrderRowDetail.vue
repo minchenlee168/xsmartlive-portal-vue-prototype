@@ -366,6 +366,11 @@ function onShippingConfigConfirm(payload: { carrierName: string; method: string;
   props.order.carrierStatus = 'configured'
   props.order.carrierName = payload.carrierName
   props.order.trackingStatus = payload.trackingNo
+  // 取號的當下:待出貨 → 備貨中(依 UAT 規範,取到號就推進到備貨中)
+  if (payload.trackingNo && props.order.shippingStatus === 'pending') {
+    props.order.shippingStatus = 'preparing'
+    toast.add({ severity: 'info', summary: `訂單 ${props.order.orderNo} 已取號,貨態推進為「備貨中」`, life: 2200 })
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -820,37 +825,36 @@ function commitInvoice(): void {
 
       <!-- 發票資訊：發票狀態可編輯(下拉只開放走得通的值,如已開立只能改已作廢) -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">發票資訊</span>
+        <!-- 標題 + 編輯鉛筆(比照配送資訊 / 付款方式,編輯入口放標題旁) -->
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-bold text-[var(--p-text-color)]">發票資訊</span>
+          <Button v-if="!editingInvoice" v-tooltip.top="'編輯'" aria-label="編輯發票資訊" icon="pi pi-pencil" severity="secondary" variant="text" size="small" rounded @click="startEditInvoice" />
+          <Button v-else v-tooltip.top="'確認'" aria-label="確認發票資訊" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitInvoice" />
+        </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">發票狀態</span>
-          <!-- 檢視模式：Tag + 鉛筆 -->
-          <span v-if="!editingInvoice" class="inline-flex items-center gap-1">
-            <Tag :value="invoiceStatusMeta(invoiceStatusValue).label" :severity="invoiceStatusMeta(invoiceStatusValue).severity" />
-            <Button v-tooltip.top="'編輯'" aria-label="編輯發票狀態" icon="pi pi-pencil" severity="secondary" variant="text" size="small" rounded @click="startEditInvoice" />
-          </span>
-          <!-- 編輯模式：Select(走不通的值 disabled) + 打勾 / 取消 -->
-          <span v-else class="inline-flex items-center gap-1" @click.stop>
-            <Select
-              v-model="editInvoiceStatus"
-              :options="INVOICE_STATUS_OPTIONS"
-              option-label="label"
-              option-value="value"
-              :option-disabled="invoiceOptionDisabled"
-              size="small"
-              class="!w-[160px]"
-              scroll-height="auto"
-            >
-              <template #option="{ option }">
-                <span class="inline-flex items-center gap-1">
-                  <span>{{ option.label }}</span>
-                  <span v-if="option.value === invoiceStatusValue" class="text-xs text-[var(--p-text-muted-color)]">（目前）</span>
-                  <span v-else-if="invoiceOptionDisabled(option)" class="text-xs text-[var(--p-text-muted-color)]">— {{ invoiceDisabledReason(option.value) }}</span>
-                </span>
-              </template>
-            </Select>
-            <Button v-tooltip.top="'確認'" aria-label="確認發票狀態" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitInvoice" />
-            <Button v-tooltip.top="'取消'" aria-label="取消編輯" icon="pi pi-times" severity="secondary" variant="text" size="small" rounded @click="editingInvoice = false" />
-          </span>
+          <Tag v-if="!editingInvoice" :value="invoiceStatusMeta(invoiceStatusValue).label" :severity="invoiceStatusMeta(invoiceStatusValue).severity" />
+          <!-- 編輯模式：Select(走不通的值 disabled,標「(目前)」與原因) -->
+          <Select
+            v-else
+            v-model="editInvoiceStatus"
+            :options="INVOICE_STATUS_OPTIONS"
+            option-label="label"
+            option-value="value"
+            :option-disabled="invoiceOptionDisabled"
+            size="small"
+            class="!w-[160px]"
+            scroll-height="auto"
+            @click.stop
+          >
+            <template #option="{ option }">
+              <span class="inline-flex items-center gap-1">
+                <span>{{ option.label }}</span>
+                <span v-if="option.value === invoiceStatusValue" class="text-xs text-[var(--p-text-muted-color)]">（目前）</span>
+                <span v-else-if="invoiceOptionDisabled(option)" class="text-xs text-[var(--p-text-muted-color)]">— {{ invoiceDisabledReason(option.value) }}</span>
+              </span>
+            </template>
+          </Select>
         </div>
         <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
           <i class="pi pi-id-card text-sm text-[var(--p-text-muted-color)]"></i>

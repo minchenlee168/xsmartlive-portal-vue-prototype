@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 import type { MenuItem } from 'primevue/menuitem'
 import { useLayoutStore } from '@/admin/stores/layout'
 import { useToast } from 'primevue/usetoast'
@@ -453,15 +453,29 @@ function onCopyOrderNo(no: string): void {
   navigator.clipboard?.writeText(no)
 }
 
-/** 「查看更多」彈窗：點眼睛 icon 開 Dialog 顯示 OrderRowDetail */
+/**
+ * 「查看更多」彈窗：點眼睛 icon 開 Dialog 顯示 OrderRowDetail。
+ * 彈窗內編輯的是原始訂單的「副本」,按「儲存」才寫回列表(取消 / 關閉則捨棄)。
+ */
 const detailDialogVisible = ref(false)
 const detailDialogOrder = ref<OrderRow | null>(null)
+/** 被編輯訂單在 orders 陣列中的原件參考;儲存時把副本寫回它 */
+const detailDialogOriginal = ref<OrderRow | null>(null)
 function openDetailDialog(o: OrderRow): void {
-  detailDialogOrder.value = o
+  detailDialogOriginal.value = o
+  detailDialogOrder.value = structuredClone(toRaw(o))
   detailDialogVisible.value = true
 }
+/** 儲存:把副本的所有欄位寫回原始訂單 → 列表即時更新 */
+function saveDetailDialog(): void {
+  if (detailDialogOriginal.value && detailDialogOrder.value) {
+    Object.assign(detailDialogOriginal.value, detailDialogOrder.value)
+    toast.add({ severity: 'success', summary: `訂單 ${detailDialogOrder.value.orderNo} 已儲存`, life: 2000 })
+  }
+  detailDialogVisible.value = false
+}
 
-/** 取消訂單彈窗：明細 footer「取消訂單」→ 選原因確認 → 該筆出貨狀態改「已取消」 */
+/** 取消訂單彈窗：明細 footer「取消訂單」→ 選原因確認 → 該筆出貨狀態改「已取消」(確認動作即寫回列表) */
 const cancelOrderDialogVisible = ref(false)
 function openCancelOrderDialog(): void {
   if (detailDialogOrder.value) cancelOrderDialogVisible.value = true
@@ -469,6 +483,7 @@ function openCancelOrderDialog(): void {
 function onCancelOrderConfirm(_reason: string): void {
   if (!detailDialogOrder.value) return
   detailDialogOrder.value.shippingStatus = 'cancelled'
+  if (detailDialogOriginal.value) detailDialogOriginal.value.shippingStatus = 'cancelled'
   detailDialogVisible.value = false
 }
 
@@ -1705,7 +1720,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           />
           <div class="flex items-center gap-2">
             <Button label="取消" severity="secondary" variant="outlined" @click="detailDialogVisible = false" />
-            <Button label="儲存" @click="detailDialogVisible = false" />
+            <Button label="儲存" @click="saveDetailDialog" />
           </div>
         </div>
       </template>
