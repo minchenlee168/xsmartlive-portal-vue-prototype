@@ -9,6 +9,7 @@ import ShippingListPrintDialog from './ShippingListPrintDialog.vue'
 import { useShippingBatches, type BatchShippingStatus, type OrderBatch } from '../composables/useShippingBatches'
 import { usePrintLog } from '../composables/usePrintLog'
 import PrintHistoryDialog from './PrintHistoryDialog.vue'
+import { orderStatusOf, orderStatusMeta, orderAbnormalReason } from '../orderStatus'
 
 /**
  * 訂單列表 row expansion 展開內容。
@@ -29,8 +30,10 @@ interface OrderRow {
   amount: number
   itemCount: number
   shippingMethod: string
-  paymentStatus: 'paid' | 'unpaid'
-  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled'
+  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund'
+  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled' | 'returning' | 'return_done' | 'exchanged' | 'delivery_abnormal'
+  /** 配送異常原因(物流商回報);delivery_abnormal 時以 tooltip 顯示 */
+  abnormalReason?: string
   carrierStatus: 'unconfigured' | 'configured'
   trackingStatus: string | null
   carrierName?: string
@@ -60,17 +63,32 @@ const emit = defineEmits<{
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
 const shippingBadge = computed<{ label: string; severity: TagSeverity }>(() => {
   const map: Record<OrderRow['shippingStatus'], { label: string; severity: TagSeverity }> = {
-    pending:          { label: '待出貨', severity: 'warn' },
-    preparing:        { label: '備貨中', severity: 'info' },
-    shipping:         { label: '出貨中', severity: 'warn' },
-    awaiting_receipt: { label: '待收貨', severity: 'secondary' },
-    arrived:          { label: '已送達', severity: 'success' },
-    completed:        { label: '已完成', severity: 'secondary' },
-    returned:         { label: '退換貨', severity: 'warn' },
-    cancelled:        { label: '已取消', severity: 'danger' },
+    pending:           { label: '待出貨', severity: 'warn' },
+    preparing:         { label: '備貨中', severity: 'info' },
+    shipping:          { label: '出貨中', severity: 'warn' },
+    awaiting_receipt:  { label: '待收貨', severity: 'secondary' },
+    arrived:           { label: '已送達', severity: 'success' },
+    completed:         { label: '已完成', severity: 'success' },
+    returned:          { label: '退換貨', severity: 'warn' },
+    cancelled:         { label: '已取消', severity: 'danger' },
+    returning:         { label: '退貨中', severity: 'warn' },
+    return_done:       { label: '已退貨', severity: 'secondary' },
+    exchanged:         { label: '已換貨', severity: 'info' },
+    delivery_abnormal: { label: '配送異常', severity: 'danger' },
   }
   return map[props.order.shippingStatus]
 })
+/** 付款狀態 badge（已退款＝退貨流程結束後的付款終態） */
+const paymentBadge = computed<{ label: string; severity: TagSeverity }>(() => {
+  if (props.order.paymentStatus === 'paid') return { label: '已付款', severity: 'success' }
+  if (props.order.paymentStatus === 'refunded') return { label: '已退款', severity: 'secondary' }
+  if (props.order.paymentStatus === 'pending_refund') return { label: '待退款', severity: 'warn' }
+  return { label: '待付款', severity: 'warn' }
+})
+/** 訂單狀態:依 orderStatus.ts 的貨態×付款矩陣推導(與列表頁一致) */
+const orderStatusBadge = computed<{ label: string; severity: TagSeverity }>(() => orderStatusMeta(orderStatusOf(props.order)))
+/** 異常處理時的原因說明(供 tooltip);非異常為 null */
+const orderStatusReason = computed<string | null>(() => orderAbnormalReason(props.order))
 
 /** 訂單來源 → 顯示文字 */
 const sourceLabel = computed(() => props.order.orderSource === 'live' ? '直播' : '商城')
@@ -78,14 +96,13 @@ const socialLabel = computed(() => {
   const map = { facebook: 'Facebook', line: 'LINE', instagram: 'Instagram', tiktok: 'TikTok', other: '其他' } as const
   return props.order.socialPlatform ? map[props.order.socialPlatform] : '—'
 })
-const cartLabel = computed(() => {
-  const map = { default: '預設購物車', main: '主購物車', ice: '冰品專區', ice_grocery: '冰品專區 / 生活雜貨' } as const
-  return map[props.order.multiCart]
-})
 const sessionLabel = computed(() => {
   const map = { session_0620: '6-20 開箱直播', session_0622: '6-22 美妝直播', session_0624: '6-24 晚間生鮮直播', session_0625: '6-25 服飾團' } as const
   return props.order.sessionName ? map[props.order.sessionName] : '—'
 })
+/** 訂單來源卡：直播訂單 / 商城訂單 */
+const orderSourceCardLabel = computed(() => props.order.orderSource === 'live' ? '直播訂單' : '商城訂單')
+/** 訂單狀態(整體生命週期)→ 依出貨狀態收斂,與列表頁「訂單狀態」欄一致 */
 
 /** 出貨進度 5 階段（用 PrimeVue Timeline 水平顯示） */
 interface StepItem { key: string; label: string; isCurrent: boolean; isPast: boolean; time: string; icon: string }
@@ -97,13 +114,22 @@ const progressSteps = computed<StepItem[]>(() => {
     { key: 'arrived',    label: '已送達', icon: 'pi pi-map-marker' },
     { key: 'completed',  label: '已完成', icon: 'pi pi-check-circle' },
   ]
-  // 退換貨屬「已完成之後」的終止狀態，Timeline 比照已完成呈現滿條（終止標記另由下方 chip 呈現）
-  const effectiveStatus = props.order.shippingStatus === 'returned' ? 'completed' : props.order.shippingStatus
+  // 終止狀態屬「已完成之後」——Timeline 比照已完成呈現滿條，並把最後一站改成對應終止標記(退貨中 / 已換貨…)
+  const LAST_STEP_OVERRIDE: Partial<Record<OrderRow['shippingStatus'], { label: string; icon: string }>> = {
+    returning:         { label: '退貨中',   icon: 'pi pi-undo' },
+    return_done:       { label: '已退貨',   icon: 'pi pi-undo' },
+    exchanged:         { label: '已換貨',   icon: 'pi pi-sync' },
+    delivery_abnormal: { label: '配送異常', icon: 'pi pi-exclamation-triangle' },
+  }
+  const override = LAST_STEP_OVERRIDE[props.order.shippingStatus]
+  // 任何終止狀態(退換貨 / 退貨中 / 已退貨 / 已換貨 / 配送異常)都視同走到最後一站
+  const effectiveStatus = (props.order.shippingStatus === 'returned' || override) ? 'completed' : props.order.shippingStatus
   const currentIdx = order.findIndex(s => s.key === effectiveStatus)
+  const lastIdx = order.length - 1
   return order.map((s, i) => ({
     key: s.key,
-    label: s.label,
-    icon: s.icon,
+    label: i === lastIdx && override ? override.label : s.label,
+    icon: i === lastIdx && override ? override.icon : s.icon,
     isCurrent: i === currentIdx,
     isPast: i < currentIdx,
     time: i === currentIdx ? props.order.createdAt.slice(5, 10) + ' ' + props.order.createdAt.slice(11, 16) : '—',
@@ -156,12 +182,15 @@ const paymentMethodOptions = [
   { label: '貨到付款',       value: 'cod' },
 ]
 const editingPayment = ref(false)
-const editPaymentStatus = ref<'paid' | 'unpaid'>(props.order.paymentStatus)
+const editPaymentStatus = ref<OrderRow['paymentStatus']>(props.order.paymentStatus)
 /** 付款方式欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
 const editPaymentMethodValue = ref<string>('credit_once')
 const paymentMethodLabel = computed(() =>
   paymentMethodOptions.find(o => o.value === editPaymentMethodValue.value)?.label ?? '—',
 )
+/** ATM 轉帳對帳末 5 碼（mock：取訂單編號數字末 5 碼） */
+const atmLast5 = computed(() => props.order.orderNo.replace(/\D/g, '').slice(-5).padStart(5, '0'))
+const isAtmTransfer = computed(() => editPaymentMethodValue.value === 'atm')
 
 // 切換不同訂單時同步初始值
 watch(() => props.order.id, () => {
@@ -227,29 +256,78 @@ function confirmStatusSwitch(): void {
 }
 
 /**
- * 終止狀態（已完成 ↔ 退換貨）：僅已送達之後可用。點擊直接切換並跳 toast；可逆（再點回已完成即復原）。
- * 只做標記與備註，不含完整退換流程。
+ * 終止狀態（已完成 / 標記退貨 / 標記換貨）：出貨進度下方常駐三顆 chip。
+ * 換貨第 2 次出貨期間改顯示換貨資訊框(exchangeMode)、已取消 / 配送異常等終態不再提供操作,故排除。
  */
 const showTerminalStatus = computed(() =>
-  (['arrived', 'completed', 'returned'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
+  !exchangeMode.value
+  && !(['cancelled', 'delivery_abnormal'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
 )
-const isReturned = computed(() => props.order.shippingStatus === 'returned')
-/** 終止狀態目前選取：completed / returned / null（已送達但尚未標記）——供 chip 選中樣式與 aria-pressed 用三態判斷 */
-const terminalSelection = computed<'completed' | 'returned' | null>(() =>
-  props.order.shippingStatus === 'returned' ? 'returned'
-    : props.order.shippingStatus === 'completed' ? 'completed'
-      : null,
+const isReturned = computed(() =>
+  (['returned', 'returning', 'return_done', 'exchanged'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
 )
-function setTerminalStatus(target: 'completed' | 'returned'): void {
+/** 終止狀態目前選取：completed / returning（退貨中）/ exchanged（已換貨）/ null（已送達但尚未標記）——供 chip 選中樣式與 aria-pressed 用 */
+type TerminalTarget = 'completed' | 'returning' | 'exchanged'
+const terminalSelection = computed<TerminalTarget | null>(() =>
+  props.order.shippingStatus === 'returning' ? 'returning'
+    : props.order.shippingStatus === 'exchanged' ? 'exchanged'
+      : props.order.shippingStatus === 'completed' ? 'completed'
+        : null,
+)
+const TERMINAL_LABELS: Record<TerminalTarget, string> = { completed: '已完成', returning: '退貨中', exchanged: '已換貨' }
+function setTerminalStatus(target: TerminalTarget): void {
   if (props.order.shippingStatus === target) return
   props.order.shippingStatus = target
-  const label = target === 'returned' ? '退換貨' : '已完成'
+  // 標記退貨:付款自動轉「待退款」(依 UAT 規範,退貨中的付款狀態為待退款)
+  if (target === 'returning') props.order.paymentStatus = 'pending_refund'
   toast.add({
-    severity: target === 'returned' ? 'warn' : 'success',
-    summary: `訂單 ${props.order.orderNo} 已更新為「${label}」`,
+    severity: target === 'completed' ? 'success' : 'warn',
+    summary: `訂單 ${props.order.orderNo} 已更新為「${TERMINAL_LABELS[target]}」`,
     life: 2000,
   })
 }
+/** 退貨處理中 →「標記已退款」：付款轉已退款、貨態轉已退貨,退貨流程結束。 */
+function markRefunded(): void {
+  props.order.paymentStatus = 'refunded'
+  props.order.shippingStatus = 'return_done'
+  toast.add({
+    severity: 'success',
+    summary: `訂單 ${props.order.orderNo} 已標記已退款`,
+    detail: '付款轉「已退款」、貨態轉「已退貨」',
+    life: 2200,
+  })
+}
+
+/**
+ * 換貨第 2 次出貨：標記換貨後,貨態重置為「待出貨」跑第 2 次出貨流程,
+ * 付款狀態全程不動;走到已完成會自動轉「已換貨」,或按「標記已換貨」直接結束。
+ */
+const exchangeMode = ref(false)
+const exchangeInfo = ref<{ markedAt: string; voidedTrackingNo: string } | null>(null)
+function startExchange(): void {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  exchangeInfo.value = {
+    markedAt: `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    voidedTrackingNo: `TRK${props.order.orderNo.replace(/\D/g, '').slice(-9)}`,
+  }
+  exchangeMode.value = true
+  props.order.shippingStatus = 'pending'
+  toast.add({ severity: 'info', summary: `訂單 ${props.order.orderNo} 已建立換貨第 2 次出貨`, detail: '物流貨態重置為「待出貨」', life: 2200 })
+}
+function markExchanged(): void {
+  props.order.shippingStatus = 'exchanged'
+  exchangeMode.value = false
+  toast.add({ severity: 'success', summary: `訂單 ${props.order.orderNo} 已標記已換貨`, life: 2000 })
+}
+// 換貨期間若第 2 次出貨自然走到「已完成」→ 自動轉為已換貨
+watch(() => props.order.shippingStatus, (s) => {
+  if (exchangeMode.value && s === 'completed') {
+    props.order.shippingStatus = 'exchanged'
+    exchangeMode.value = false
+    toast.add({ severity: 'success', summary: `訂單 ${props.order.orderNo} 出貨完成,自動轉為已換貨`, life: 2200 })
+  }
+})
 
 /** 設定配送 Dialog：委派給 ShippingConfigDialog 共用元件（與訂單列表表格共用） */
 const shippingConfigDialogVisible = ref(false)
@@ -468,11 +546,26 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
               @click="commitShipping"
             />
           </div>
-          <Tag :value="shippingBadge.label" :severity="shippingBadge.severity" />
         </div>
 
         <!-- 檢視模式 -->
         <template v-if="!editingShipping">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-[var(--p-text-muted-color)]">配送狀態</span>
+            <!-- 配送異常:tag 內文字後加驚嘆號,hover 顯示物流商回報的異常原因 -->
+            <Tag
+              v-if="order.shippingStatus === 'delivery_abnormal'"
+              :severity="shippingBadge.severity"
+              class="cursor-help"
+              v-tooltip.top="order.abnormalReason ?? '物流回報配送異常'"
+            >
+              <span class="inline-flex items-center gap-1">
+                {{ shippingBadge.label }}
+                <i class="pi pi-exclamation-circle text-xs"></i>
+              </span>
+            </Tag>
+            <Tag v-else :value="shippingBadge.label" :severity="shippingBadge.severity" />
+          </div>
           <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
             <i class="pi pi-truck text-sm text-[var(--p-text-muted-color)]"></i>
             {{ order.shippingMethod }}
@@ -514,20 +607,39 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         </template>
       </div>
 
-      <!-- 訂單來源（比照規範頁：訂單來源 + 平台列；平台列標題用「收單來源」） -->
+      <!-- 訂單來源：訂單狀態 / 訂單來源 / 社群平台 / 多購物車 / 場次名稱 -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
         <span class="text-sm font-bold text-[var(--p-text-color)]">訂單來源</span>
         <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">訂單來源</span>
-          <span class="font-medium text-[var(--p-text-color)]">{{ sourceLabel }}</span>
+          <span class="text-[var(--p-text-muted-color)]">訂單狀態</span>
+          <!-- 異常處理:tag 內文字後加驚嘆號,hover 顯示異常原因(配送異常 or 不該發生的組合) -->
+          <Tag
+            v-if="orderStatusReason"
+            :severity="orderStatusBadge.severity"
+            class="cursor-help"
+            v-tooltip.top="orderStatusReason"
+          >
+            <span class="inline-flex items-center gap-1">
+              {{ orderStatusBadge.label }}
+              <i class="pi pi-exclamation-circle text-xs"></i>
+            </span>
+          </Tag>
+          <Tag v-else :value="orderStatusBadge.label" :severity="orderStatusBadge.severity" />
         </div>
         <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">收單來源</span>
+          <span class="text-[var(--p-text-muted-color)]">訂單來源</span>
+          <span class="font-medium text-[var(--p-text-color)]">{{ orderSourceCardLabel }}</span>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-[var(--p-text-muted-color)]">社群平台</span>
           <span class="text-[var(--p-text-color)]">{{ socialLabel }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">多購物車</span>
-          <span class="text-[var(--p-text-color)]">{{ cartLabel }}</span>
+          <span
+            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+            :style="{ background: order.cartTag.bg, color: order.cartTag.color }"
+          >{{ order.cartTag.label }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">場次名稱</span>
@@ -567,8 +679,8 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
           <span class="text-[var(--p-text-muted-color)]">付款狀態</span>
           <Tag
             v-if="!editingPayment"
-            :value="order.paymentStatus === 'paid' ? '已付款' : '待付款'"
-            :severity="order.paymentStatus === 'paid' ? 'success' : 'warn'"
+            :value="paymentBadge.label"
+            :severity="paymentBadge.severity"
           />
           <Select
             v-else
@@ -583,7 +695,9 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">付款方式</span>
-          <span v-if="!editingPayment" class="text-[var(--p-text-color)]">{{ paymentMethodLabel }}</span>
+          <span v-if="!editingPayment" class="text-[var(--p-text-color)]">
+            {{ paymentMethodLabel }}<template v-if="isAtmTransfer">（末 5 碼：<span class="font-bold text-[var(--p-primary-color)]">{{ atmLast5 }}</span>）</template>
+          </span>
           <Select
             v-else
             v-model="editPaymentMethodValue"
@@ -703,7 +817,13 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
 
           <!-- 出貨進度 Timeline（左欄內） -->
           <div class="flex flex-col gap-2">
-            <span class="text-xs text-[var(--p-text-muted-color)]">出貨進度</span>
+            <!-- 換貨第 2 次出貨時,標題改為「物流貨態」並標註僅商家可見 -->
+            <div v-if="exchangeMode" class="flex items-center gap-2">
+              <span class="text-xs text-[var(--p-text-muted-color)]">物流貨態</span>
+              <Tag :value="shippingBadge.label" :severity="shippingBadge.severity" />
+              <span class="text-xs text-[var(--p-text-muted-color)]">（僅商家可見）</span>
+            </div>
+            <span v-else class="text-xs text-[var(--p-text-muted-color)]">出貨進度</span>
             <!-- Stepper marker 可點按 → 跳確認彈窗切換到該階段 -->
             <Timeline :value="progressSteps" layout="horizontal" align="top" class="w-full">
               <template #marker="{ item }">
@@ -743,7 +863,7 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
             aria-label="終止狀態"
           >
             <span class="text-[var(--p-text-muted-color)] text-sm w-[80px] shrink-0">終止狀態</span>
-            <!-- 選中=實心語意色（已完成沿用全站 secondary、退換貨 warn）；未選=secondary outlined，靠實心/外框區分而非借用 success 綠 -->
+            <!-- 選中=實心語意色（已完成沿用全站 secondary、退貨/換貨 warn）；未選=secondary outlined，靠實心/外框區分而非借用 success 綠 -->
             <Button
               label="已完成"
               icon="pi pi-check"
@@ -755,15 +875,49 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
               @click="setTerminalStatus('completed')"
             />
             <Button
-              label="退換貨"
+              label="標記退貨"
               icon="pi pi-undo"
               size="small"
-              :severity="terminalSelection === 'returned' ? 'warn' : 'secondary'"
-              :variant="terminalSelection === 'returned' ? undefined : 'outlined'"
-              :aria-pressed="terminalSelection === 'returned'"
-              aria-label="將終止狀態設為退換貨"
-              @click="setTerminalStatus('returned')"
+              :severity="terminalSelection === 'returning' ? 'warn' : 'secondary'"
+              :variant="terminalSelection === 'returning' ? undefined : 'outlined'"
+              :aria-pressed="terminalSelection === 'returning'"
+              aria-label="將終止狀態標記為退貨中"
+              @click="setTerminalStatus('returning')"
             />
+            <Button
+              label="標記換貨"
+              icon="pi pi-sync"
+              size="small"
+              :severity="terminalSelection === 'exchanged' ? 'warn' : 'secondary'"
+              :variant="terminalSelection === 'exchanged' ? undefined : 'outlined'"
+              :aria-pressed="terminalSelection === 'exchanged'"
+              aria-label="標記換貨,建立第 2 次出貨"
+              @click="startExchange"
+            />
+          </div>
+
+          <!-- 退貨處理中:標記退貨後出現,退款完成按「標記已退款」→ 付款轉已退款、貨態轉已退貨,流程結束 -->
+          <div
+            v-if="order.shippingStatus === 'returning'"
+            class="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 flex items-center justify-between gap-4"
+          >
+            <div class="flex flex-col gap-1 min-w-0">
+              <span class="text-sm font-semibold text-red-600 dark:text-red-400">退貨處理中</span>
+              <span class="text-xs text-red-600 dark:text-red-400">退款辦完之後按右邊、付款轉已退款、貨態同時轉已退貨,這條路就結束了。</span>
+            </div>
+            <Button label="標記已退款" severity="danger" size="small" class="shrink-0" @click="markRefunded" />
+          </div>
+
+          <!-- 換貨・第 2 次出貨:標記換貨後出現,貨態重置為待出貨跑第 2 次流程,走完或按右邊都轉已換貨 -->
+          <div
+            v-if="exchangeMode"
+            class="rounded-md border border-violet-200 dark:border-violet-900 bg-violet-50 dark:bg-violet-950/40 px-4 py-3 flex items-center justify-between gap-4"
+          >
+            <div class="flex flex-col gap-1 min-w-0">
+              <span class="text-sm font-semibold text-violet-700 dark:text-violet-300">換貨・第 2 次出貨</span>
+              <span class="text-xs text-violet-700 dark:text-violet-300">{{ exchangeInfo?.markedAt }} 標記,原寄件編號 {{ exchangeInfo?.voidedTrackingNo }} 已作廢。付款狀態全程不動,新貨到貨後按右邊直接結束,或照常走完整出貨流程到已完成也會自動轉為已換貨。</span>
+            </div>
+            <Button label="標記已換貨" size="small" class="shrink-0" @click="markExchanged" />
           </div>
         </div>
 

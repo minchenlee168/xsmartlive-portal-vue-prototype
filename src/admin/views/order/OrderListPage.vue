@@ -11,6 +11,7 @@ import SplitShippingDialog from './components/SplitShippingDialog.vue'
 import ShippingListPrintDialog from './components/ShippingListPrintDialog.vue'
 import DefaultShippingConfigDialog from './components/DefaultShippingConfigDialog.vue'
 import CancelOrderDialog from './components/CancelOrderDialog.vue'
+import { orderStatusOf, orderStatusMeta, orderAbnormalReason, ORDER_STATUS_OPTIONS, type OrderStatusKey } from './orderStatus'
 
 /**
  * 訂單管理 → 訂單列表頁。
@@ -18,7 +19,7 @@ import CancelOrderDialog from './components/CancelOrderDialog.vue'
  * 排版：頁首（標題 + 副標 + 右側 4 顆批次操作鈕）置於 Card 外；篩選列、進階篩選、
  * 快速篩選 chips 與訂單 table 全部裝進一張 Card。
  *
- * 欄位：建立時間 / 購物車 + 訂單編號 / 訂購人 / 金額 / 商品數量 /
+ * 欄位：建立時間 / 購物車 + 訂單編號 / 訂購人 / 訂單狀態 / 金額 / 商品數量 /
  * 出貨方式 / 付款狀態 / 出貨狀態 / 物流商資訊 / 取號狀態 / 操作。
  */
 
@@ -32,8 +33,10 @@ interface OrderRow {
   amount: number
   itemCount: number
   shippingMethod: string
-  paymentStatus: 'paid' | 'unpaid'
-  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled'
+  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund'
+  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'returned' | 'cancelled' | 'returning' | 'return_done' | 'exchanged' | 'delivery_abnormal'
+  /** 配送異常原因(物流商回報);delivery_abnormal 時以 tooltip 顯示 */
+  abnormalReason?: string
   carrierStatus: 'unconfigured' | 'configured'
   trackingStatus: string | null
   /** 已設定的物流商顯示名稱（配送設定 confirm 後寫入） */
@@ -92,18 +95,24 @@ const shippingMethodOptions: FilterOption[] = [
   { label: '自取',     value: 'pickup' },
 ]
 const paymentStatusOptions: FilterOption[] = [
-  { label: '已付款', value: 'paid' },
   { label: '待付款', value: 'unpaid' },
+  { label: '付款中', value: 'paying' },
+  { label: '已付款', value: 'paid' },
+  { label: '付款失敗', value: 'payment_failed' },
+  { label: '待退款', value: 'pending_refund' },
+  { label: '已退款', value: 'refunded' },
 ]
 const shippingStatusOptions: FilterOption[] = [
-  { label: '待出貨', value: 'pending' },
-  { label: '備貨中', value: 'preparing' },
-  { label: '出貨中', value: 'shipping' },
-  { label: '待收貨', value: 'awaiting_receipt' },
-  { label: '已送達', value: 'arrived' },
-  { label: '已完成', value: 'completed' },
-  { label: '退換貨', value: 'returned' },
-  { label: '已取消', value: 'cancelled' },
+  { label: '待出貨',   value: 'pending' },
+  { label: '備貨中',   value: 'preparing' },
+  { label: '已出貨',   value: 'shipping' },
+  { label: '已送達',   value: 'arrived' },
+  { label: '已完成',   value: 'completed' },
+  { label: '退貨中',   value: 'returning' },
+  { label: '已退貨',   value: 'return_done' },
+  { label: '已換貨',   value: 'exchanged' },
+  { label: '已取消',   value: 'cancelled' },
+  { label: '配送異常', value: 'delivery_abnormal' },
 ]
 const carrierOptions: FilterOption[] = [
   { label: '7-11 B2C 冷凍到府收件',       value: 'cvs711_b2c_cold' },
@@ -170,6 +179,7 @@ const precisionFieldOptions: FilterOption[] = [
   { label: '結帳編號',       value: 'orderNo' },
 ]
 
+const filterOrderStatus = ref('')
 const filterShipping = ref('')
 const filterPayment = ref('')
 const filterShippingStatus = ref('')
@@ -194,7 +204,7 @@ const advancedFilterExpanded = ref(false)
 /** 顯示已套用的進階篩選數量，提示使用者「進階篩選 (N)」 */
 const appliedAdvancedCount = computed<number>(() => {
   return [
-    filterShipping.value, filterPayment.value, filterShippingStatus.value,
+    filterOrderStatus.value, filterShipping.value, filterPayment.value, filterShippingStatus.value,
     filterCarrier.value, filterPaymentMethod.value, filterTracking.value,
     filterOrderSource.value, filterSocialPlatform.value, filterMultiCart.value, filterSessionName.value,
     filterPrecisionValue.value.trim(),
@@ -202,6 +212,7 @@ const appliedAdvancedCount = computed<number>(() => {
 })
 /** 一鍵清除所有進階篩選 Select 的值 + 立即從 applied 移除 → 表格重新顯示未過濾結果。 */
 function clearAdvancedFilters(): void {
+  filterOrderStatus.value = ''
   filterShipping.value = ''
   filterPayment.value = ''
   filterShippingStatus.value = ''
@@ -216,20 +227,33 @@ function clearAdvancedFilters(): void {
   onApplyFilters()
 }
 
-type QuickFilter = 'all' | 'pending' | 'preparing' | 'shipping' | 'arrived' | 'paid' | 'unpaid'
+type QuickFilter = 'all' | 'pending' | 'preparing' | 'shipping' | 'arrived' | 'paid' | 'unpaid' | 'refund_pending' | 'os_abnormal' | 'os_pending'
 const quickFilter = ref<QuickFilter>('all')
+/** 訂單狀態快速篩選：異常處理(帶紅色數量 badge,提醒待處理量)、待處理。 */
+const orderStatusQuickFilters: Array<{ value: QuickFilter; label: string; statusKey: OrderStatusKey; showCount?: boolean }> = [
+  { value: 'os_abnormal', label: '異常處理', statusKey: 'abnormal', showCount: true },
+  { value: 'os_pending',  label: '待處理',   statusKey: 'pending' },
+]
 const quickFilters: Array<{ value: QuickFilter; label: string }> = [
   { value: 'pending',   label: '待出貨' },
   { value: 'preparing', label: '備貨中' },
   { value: 'shipping',  label: '出貨中' },
   { value: 'paid',      label: '已付款' },
   { value: 'unpaid',    label: '待付款' },
+  { value: 'refund_pending', label: '待退款' },
 ]
+/** 各訂單狀態的筆數(供快速篩選 badge 顯示)。 */
+const orderStatusCounts = computed<Record<OrderStatusKey, number>>(() => {
+  const c: Record<OrderStatusKey, number> = { abnormal: 0, pending: 0, processing: 0, completed: 0, cancelled: 0 }
+  orders.value.forEach(o => { c[orderStatusOf(o)]++ })
+  return c
+})
 
 // 篩選「已套用」狀態：computed 過濾依此計算。按下「搜尋」才會把草稿值寫進來。
 interface AppliedFilter {
   keyword: string
   dateRange: Date[] | null
+  orderStatus: string
   payment: string
   shippingStatus: string
   quickFilter: QuickFilter
@@ -243,6 +267,7 @@ interface AppliedFilter {
 const applied = ref<AppliedFilter>({
   keyword: '',
   dateRange: null,
+  orderStatus: '',
   payment: '',
   shippingStatus: '',
   quickFilter: 'all',
@@ -257,6 +282,7 @@ function onApplyFilters(): void {
   applied.value = {
     keyword: keyword.value,
     dateRange: dateRange.value,
+    orderStatus: filterOrderStatus.value,
     payment: filterPayment.value,
     shippingStatus: filterShippingStatus.value,
     quickFilter: quickFilter.value,
@@ -285,9 +311,9 @@ const orders = ref<OrderRow[]>([
   { id: '1', createdAt: '2026-05-10 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'shipping', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260510-A099', orderSource: 'live', socialPlatform: 'facebook',  multiCart: 'default',     sessionName: 'session_0620', channel: 'Facebook',  couponActivity: '母親節限定 8 折', couponDiscount: 200, pointsDiscount: 50, dispatchBatchCount: 0 },
   { id: '2', createdAt: '2026-05-10 15:45', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'shop',                              multiCart: 'ice_grocery',                              channel: '商城',                                                                                                                                        invoiceNumber: 'AB12345678', invoiceIssuedAt: '2026-05-10 16:00' },
   { id: '3', createdAt: '2026-05-10 11:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260510103', buyerName: '蔡明宏', buyerPhone: '0936-333-444', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'configured', carrierName: '新竹物流',   trackingStatus: null, orderSource: 'live', socialPlatform: 'line',      multiCart: 'main',        sessionName: 'session_0622', channel: 'LINE',                                          pointsDiscount: 100, dispatchBatchCount: 2 },
-  { id: '4', createdAt: '2026-05-11 09:00', cartTag: tagFor('服飾專區'), orderNo: 'A20260511101', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'instagram', multiCart: 'default',     sessionName: 'session_0624', channel: 'Instagram',                                                                                                          },
+  { id: '4', createdAt: '2026-05-11 09:00', cartTag: tagFor('服飾專區'), orderNo: 'A20260511101', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'pending_refund', shippingStatus: 'returning', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'instagram', multiCart: 'default',     sessionName: 'session_0624', channel: 'Instagram',                                                                                                          },
   { id: '5', createdAt: '2026-05-11 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260511102', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260511-A101', orderSource: 'shop',                              multiCart: 'main',                                     channel: '商城',      couponActivity: '春季新品優惠', couponDiscount: 100,                                                                                          invoiceNumber: 'CD98765432', invoiceIssuedAt: '2026-05-11 11:15' },
-  { id: '6', createdAt: '2026-05-11 13:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260511103', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'tiktok',    multiCart: 'ice',         sessionName: 'session_0625', channel: 'TikTok',                                                             dispatchBatchCount: 1 },
+  { id: '6', createdAt: '2026-05-11 13:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260511103', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'delivery_abnormal', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'tiktok',    multiCart: 'ice',         sessionName: 'session_0625', channel: 'TikTok',                                                             dispatchBatchCount: 1, abnormalReason: '物流商回報:收件地址不完整,司機無法投遞,包裹已退回物流站待處理。' },
 
   // 合併訂單 demo:三組同買家 + 同址 + 同溫層 + 未取號 → 可合併
   // 周庭安 x 3 - 台北市大安區敦化南路二段100號 · 常溫宅配 · 信用卡一次付清
@@ -303,6 +329,17 @@ const orders = ref<OrderRow[]>([
   { id: 'm8',  createdAt: '2026-06-17 09:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260512102', buyerName: '林大華', buyerPhone: '0987-543-210', amount:  380, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '貨到付款', temperature: '常溫' },
   { id: 'm9',  createdAt: '2026-06-18 10:23', cartTag: tagFor('服飾專區'), orderNo: 'A20260512103', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1280, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '貨到付款', temperature: '常溫', couponActivity: '滿額折', couponDiscount: 150 },
   { id: 'm10', createdAt: '2026-06-19 11:36', cartTag: tagFor('服飾專區'), orderNo: 'A20260512104', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1770, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '純棉素色短T(白) × 3',    paymentMethodLabel: '貨到付款', temperature: '常溫' },
+
+  // ── 異常處理示範:各種「貨態 × 付款狀態」不該發生的組合(依 UAT 對照表判異常) ──
+  // e1 已於上方 id 6 示範「配送異常」旗標;以下為線上付款(表一)與貨到付款(表二)的不該發生組合。
+  { id: 'e2', createdAt: '2026-07-01 10:05', cartTag: tagFor('服飾專區'), orderNo: 'A20260701001', buyerName: '異常示範·已送達未付', buyerPhone: '0900-000-002', amount:  980, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'arrived',     carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E002', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e3', createdAt: '2026-07-01 10:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701002', buyerName: '異常示範·已完成未付', buyerPhone: '0900-000-003', amount:  650, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E003', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e4', createdAt: '2026-07-01 10:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260701003', buyerName: '異常示範·退貨中已付', buyerPhone: '0900-000-004', amount: 1200, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'returning',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e5', createdAt: '2026-07-01 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260701004', buyerName: '異常示範·已退貨仍已付', buyerPhone: '0900-000-005', amount:  900, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'return_done', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e6', createdAt: '2026-07-01 10:25', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701005', buyerName: '異常示範·已換貨未付', buyerPhone: '0900-000-006', amount:  760, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'exchanged',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e7', createdAt: '2026-07-01 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260701006', buyerName: '異常示範·已取消仍已付', buyerPhone: '0900-000-007', amount:  540, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'cancelled',   carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e8', createdAt: '2026-07-01 10:35', cartTag: tagFor('服飾專區'), orderNo: 'A20260701007', buyerName: '異常示範·貨到待出已付', buyerPhone: '0900-000-008', amount:  480, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending',     carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
+  { id: 'e9', createdAt: '2026-07-01 10:40', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701008', buyerName: '異常示範·貨到已完成未付', buyerPhone: '0900-000-009', amount:  420, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E009', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
 ])
 
 /** 全站合計 85 筆（圖中右上的總數）— 顯示用，篩選後仍顯示原始總數。 */
@@ -335,6 +372,7 @@ const filtered = computed<OrderRow[]>(() => {
       return t >= start && t <= end
     })
   }
+  if (a.orderStatus) list = list.filter(o => orderStatusOf(o) === a.orderStatus)
   if (a.payment) list = list.filter(o => o.paymentStatus === a.payment)
   if (a.shippingStatus) list = list.filter(o => o.shippingStatus === a.shippingStatus)
   if (a.orderSource) list = list.filter(o => o.orderSource === a.orderSource)
@@ -353,6 +391,9 @@ const filtered = computed<OrderRow[]>(() => {
   }
   if (a.quickFilter === 'paid')   list = list.filter(o => o.paymentStatus === 'paid')
   else if (a.quickFilter === 'unpaid') list = list.filter(o => o.paymentStatus === 'unpaid')
+  else if (a.quickFilter === 'refund_pending') list = list.filter(o => o.paymentStatus === 'pending_refund')
+  else if (a.quickFilter === 'os_abnormal') list = list.filter(o => orderStatusOf(o) === 'abnormal')
+  else if (a.quickFilter === 'os_pending')  list = list.filter(o => orderStatusOf(o) === 'pending')
   else if (a.quickFilter !== 'all') list = list.filter(o => o.shippingStatus === a.quickFilter)
   return list
 })
@@ -399,7 +440,7 @@ const paymentEditOptions = [
   { label: '待付款', value: 'unpaid' as const },
 ]
 const editingPaymentRowId = ref<string | null>(null)
-const editPaymentValueMap = ref<Record<string, 'paid' | 'unpaid'>>({})
+const editPaymentValueMap = ref<Record<string, OrderRow['paymentStatus']>>({})
 function startEditPayment(o: OrderRow, event: Event): void {
   event.stopPropagation()
   editingPaymentRowId.value = o.id
@@ -716,17 +757,34 @@ function confirmBatchAction(): void {
   exitBatchMode()
 }
 
+/** 訂單狀態(異常處理 / 待處理 / 處理中 / 已完成 / 已取消)依 orderStatus.ts 的貨態×付款矩陣推導 */
+function orderRowStatusMeta(o: OrderRow): { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' } {
+  return orderStatusMeta(orderStatusOf(o))
+}
+
+/** 付款狀態 → tag 文字/severity(待退款＝退貨進行中,已退款＝退貨結束) */
+function paymentTagMeta(s: OrderRow['paymentStatus']): { label: string; severity: 'success' | 'warn' | 'secondary' } {
+  if (s === 'pending_refund') return { label: '待退款', severity: 'warn' }
+  if (s === 'paid') return { label: '已付款', severity: 'success' }
+  if (s === 'refunded') return { label: '已退款', severity: 'secondary' }
+  return { label: '待付款', severity: 'warn' }
+}
+
 /** 出貨狀態 → dialog 內顯示的 tag 文字/severity */
 function shippingStatusTagMeta(s: OrderRow['shippingStatus']): { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' } {
   const map: Record<OrderRow['shippingStatus'], { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' }> = {
-    pending:          { label: '待出貨', severity: 'secondary' },
-    preparing:        { label: '備貨中', severity: 'secondary' },
-    shipping:         { label: '已出貨', severity: 'secondary' },
-    awaiting_receipt: { label: '待收貨', severity: 'secondary' },
-    arrived:          { label: '已送達', severity: 'success' },
-    completed:        { label: '已完成', severity: 'secondary' },
-    returned:         { label: '退換貨', severity: 'warn' },
-    cancelled:        { label: '已取消', severity: 'danger' },
+    pending:           { label: '待出貨', severity: 'secondary' },
+    preparing:         { label: '備貨中', severity: 'secondary' },
+    shipping:          { label: '已出貨', severity: 'secondary' },
+    awaiting_receipt:  { label: '待收貨', severity: 'secondary' },
+    arrived:           { label: '已送達', severity: 'success' },
+    completed:         { label: '已完成', severity: 'secondary' },
+    returned:          { label: '退換貨', severity: 'warn' },
+    cancelled:         { label: '已取消', severity: 'danger' },
+    returning:         { label: '退貨中', severity: 'warn' },
+    return_done:       { label: '已退貨', severity: 'secondary' },
+    exchanged:         { label: '已換貨', severity: 'info' },
+    delivery_abnormal: { label: '配送異常', severity: 'danger' },
   }
   return map[s]
 }
@@ -911,20 +969,38 @@ const PROGRESS_STEPS: ProgressStep[] = [
   { key: 'arrived',   label: '已送達' },
   { key: 'completed', label: '已完成' },
 ]
-/** 訂單目前在進度條的 index（找不到 → 視為第一階段）。 */
+/**
+ * 終止狀態同樣走進度條,並「取代最後一站(已完成)」:退貨中 / 已退貨 / 已換貨 / 已取消。
+ * 這些狀態都視同走到最後一站(滿條),只是最後一站改顯示對應終態文字。
+ */
+const LAST_STEP_OVERRIDE: Partial<Record<OrderRow['shippingStatus'], string>> = {
+  returning:   '退貨中',
+  return_done: '已退貨',
+  exchanged:   '已換貨',
+  cancelled:   '已取消',
+}
+/** 訂單目前在進度條的 index（終態取代已完成 → 最後一站;找不到 → 視為第一階段）。 */
 function currentStepIndex(s: OrderRow['shippingStatus']): number {
+  if (LAST_STEP_OVERRIDE[s]) return PROGRESS_STEPS.length - 1
   const i = PROGRESS_STEPS.findIndex(x => x.key === s)
   return i === -1 ? 0 : i
 }
-/** 把 PROGRESS_STEPS 變成 Timeline 用的資料：附加 isCurrent / isPast。 */
+/** 把 PROGRESS_STEPS 變成 Timeline 用的資料：附加 isCurrent / isPast；終態改寫最後一站文字。 */
 interface ProgressItem extends ProgressStep { isCurrent: boolean; isPast: boolean }
 function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
   const idx = currentStepIndex(s)
+  const override = LAST_STEP_OVERRIDE[s]
+  const lastIdx = PROGRESS_STEPS.length - 1
   return PROGRESS_STEPS.map((step, i) => ({
     ...step,
+    label: i === lastIdx && override ? override : step.label,
     isCurrent: i === idx,
     isPast: i < idx,
   }))
+}
+/** 是否走進度條(含終態取代已完成);否則(如配送異常)顯示 Tag。 */
+function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
+  return PROGRESS_STEPS.some(x => x.key === s) || !!LAST_STEP_OVERRIDE[s]
 }
 </script>
 
@@ -1059,15 +1135,16 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
           </button>
         </div>
 
-        <!-- 進階篩選展開區：11 個 Select + 精準欄位篩選（最後一列） -->
+        <!-- 進階篩選展開區：12 個 Select + 精準欄位篩選（最後一列） -->
         <div v-if="advancedFilterExpanded" class="flex flex-col gap-2 px-5 pb-3">
           <!-- 既有 Select 群 -->
           <div class="flex items-center gap-2 flex-wrap">
+          <Select v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" class="!w-[140px]" show-clear />
           <Select v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="出貨方式" class="!w-[140px]" show-clear />
-          <Select v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" class="!w-[140px]" show-clear />
+          <Select v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" class="!w-[140px]" scroll-height="auto" show-clear />
           <Select v-model="filterCarrier"       :options="carrierOptions"        option-label="label" option-value="value" placeholder="物流商"   class="!w-[140px]" scroll-height="auto" show-clear />
           <Select v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" class="!w-[140px]" scroll-height="auto" show-clear />
-          <Select v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" class="!w-[140px]" show-clear />
+          <Select v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" class="!w-[140px]" scroll-height="auto" show-clear />
           <Select v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" class="!w-[140px]" show-clear />
           <Select v-model="filterOrderSource"   :options="orderSourceOptions"    option-label="label" option-value="value" placeholder="訂單來源" class="!w-[140px]" show-clear />
           <Select v-model="filterSocialPlatform" :options="socialPlatformOptions" option-label="label" option-value="value" placeholder="社群平台" class="!w-[140px]" show-clear />
@@ -1102,6 +1179,25 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
         <div class="flex items-center justify-between gap-3 px-5 py-2 flex-wrap">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-sm text-[var(--p-text-muted-color)] shrink-0 mr-1">快速篩選</span>
+            <!-- 訂單狀態快速篩選：異常處理(帶數量 badge)、待處理；點選中的 chip 或其 ✕ 可清除回全部 -->
+            <button
+              v-for="q in orderStatusQuickFilters"
+              :key="q.value"
+              class="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm border transition-colors"
+              :style="quickFilter === q.value
+                ? 'background: var(--p-primary-50); color: var(--p-primary-color); border-color: var(--p-primary-color)'
+                : 'background: var(--p-content-background); color: var(--p-text-muted-color); border-color: var(--p-content-border-color)'"
+              @click="quickFilter = quickFilter === q.value ? 'all' : q.value"
+            >
+              {{ q.label }}
+              <Tag v-if="q.showCount" :value="String(orderStatusCounts[q.statusKey])" severity="danger" class="!py-0 !px-1.5 !text-xs !leading-tight" />
+              <i v-if="quickFilter === q.value" class="pi pi-times text-xs" @click.stop="quickFilter = 'all'"></i>
+            </button>
+            <span
+              class="w-px h-5 mx-1 shrink-0"
+              :style="{ background: 'var(--p-content-border-color)' }"
+              aria-hidden="true"
+            />
             <template v-for="q in quickFilters" :key="q.value">
               <span
                 v-if="q.value === 'paid'"
@@ -1110,12 +1206,15 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 aria-hidden="true"
               />
               <button
-                class="px-3 py-2 rounded-full text-sm border transition-colors"
+                class="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm border transition-colors"
                 :style="quickFilter === q.value
                   ? 'background: var(--p-primary-50); color: var(--p-primary-color); border-color: var(--p-primary-color)'
                   : 'background: var(--p-content-background); color: var(--p-text-muted-color); border-color: var(--p-content-border-color)'"
-                @click="quickFilter = q.value"
-              >{{ q.label }}</button>
+                @click="quickFilter = quickFilter === q.value ? 'all' : q.value"
+              >
+                {{ q.label }}
+                <i v-if="quickFilter === q.value" class="pi pi-times text-xs" @click.stop="quickFilter = 'all'"></i>
+              </button>
             </template>
           </div>
           <span class="text-sm text-[var(--p-text-muted-color)]">
@@ -1259,6 +1358,24 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             </template>
           </Column>
 
+          <Column header="訂單狀態">
+            <template #body="{ data }">
+              <!-- 異常處理:tag 內文字後加驚嘆號,hover 顯示異常原因 -->
+              <Tag
+                v-if="orderAbnormalReason(data)"
+                :severity="orderRowStatusMeta(data).severity"
+                class="cursor-help"
+                v-tooltip.top="orderAbnormalReason(data)"
+              >
+                <span class="inline-flex items-center gap-1">
+                  {{ orderRowStatusMeta(data).label }}
+                  <i class="pi pi-exclamation-circle text-xs"></i>
+                </span>
+              </Tag>
+              <Tag v-else :value="orderRowStatusMeta(data).label" :severity="orderRowStatusMeta(data).severity" />
+            </template>
+          </Column>
+
           <Column header="金額" field="amount" sortable body-class="text-right" header-class="text-right">
             <template #body="{ data }">
               <span class="text-[var(--p-primary-color)]">${{ data.amount.toLocaleString() }}</span>
@@ -1305,8 +1422,8 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
                 @click="startEditPayment(data, $event)"
               >
                 <Tag
-                  :value="data.paymentStatus === 'paid' ? '已付款' : '待付款'"
-                  :severity="data.paymentStatus === 'paid' ? 'success' : 'warn'"
+                  :value="paymentTagMeta(data.paymentStatus).label"
+                  :severity="paymentTagMeta(data.paymentStatus).severity"
                 />
                 <i class="pi pi-pencil text-xs text-[var(--p-text-muted-color)]"></i>
               </button>
@@ -1315,9 +1432,24 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
 
           <Column header="出貨狀態">
             <template #body="{ data }">
-              <!-- 已取消 / 退換貨：終止狀態只顯示 tag,不顯示進度條 -->
-              <Tag v-if="data.shippingStatus === 'cancelled'" value="已取消" severity="danger" />
-              <Tag v-else-if="data.shippingStatus === 'returned'" value="退換貨" severity="warn" />
+              <!-- 配送異常:tag 內文字後加驚嘆號,hover 顯示物流商回報的異常原因 -->
+              <Tag
+                v-if="data.shippingStatus === 'delivery_abnormal'"
+                :severity="shippingStatusTagMeta(data.shippingStatus).severity"
+                class="cursor-help"
+                v-tooltip.top="data.abnormalReason ?? '物流回報配送異常'"
+              >
+                <span class="inline-flex items-center gap-1">
+                  {{ shippingStatusTagMeta(data.shippingStatus).label }}
+                  <i class="pi pi-exclamation-circle text-xs"></i>
+                </span>
+              </Tag>
+              <!-- 其餘終止狀態(已取消 / 退換貨):只顯示 tag,不顯示進度條 -->
+              <Tag
+                v-else-if="!isShippingProgress(data.shippingStatus)"
+                :value="shippingStatusTagMeta(data.shippingStatus).label"
+                :severity="shippingStatusTagMeta(data.shippingStatus).severity"
+              />
               <!-- PrimeVue Timeline 顯示 5 階段,水平排列,目前階段主色加粗 -->
               <Timeline
                 v-else
@@ -1677,8 +1809,8 @@ function progressItemsFor(s: OrderRow['shippingStatus']): ProgressItem[] {
             <Column header="付款狀態">
               <template #body="{ data }">
                 <Tag
-                  :value="data.paymentStatus === 'paid' ? '已付款' : '待付款'"
-                  :severity="data.paymentStatus === 'paid' ? 'success' : 'warn'"
+                  :value="paymentTagMeta(data.paymentStatus).label"
+                  :severity="paymentTagMeta(data.paymentStatus).severity"
                 />
               </template>
             </Column>
