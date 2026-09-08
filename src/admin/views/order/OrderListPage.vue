@@ -365,7 +365,7 @@ function tagFor(name: string) {
   return { label: name, ...(CART_TAGS[name] ?? { bg: '#f1f5f9', color: '#64748b' }) }
 }
 
-const orders = ref<OrderRow[]>([
+const seedOrders: OrderRow[] = [
   { id: '1', createdAt: '2026-05-10 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'shipping', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260510-A099', orderSource: 'live', socialPlatform: 'facebook',  multiCart: 'default',     sessionName: 'session_0620', channel: 'Facebook',  couponActivity: '母親節限定 8 折', couponDiscount: 200, pointsDiscount: 50, dispatchBatchCount: 0 },
   { id: '2', createdAt: '2026-05-10 15:45', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'shop',                              multiCart: 'ice_grocery',                              channel: '商城',                                                                                                                                        invoiceNumber: 'AB12345678', invoiceIssuedAt: '2026-05-10 16:00' },
   { id: '3', createdAt: '2026-05-10 11:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260510103', buyerName: '蔡明宏', buyerPhone: '0936-333-444', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '新竹物流',   trackingStatus: 'HCT-260510-A103', orderSource: 'live', socialPlatform: 'line',      multiCart: 'main',        sessionName: 'session_0622', channel: 'LINE',                                          pointsDiscount: 100, dispatchBatchCount: 2 },
@@ -398,9 +398,82 @@ const orders = ref<OrderRow[]>([
   { id: 'e7', createdAt: '2026-07-01 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260701006', buyerName: '異常示範·已取消仍已付', buyerPhone: '0900-000-007', amount:  540, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'cancelled',   carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
   { id: 'e8', createdAt: '2026-07-01 10:35', cartTag: tagFor('服飾專區'), orderNo: 'A20260701007', buyerName: '異常示範·貨到待出已付', buyerPhone: '0900-000-008', amount:  480, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending',     carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
   { id: 'e9', createdAt: '2026-07-01 10:40', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701008', buyerName: '異常示範·貨到已完成未付', buyerPhone: '0900-000-009', amount:  420, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E009', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
-])
+]
 
-/** 全站合計 85 筆（圖中右上的總數）— 顯示用，篩選後仍顯示原始總數。 */
+/**
+ * 補充訂單:把總數填到約 85 筆,讓右上「共 N 筆」貼近真實店家量,並確保每個快速篩選都有資料。
+ * 用固定(依 index 變化)的方式產生,不用亂數 → 每次載入結果一致。
+ * 貨態 × 付款狀態一律取「線上付款」對照表中合法(非異常)的組合,避免灌爆「異常處理」數量。
+ */
+const FILLER_BUYERS: Array<[string, string]> = [
+  ['陳怡君', '0922-100-201'], ['王思婷', '0933-220-311'], ['李昱宏', '0955-330-422'],
+  ['張家豪', '0966-440-533'], ['吳佩珊', '0977-550-644'], ['劉冠廷', '0988-660-755'],
+  ['黃品妍', '0910-770-866'], ['鄭羽彤', '0921-880-977'], ['許志明', '0932-990-108'],
+  ['林巧薇', '0943-210-219'],
+]
+const FILLER_CARTS = ['服飾專區', '生活雜貨', '美食專區']
+const FILLER_CARRIERS: Array<[string, string]> = [
+  ['黑貓宅急便', 'TCAT'], ['新竹物流', 'HCT'], ['全家常溫', 'FM'], ['嘉里大榮常溫', 'KERRY'],
+]
+const FILLER_METHODS = ['信用卡一次付清', 'ATM 轉帳', 'LINE Pay', 'Apple Pay']
+const FILLER_SOURCES: OrderRow['orderSource'][] = ['post', 'live', 'group', 'shop']
+const FILLER_SOCIAL: OrderRow['socialPlatform'][] = ['facebook', 'line', 'instagram', 'tiktok']
+const FILLER_SOCIAL_CHANNEL = ['Facebook', 'LINE', 'Instagram', 'TikTok']
+const FILLER_MULTICART: OrderRow['multiCart'][] = ['default', 'main', 'ice', 'ice_grocery']
+/** 貨態 × 付款狀態:皆為線上付款表中合法組合,涵蓋各快速篩選 / 出貨狀態 */
+const FILLER_COMBOS: Array<{ ss: OrderRow['shippingStatus']; ps: OrderRow['paymentStatus'] }> = [
+  { ss: 'pending',    ps: 'unpaid' },        // 待出貨 · 待付款
+  { ss: 'pending',    ps: 'paid' },          // 待出貨 · 已付款
+  { ss: 'preparing',  ps: 'paid' },          // 備貨中
+  { ss: 'shipping',   ps: 'paid' },          // 已出貨
+  { ss: 'shipping',   ps: 'paid' },          // 已出貨(多給一些)
+  { ss: 'arrived',    ps: 'paid' },          // 已送達
+  { ss: 'completed',  ps: 'paid' },          // 已完成
+  { ss: 'returning',  ps: 'pending_refund' },// 退貨中 · 待退款
+  { ss: 'returning',  ps: 'pending_refund' },// 退貨中 · 待退款(多給一些)
+  { ss: 'exchanged',  ps: 'paid' },          // 已換貨
+  { ss: 'return_done', ps: 'refunded' },     // 已退貨
+  { ss: 'cancelled',  ps: 'refunded' },      // 已取消
+]
+const pad = (n: number, len: number): string => String(n).padStart(len, '0')
+function buildFillerOrders(count: number): OrderRow[] {
+  const out: OrderRow[] = []
+  for (let i = 0; i < count; i++) {
+    const c = FILLER_COMBOS[i % FILLER_COMBOS.length]
+    const [buyerName, buyerPhone] = FILLER_BUYERS[i % FILLER_BUYERS.length]
+    const [carrierName, abbr] = FILLER_CARRIERS[i % FILLER_CARRIERS.length]
+    const source = FILLER_SOURCES[i % FILLER_SOURCES.length]
+    const configured = c.ss !== 'pending'
+    const serial = 500 + i
+    const month = 8 + (i % 2)               // 08 / 09
+    const day = 1 + (i % 27)
+    out.push({
+      id: `f${i + 1}`,
+      createdAt: `2026-${pad(month, 2)}-${pad(day, 2)} ${pad(8 + (i % 11), 2)}:${pad((i * 7) % 60, 2)}`,
+      cartTag: tagFor(FILLER_CARTS[i % FILLER_CARTS.length]),
+      orderNo: `A2026${pad(month, 2)}${pad(serial, 4)}`,
+      buyerName,
+      buyerPhone,
+      amount: 300 + (i % 20) * 85,
+      itemCount: 1 + (i % 4),
+      shippingMethod: '常溫宅配',
+      paymentStatus: c.ps,
+      shippingStatus: c.ss,
+      carrierStatus: configured ? 'configured' : 'unconfigured',
+      carrierName: configured ? carrierName : undefined,
+      trackingStatus: configured ? `${abbr}-2608${pad(serial, 4)}` : null,
+      orderSource: source,
+      socialPlatform: source === 'shop' ? undefined : FILLER_SOCIAL[i % 4],
+      multiCart: FILLER_MULTICART[i % FILLER_MULTICART.length],
+      channel: source === 'shop' ? '商城' : FILLER_SOCIAL_CHANNEL[i % 4],
+      paymentMethodLabel: FILLER_METHODS[i % FILLER_METHODS.length],
+      temperature: '常溫',
+    })
+  }
+  return out
+}
+/** 24 筆手寫種子 + 61 筆補充 = 85 筆 */
+const orders = ref<OrderRow[]>([...seedOrders, ...buildFillerOrders(61)])
 
 /** 把 createdAt 字串(YYYY-MM-DD HH:mm)取出當日 00:00 的 timestamp,用來與 dateRange 起訖比對。 */
 function orderDayTs(o: OrderRow): number {
@@ -1309,18 +1382,15 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             >{{ appliedAdvancedCount }}</span>
             <i :class="advancedFilterExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" style="font-size: 11px"></i>
           </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)] hover:text-[var(--p-primary-color)]"
-            @click="precisionExpanded = !precisionExpanded"
-          >
-            <span class="font-medium">精準搜尋</span>
+          <!-- 精準搜尋:前置 checkbox,勾選後才顯示下方輸入匡與套用鈕 -->
+          <div class="inline-flex items-center gap-2">
+            <Checkbox v-model="precisionExpanded" binary input-id="precision-toggle" />
+            <label for="precision-toggle" class="text-sm font-medium text-[var(--p-text-color)] cursor-pointer select-none">精準搜尋</label>
             <span
               v-if="appliedPrecisionCount > 0"
               class="bg-[var(--p-primary-color)] text-white text-xs font-bold leading-none rounded-full min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center"
             >{{ appliedPrecisionCount }}</span>
-            <i :class="precisionExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" style="font-size: 11px"></i>
-          </button>
+          </div>
         </div>
 
         <!-- 進階搜尋展開區:各 Select + 清除 / 搜尋 -->

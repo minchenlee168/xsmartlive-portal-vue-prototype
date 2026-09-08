@@ -702,7 +702,7 @@ function commitInvoice(): void {
         <!-- 檢視模式 -->
         <template v-if="!editingShipping">
           <div class="flex items-center justify-between text-sm">
-            <span class="text-[var(--p-text-muted-color)]">配送狀態</span>
+            <span class="text-[var(--p-text-muted-color)]">出貨狀態</span>
             <!-- 配送異常:tag 內文字後加驚嘆號,hover 顯示物流商回報的異常原因 -->
             <Tag
               v-if="order.shippingStatus === 'delivery_abnormal'"
