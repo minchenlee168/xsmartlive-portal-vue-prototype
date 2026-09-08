@@ -219,7 +219,7 @@ const precisionPlaceholder = computed<string>(() => {
   return opt ? `精準比對「${opt.label}」欄位` : ''
 })
 
-/** 進階篩選收摺：預設展開，點 toggle button 可收起 */
+/** 進階搜尋收摺:預設展開,點標題可收合 */
 const advancedFilterExpanded = ref(true)
 /** 精準搜尋收摺(獨立於進階搜尋的區塊):預設收合 */
 const precisionExpanded = ref(false)
@@ -233,8 +233,10 @@ const appliedAdvancedCount = computed<number>(() => {
 })
 /** 精準搜尋已「套用」的條件數(0/1):收合時仍以 badge 提示已生效的精準比對 */
 const appliedPrecisionCount = computed<number>(() => applied.value.precisionValue.trim() ? 1 : 0)
-/** 一鍵清除所有進階篩選 Select 的值 + 立即從 applied 移除 → 表格重新顯示未過濾結果。 */
+/** 一鍵清除:關鍵字 / 日期 + 所有進階篩選 Select + 精準搜尋值,並立即從 applied 移除 → 表格顯示未過濾結果。 */
 function clearAdvancedFilters(): void {
+  keyword.value = ''
+  dateRange.value = null
   filterOrderStatus.value = []
   filterShipping.value = []
   filterPayment.value = []
@@ -329,6 +331,11 @@ function onApplyFilters(): void {
     precisionValue: filterPrecisionValue.value.trim(),
   }
 }
+/** 主「搜尋」鈕:套用條件後自動收合進階搜尋,把空間讓給下方訂單列表 */
+function onSearch(): void {
+  onApplyFilters()
+  advancedFilterExpanded.value = false
+}
 
 // 快速篩選 chip 點按 → 只更新 applied.quickFilter 即時過濾表格,不需按套用
 // 同時把對應的進階篩選下拉自動選到該項(取消時清掉先前同步的值)
@@ -356,13 +363,9 @@ watch(quickFilter, (v, old) => {
   if (next) syncAdvancedField(next.field, next.value)
 })
 
-const CART_TAGS: Record<string, { bg: string; color: string }> = {
-  '服飾專區': { bg: '#f2ebff', color: '#7008e7' },
-  '生活雜貨': { bg: '#dcfce7', color: '#16a34a' },
-  '美食專區': { bg: '#fef3c7', color: '#b45309' },
-}
+/** 購物車 tag:預設一律用灰色中性樣式(不再依購物車類別配色) */
 function tagFor(name: string) {
-  return { label: name, ...(CART_TAGS[name] ?? { bg: '#f1f5f9', color: '#64748b' }) }
+  return { label: name, bg: '#f1f5f9', color: '#64748b' }
 }
 
 const seedOrders: OrderRow[] = [
@@ -636,32 +639,6 @@ function onCancelOrderConfirm(_payload: { reason: string; method: 'return' | 'vo
   apply(detailDialogOrder.value)
   apply(detailDialogOriginal.value)
   detailDialogVisible.value = false
-}
-
-/** 付款狀態 inline 編輯：點 Tag → Select 模式；按打勾 commit 回 Tag。選項比照進階篩選的六種付款狀態。 */
-const paymentEditOptions: Array<{ label: string; value: OrderRow['paymentStatus'] }> = [
-  { label: '待付款',   value: 'unpaid' },
-  { label: '付款中',   value: 'paying' },
-  { label: '已付款',   value: 'paid' },
-  { label: '付款失敗', value: 'payment_failed' },
-  { label: '待退款',   value: 'pending_refund' },
-  { label: '已退款',   value: 'refunded' },
-]
-const editingPaymentRowId = ref<string | null>(null)
-const editPaymentValueMap = ref<Record<string, OrderRow['paymentStatus']>>({})
-function startEditPayment(o: OrderRow, event: Event): void {
-  event.stopPropagation()
-  editingPaymentRowId.value = o.id
-  editPaymentValueMap.value[o.id] = o.paymentStatus
-}
-function commitPayment(o: OrderRow, event: Event): void {
-  event.stopPropagation()
-  o.paymentStatus = editPaymentValueMap.value[o.id]
-  editingPaymentRowId.value = null
-}
-function cancelEditPayment(event: Event): void {
-  event.stopPropagation()
-  editingPaymentRowId.value = null
 }
 
 /** 表格「設定配送」按鈕：點下開啟 ShippingConfigDialog，confirm 後把物流商 / 取號寫回該筆訂單 */
@@ -1278,7 +1255,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
     >
       <template #content>
         <!-- 副標 + 右側批次操作(標題與麵包屑已移至卡片外頁首列) -->
-        <div class="flex items-start justify-between gap-3 px-5 pt-5 pb-2 flex-wrap">
+        <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-2 flex-wrap">
           <p class="text-sm text-[var(--p-text-muted-color)]">
             查看與管理所有來自商城與直播的訂單，可篩選狀態、查詢訂單編號或買家姓名。
           </p>
@@ -1289,6 +1266,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               icon-pos="right"
               severity="secondary"
               variant="outlined"
+              size="small"
               aria-haspopup="true"
               aria-controls="batch-menu"
               @click="openBatchMenu"
@@ -1315,12 +1293,13 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 class="ml-2"
               />
             </Button>
-            <Button label="預設配送設定" severity="secondary" variant="outlined" @click="defaultShippingConfigDialogVisible = true" />
+            <Button label="預設配送設定" severity="secondary" variant="outlined" size="small" @click="defaultShippingConfigDialogVisible = true" />
             <Button
               label="匯出 CSV"
               icon="pi pi-file-export"
               severity="secondary"
               variant="outlined"
+              size="small"
               aria-haspopup="true"
               aria-controls="export-menu"
               @click="toggleExportMenu"
@@ -1344,8 +1323,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
         </div>
 
         <!-- 搜尋 + 日期區間 + 快速日期 -->
-        <div class="flex items-center gap-3 px-5 py-3 flex-wrap">
-          <InputText v-model="keyword" placeholder="搜尋訂單編號 / 買家姓名" class="!w-[260px]" />
+        <div class="flex items-center gap-3 px-5 py-2 flex-wrap">
+          <InputText v-model="keyword" placeholder="搜尋訂單編號 / 買家姓名" size="small" class="!w-[260px]" />
 
           <!-- 日期區間：PrimeVue DatePicker range 模式 -->
           <DatePicker
@@ -1354,6 +1333,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             show-icon
             date-format="yy-mm-dd"
             placeholder="年 / 月 / 日  至  年 / 月 / 日"
+            size="small"
             class="!w-[320px]"
           />
 
@@ -1364,12 +1344,15 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <Button label="上月"     severity="secondary" variant="outlined" size="small" @click="setDateRangePreset('lastMonth')" />
           </div>
 
-          <!-- 搜尋:訂單關鍵字 / 日期查詢的主按鈕,緊接快速日期鈕;commit 所有已填條件並套用 -->
-          <Button label="搜尋" class="shrink-0" @click="onApplyFilters" />
+          <!-- 清除 / 搜尋:置於日期列右側;清除只清進階條件,搜尋 commit 所有已填條件(關鍵字 / 日期 / 進階)並查詢 -->
+          <div class="ml-auto flex items-center gap-2">
+            <Button label="清除" severity="secondary" variant="outlined" size="small" class="shrink-0" @click="clearAdvancedFilters" />
+            <Button label="搜尋" size="small" class="shrink-0" @click="onSearch" />
+          </div>
         </div>
 
-        <!-- 進階搜尋 / 精準搜尋 toggle:同一列,各自獨立展開下方內容 -->
-        <div class="px-5 py-2 flex items-center gap-6 flex-wrap">
+        <!-- 進階搜尋(可收合) / 精準搜尋 checkbox:同一列 -->
+        <div class="px-5 py-1 flex items-center gap-6 flex-wrap">
           <button
             type="button"
             class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)] hover:text-[var(--p-primary-color)]"
@@ -1382,7 +1365,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             >{{ appliedAdvancedCount }}</span>
             <i :class="advancedFilterExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" style="font-size: 11px"></i>
           </button>
-          <!-- 精準搜尋:前置 checkbox,勾選後才顯示下方輸入匡與套用鈕 -->
+          <!-- 精準搜尋:前置 checkbox,勾選後才顯示下方輸入匡 -->
           <div class="inline-flex items-center gap-2">
             <Checkbox v-model="precisionExpanded" binary input-id="precision-toggle" />
             <label for="precision-toggle" class="text-sm font-medium text-[var(--p-text-color)] cursor-pointer select-none">精準搜尋</label>
@@ -1393,66 +1376,68 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </div>
         </div>
 
-        <!-- 進階搜尋展開區:各 Select + 清除 / 搜尋 -->
-        <div v-if="advancedFilterExpanded" class="flex flex-col gap-2 px-5 pb-3">
-          <!-- 既有 Select 群 -->
+        <!-- 進階搜尋展開區:兩排 Select(第一排狀態/物流/付款,第二排來源/通路);可收合 -->
+        <div v-if="advancedFilterExpanded" class="flex flex-col gap-2 px-5 pb-2">
+          <!-- 第一排:訂單狀態 / 配送方式 / 出貨狀態 / 物流商 / 取號狀態 / 付款方式 / 付款狀態 -->
           <div class="adv-filters flex items-center gap-2 flex-wrap">
-          <MultiSelect v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">訂單狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="配送方式" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterShipping"      :options="shippingMethodOptions" option-label="label" option-value="value" placeholder="配送方式" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">配送方式<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[156px]">
+          <MultiSelect v-model="filterShippingStatus" :options="shippingStatusOptions" option-label="label" option-value="value" placeholder="出貨狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">出貨狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterCarrier"       :options="carrierOptionGroups"   option-label="label" option-value="value" option-group-label="group" option-group-children="items" placeholder="物流商" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterCarrier"       :options="carrierOptionGroups"   option-label="label" option-value="value" option-group-label="group" option-group-children="items" placeholder="物流商" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">物流商<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterTracking"      :options="trackingStatusOptions" option-label="label" option-value="value" placeholder="取號狀態" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">取號狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[156px]">
+          <MultiSelect v-model="filterPaymentMethod" :options="paymentMethodOptions"  option-label="label" option-value="value" placeholder="付款方式" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">付款方式<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" class="!w-[156px]">
+          <MultiSelect v-model="filterPayment"       :options="paymentStatusOptions"  option-label="label" option-value="value" placeholder="付款狀態" :max-selected-labels="0" :show-toggle-all="false" scroll-height="auto" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">付款狀態<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterOrderSource"   :options="orderSourceOptions"    option-label="label" option-value="value" placeholder="訂單來源" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          </div>
+          <!-- 第二排:訂單來源 / 社群平台 / 多購物車 / 場次名稱 + 清除 -->
+          <div class="adv-filters flex items-center gap-2 flex-wrap">
+          <MultiSelect v-model="filterOrderSource"   :options="orderSourceOptions"    option-label="label" option-value="value" placeholder="訂單來源" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">訂單來源<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterSocialPlatform" :options="socialPlatformOptions" option-label="label" option-value="value" placeholder="社群平台" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterSocialPlatform" :options="socialPlatformOptions" option-label="label" option-value="value" placeholder="社群平台" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">社群平台<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterMultiCart"     :options="multiCartOptions"      option-label="label" option-value="value" placeholder="多購物車" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterMultiCart"     :options="multiCartOptions"      option-label="label" option-value="value" placeholder="多購物車" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">多購物車<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <MultiSelect v-model="filterSessionName"   :options="sessionNameOptions"    option-label="label" option-value="value" placeholder="場次名稱" :max-selected-labels="0" :show-toggle-all="false" class="!w-[156px]">
+          <MultiSelect v-model="filterSessionName"   :options="sessionNameOptions"    option-label="label" option-value="value" placeholder="場次名稱" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
             <template #value="{ value }"><span class="inline-flex items-center gap-2">場次名稱<Badge v-if="value?.length" :value="value.length" /></span></template>
           </MultiSelect>
-          <!-- 進階搜尋自己的 清除 / 套用:清除只清進階條件,套用 commit 全部條件並查詢 -->
-          <Button label="清除" severity="secondary" variant="outlined" class="shrink-0" @click="clearAdvancedFilters" />
-          <Button label="套用" class="shrink-0" @click="onApplyFilters" />
           </div>
         </div>
 
-        <!-- 精準搜尋展開區:toggle 已移至上方與進階搜尋同列;展開後有獨立「套用」再觸發一次搜尋 -->
+        <!-- 精準搜尋展開區:勾選 checkbox 後顯示;有自己獨立的「套用」鈕 -->
         <div v-if="precisionExpanded" class="px-5 pb-3 flex items-stretch gap-2 flex-wrap">
           <Select
             v-model="filterPrecisionField"
             :options="precisionFieldOptions"
             option-label="label"
             option-value="value"
+            size="small"
             class="!w-[200px]"
             scroll-height="auto"
           />
           <InputText
             v-model="filterPrecisionValue"
             :placeholder="precisionPlaceholder"
+            size="small"
             class="flex-1 min-w-[240px]"
             @keyup.enter="onApplyFilters"
           />
-          <Button label="套用" class="shrink-0" @click="onApplyFilters" />
+          <Button label="套用" size="small" class="shrink-0" @click="onApplyFilters" />
         </div>
 
         <!-- 快速篩選 chips + 搜尋按鈕 + 總筆數 -->
@@ -1556,6 +1541,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             :value="filtered"
             :striped-rows="true"
             scrollable
+            size="small"
             data-key="id"
             class="w-full order-main-table"
             paginator
@@ -1629,7 +1615,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </template>
           </Column>
 
-          <Column header="訂購人">
+          <Column header="訂購人" style="width: 130px">
             <template #body="{ data }">
               <div class="flex flex-col gap-1">
                 <span class="text-[var(--p-text-color)]">{{ data.buyerName }}</span>
@@ -1670,44 +1656,17 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
 
           <Column header="配送方式">
             <template #body="{ data }">
-              <span class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-                <i class="pi pi-truck" style="font-size: 13px; color: var(--p-text-muted-color)"></i>
-                {{ data.shippingMethod }}
-              </span>
+              <span class="text-[var(--p-text-color)]">{{ data.shippingMethod }}</span>
             </template>
           </Column>
 
+          <!-- 付款狀態:僅顯示,不提供 inline 編輯 -->
           <Column header="付款狀態">
             <template #body="{ data }">
-              <!-- 編輯模式：Select + 打勾 / 取消 -->
-              <span v-if="editingPaymentRowId === data.id" class="inline-flex items-center gap-1" @click.stop>
-                <Select
-                  v-model="editPaymentValueMap[data.id]"
-                  :options="paymentEditOptions"
-                  option-label="label"
-                  option-value="value"
-                  size="small"
-                  class="!w-[110px]"
-                  scroll-height="auto"
-                />
-                <Button v-tooltip.top="'確認'" aria-label="確認付款狀態" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitPayment(data, $event)" />
-                <Button v-tooltip.top="'取消'" aria-label="取消編輯" icon="pi pi-times" severity="secondary" variant="text" size="small" rounded @click="cancelEditPayment" />
-              </span>
-              <!-- 檢視模式：Tag 可直接點按進編輯 -->
-              <button
-                v-else
-                type="button"
-                class="inline-flex items-center gap-1 cursor-pointer"
-                v-tooltip.top="'點擊修改'"
-                aria-label="修改付款狀態"
-                @click="startEditPayment(data, $event)"
-              >
-                <Tag
-                  :value="paymentTagMeta(data.paymentStatus).label"
-                  :severity="paymentTagMeta(data.paymentStatus).severity"
-                />
-                <i class="pi pi-pencil text-xs text-[var(--p-text-muted-color)]"></i>
-              </button>
+              <Tag
+                :value="paymentTagMeta(data.paymentStatus).label"
+                :severity="paymentTagMeta(data.paymentStatus).severity"
+              />
             </template>
           </Column>
 
@@ -1767,10 +1726,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           <Column header="物流商">
             <template #body="{ data }">
               <!-- 已設定：只顯示物流商名稱（取號另在「取號狀態」欄顯示）；未設定：設定配送按鈕 -->
-              <span v-if="data.carrierStatus === 'configured'" class="inline-flex items-center gap-2 text-[var(--p-text-color)]">
-                <i class="pi pi-truck text-[var(--p-primary-color)] text-sm"></i>
-                <span class="font-medium">{{ data.carrierName }}</span>
-              </span>
+              <span v-if="data.carrierStatus === 'configured'" class="font-medium text-[var(--p-text-color)]">{{ data.carrierName }}</span>
               <Button v-else label="設定配送" icon="pi pi-truck" size="small" @click="openShippingConfig(data, $event)" />
             </template>
           </Column>
@@ -1793,6 +1749,17 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           >
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
+                <!-- 查看更多:置於操作列第一個 -->
+                <Button
+                  v-tooltip.top="'查看更多'"
+                  aria-label="查看訂單詳情"
+                  icon="pi pi-eye"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  rounded
+                  @click="openDetailDialog(data)"
+                />
                 <Button
                   v-tooltip.top="'出貨單列印'"
                   aria-label="出貨單列印"
@@ -1824,7 +1791,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                   <Button
                     v-tooltip.top="invoiceActionMeta(data).tooltip"
                     :aria-label="invoiceActionMeta(data).tooltip"
-                    icon="pi pi-file"
+                    icon="pi pi-receipt"
                     :severity="invoiceActionMeta(data).severity"
                     variant="text"
                     size="small"
@@ -1837,16 +1804,6 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                     style="font-size: 13px; background: var(--p-content-background); border-radius: 9999px"
                   ></i>
                 </span>
-                <Button
-                  v-tooltip.top="'查看更多'"
-                  aria-label="查看訂單詳情"
-                  icon="pi pi-eye"
-                  severity="secondary"
-                  variant="text"
-                  size="small"
-                  rounded
-                  @click="openDetailDialog(data)"
-                />
               </div>
             </template>
           </Column>
