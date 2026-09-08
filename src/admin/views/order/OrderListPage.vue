@@ -368,6 +368,12 @@ function tagFor(name: string) {
   return { label: name, bg: '#f1f5f9', color: '#64748b' }
 }
 
+/** 訂購人手機顯示為國際格式:0925-111-222 → +886925111222 */
+function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  return digits.startsWith('0') ? `+886${digits.slice(1)}` : phone
+}
+
 const seedOrders: OrderRow[] = [
   { id: '1', createdAt: '2026-05-10 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'shipping', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260510-A099', orderSource: 'live', socialPlatform: 'facebook',  multiCart: 'default',     sessionName: 'session_0620', channel: 'Facebook',  couponActivity: '母親節限定 8 折', couponDiscount: 200, pointsDiscount: 50, dispatchBatchCount: 0 },
   { id: '2', createdAt: '2026-05-10 15:45', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'preparing', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'shop',                              multiCart: 'ice_grocery',                              channel: '商城',                                                                                                                                        invoiceNumber: 'AB12345678', invoiceIssuedAt: '2026-05-10 16:00' },
@@ -393,14 +399,14 @@ const seedOrders: OrderRow[] = [
 
   // ── 異常處理示範:各種「貨態 × 付款狀態」不該發生的組合(依 UAT 對照表判異常) ──
   // e1 已於上方 id 6 示範「配送異常」旗標;以下為線上付款(表一)與貨到付款(表二)的不該發生組合。
-  { id: 'e2', createdAt: '2026-07-01 10:05', cartTag: tagFor('服飾專區'), orderNo: 'A20260701001', buyerName: '異常示範·已送達未付', buyerPhone: '0900-000-002', amount:  980, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'arrived',     carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E002', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
-  { id: 'e3', createdAt: '2026-07-01 10:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701002', buyerName: '異常示範·已完成未付', buyerPhone: '0900-000-003', amount:  650, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E003', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
-  { id: 'e4', createdAt: '2026-07-01 10:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260701003', buyerName: '異常示範·退貨中已付', buyerPhone: '0900-000-004', amount: 1200, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'returning',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
-  { id: 'e5', createdAt: '2026-07-01 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260701004', buyerName: '異常示範·已退貨仍已付', buyerPhone: '0900-000-005', amount:  900, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'return_done', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
-  { id: 'e6', createdAt: '2026-07-01 10:25', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701005', buyerName: '異常示範·已換貨未付', buyerPhone: '0900-000-006', amount:  760, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'exchanged',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
-  { id: 'e7', createdAt: '2026-07-01 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260701006', buyerName: '異常示範·已取消仍已付', buyerPhone: '0900-000-007', amount:  540, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'cancelled',   carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
-  { id: 'e8', createdAt: '2026-07-01 10:35', cartTag: tagFor('服飾專區'), orderNo: 'A20260701007', buyerName: '異常示範·貨到待出已付', buyerPhone: '0900-000-008', amount:  480, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending',     carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
-  { id: 'e9', createdAt: '2026-07-01 10:40', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701008', buyerName: '異常示範·貨到已完成未付', buyerPhone: '0900-000-009', amount:  420, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E009', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
+  { id: 'e2', createdAt: '2026-07-01 10:05', cartTag: tagFor('服飾專區'), orderNo: 'A20260701001', buyerName: '張文彬', buyerPhone: '0900-000-002', amount:  980, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'arrived',     carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E002', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e3', createdAt: '2026-07-01 10:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701002', buyerName: '李佳蓉', buyerPhone: '0900-000-003', amount:  650, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E003', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e4', createdAt: '2026-07-01 10:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260701003', buyerName: '王建國', buyerPhone: '0900-000-004', amount: 1200, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'returning',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e5', createdAt: '2026-07-01 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260701004', buyerName: '陳美玲', buyerPhone: '0900-000-005', amount:  900, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'return_done', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e6', createdAt: '2026-07-01 10:25', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701005', buyerName: '林俊傑', buyerPhone: '0900-000-006', amount:  760, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'exchanged',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null,                orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e7', createdAt: '2026-07-01 10:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260701006', buyerName: '黃淑芬', buyerPhone: '0900-000-007', amount:  540, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'cancelled',   carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '信用卡一次付清' },
+  { id: 'e8', createdAt: '2026-07-01 10:35', cartTag: tagFor('服飾專區'), orderNo: 'A20260701007', buyerName: '吳志偉', buyerPhone: '0900-000-008', amount:  480, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending',     carrierStatus: 'unconfigured', trackingStatus: null,               orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
+  { id: 'e9', createdAt: '2026-07-01 10:40', cartTag: tagFor('生活雜貨'), orderNo: 'A20260701008', buyerName: '蔡雅婷', buyerPhone: '0900-000-009', amount:  420, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'completed',   carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260701-E009', orderSource: 'shop', multiCart: 'default', channel: '商城', paymentMethodLabel: '貨到付款' },
 ]
 
 /**
@@ -1633,7 +1639,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <template #body="{ data }">
               <div class="flex flex-col gap-1">
                 <span class="text-[var(--p-text-color)]">{{ data.buyerName }}</span>
-                <span class="text-xs text-[var(--p-text-muted-color)]">{{ data.buyerPhone }}</span>
+                <span class="text-xs text-[var(--p-text-muted-color)]">{{ formatPhone(data.buyerPhone) }}</span>
               </div>
             </template>
           </Column>
@@ -1876,7 +1882,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <!-- 第二層:訂購人 · 電話 · 建立時間 -->
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--p-text-muted-color)]">
                 <span class="text-[var(--p-text-color)]">{{ data.buyerName }}</span>
-                <span>{{ data.buyerPhone }}</span>
+                <span>{{ formatPhone(data.buyerPhone) }}</span>
                 <span>{{ data.createdAt }}</span>
               </div>
 
