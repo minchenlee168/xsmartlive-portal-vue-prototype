@@ -564,6 +564,13 @@ const filtered = computed<OrderRow[]>(() => {
   return list
 })
 
+/** 手機卡片列表分頁(桌機由 DataTable 內建分頁負責) */
+const MOBILE_PAGE_SIZE = 10
+const mobileFirst = ref(0)
+const mobileRows = computed<OrderRow[]>(() => filtered.value.slice(mobileFirst.value, mobileFirst.value + MOBILE_PAGE_SIZE))
+// 篩選結果變動 → 手機分頁回到第一頁
+watch(filtered, () => { mobileFirst.value = 0 })
+
 function setDateRangePreset(preset: 'today' | 'last7' | 'thisMonth' | 'lastMonth'): void {
   const now = new Date()
   const start = new Date(now)
@@ -1536,7 +1543,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </div>
           </div>
 
-          <div ref="tableScrollWrap" class="relative">
+          <!-- 桌機(md+):DataTable;手機改下方卡片列表 -->
+          <div ref="tableScrollWrap" class="relative hidden md:block">
           <DataTable
             :value="filtered"
             :striped-rows="true"
@@ -1615,7 +1623,13 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </template>
           </Column>
 
-          <Column header="訂購人" style="width: 130px">
+          <Column
+            header="訂購人"
+            :pt="{
+              headerCell: { style: 'width: 108px; max-width: 108px' },
+              bodyCell: { style: 'width: 108px; max-width: 108px; white-space: nowrap' },
+            }"
+          >
             <template #body="{ data }">
               <div class="flex flex-col gap-1">
                 <span class="text-[var(--p-text-color)]">{{ data.buyerName }}</span>
@@ -1749,12 +1763,11 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           >
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
-                <!-- 查看更多:置於操作列第一個 -->
+                <!-- 編輯 / 查看更多:置於操作列第一個;依 design.md §7.5 編輯規格用 pen-to-square + 主色 -->
                 <Button
-                  v-tooltip.top="'查看更多'"
-                  aria-label="查看訂單詳情"
-                  icon="pi pi-eye"
-                  severity="secondary"
+                  v-tooltip.top="'編輯 / 查看更多'"
+                  aria-label="編輯 / 查看更多訂單詳情"
+                  icon="pi pi-pen-to-square"
                   variant="text"
                   size="small"
                   rounded
@@ -1846,6 +1859,77 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <i class="pi pi-chevron-right" style="font-size: 12px"></i>
             </button>
           </div>
+          </div>
+
+          <!-- 手機(md 以下):卡片列表(依 design.md §7.6:divide-y 分隔、分層資訊、操作鈕帶文字) -->
+          <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+            <div v-for="data in mobileRows" :key="data.id" class="flex flex-col gap-2 px-1 py-3">
+              <!-- 第一層:訂單編號 + 購物車 tag(左)/ 訂單狀態 Tag(右) -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex min-w-0 flex-col gap-1">
+                  <span class="text-sm font-semibold text-[var(--p-text-color)] break-words">{{ data.orderNo }}</span>
+                  <span class="inline-flex w-fit items-center rounded px-1.5 py-0.5 text-xs" :style="{ background: data.cartTag.bg, color: data.cartTag.color }">{{ data.cartTag.label }}</span>
+                </div>
+                <Tag class="shrink-0" :value="orderRowStatusMeta(data).label" :severity="orderRowStatusMeta(data).severity" />
+              </div>
+
+              <!-- 第二層:訂購人 · 電話 · 建立時間 -->
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--p-text-muted-color)]">
+                <span class="text-[var(--p-text-color)]">{{ data.buyerName }}</span>
+                <span>{{ data.buyerPhone }}</span>
+                <span>{{ data.createdAt }}</span>
+              </div>
+
+              <!-- 第三層:次要 metadata(2 欄) -->
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="shrink-0 text-[var(--p-text-muted-color)]">金額</span>
+                  <span class="truncate font-medium text-[var(--p-primary-color)]">${{ data.amount.toLocaleString() }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="shrink-0 text-[var(--p-text-muted-color)]">商品數量</span>
+                  <span class="truncate text-[var(--p-text-color)]">{{ data.itemCount }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="shrink-0 text-[var(--p-text-muted-color)]">配送方式</span>
+                  <span class="truncate text-[var(--p-text-color)]">{{ data.shippingMethod }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="shrink-0 text-[var(--p-text-muted-color)]">物流商</span>
+                  <span class="truncate text-[var(--p-text-color)]">{{ data.carrierName ?? '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="shrink-0 text-[var(--p-text-muted-color)]">付款狀態</span>
+                  <Tag :value="paymentTagMeta(data.paymentStatus).label" :severity="paymentTagMeta(data.paymentStatus).severity" />
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="shrink-0 text-[var(--p-text-muted-color)]">出貨狀態</span>
+                  <Tag :value="shippingStatusTagMeta(data.shippingStatus).label" :severity="shippingStatusTagMeta(data.shippingStatus).severity" />
+                </div>
+              </div>
+
+              <!-- 操作列:靠右,帶文字 label(觸控無 tooltip) -->
+              <div class="flex flex-wrap justify-end gap-2 pt-1">
+                <Button label="編輯 / 查看更多" icon="pi pi-pen-to-square" size="small" @click="openDetailDialog(data)" />
+                <Button label="出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="openPrintDialog(data, $event)" />
+                <Button label="標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" @click="onPrintLabel(data, $event)" />
+                <Button label="發票" icon="pi pi-receipt" :severity="invoiceActionMeta(data).severity" variant="outlined" size="small" @click="openIssueInvoice(data, $event)" />
+              </div>
+            </div>
+
+            <!-- 空狀態 -->
+            <div v-if="!filtered.length" class="py-12 text-center text-sm text-[var(--p-text-muted-color)]">目前無訂單。</div>
+
+            <!-- 手機分頁:超過一頁才出現 -->
+            <Paginator
+              v-if="filtered.length > MOBILE_PAGE_SIZE"
+              v-model:first="mobileFirst"
+              :rows="MOBILE_PAGE_SIZE"
+              :total-records="filtered.length"
+              template="PrevPageLink PageLinks NextPageLink CurrentPageReport"
+              current-page-report-template="{first} - {last} / 共 {totalRecords} 筆"
+              class="!bg-transparent !px-0 !py-2"
+            />
           </div>
         </div>
       </template>
