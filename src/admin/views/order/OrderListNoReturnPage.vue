@@ -1639,10 +1639,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <template #body="{ data }">
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <Tag
-                    :value="data.cartTag.label"
-                    :pt="{ root: { style: { background: data.cartTag.bg, color: data.cartTag.color } } }"
-                  />
+                  <Tag :value="data.cartTag.label" severity="secondary" />
                   <!-- 已分批 N 批 tag:分批出貨功能先隱藏(移除 false 即恢復) -->
                   <Tag
                     v-if="false && (data.dispatchBatchCount ?? 0) > 0"
@@ -1912,7 +1909,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div class="flex items-start justify-between gap-2">
                 <div class="flex min-w-0 flex-col gap-1">
                   <span class="text-sm font-semibold text-[var(--p-text-color)] break-words">{{ data.orderNo }}</span>
-                  <span class="inline-flex w-fit items-center rounded px-1.5 py-0.5 text-xs" :style="{ background: data.cartTag.bg, color: data.cartTag.color }">{{ data.cartTag.label }}</span>
+                  <span class="inline-flex w-fit items-center rounded px-1.5 py-0.5 text-xs bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300">{{ data.cartTag.label }}</span>
                 </div>
                 <Tag class="shrink-0" :value="orderRowStatusMeta(data).label" :severity="orderRowStatusMeta(data).severity" />
               </div>
@@ -2413,11 +2410,11 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                   <span class="text-[var(--p-text-muted-color)]">無</span>
                 </template>
               </div>
-              <!-- 可套用的優惠券卡:主色 Soft #F2EBFF 底 -->
+              <!-- 可套用的優惠券卡:主色 Soft 底(走 --p-primary-50 token,深色自動配對) -->
               <div
                 v-for="o in mergeSelectedOrders.filter(o => (o.couponDiscount ?? 0) > 0)"
                 :key="`c-${o.id}`"
-                class="flex items-center gap-2 px-3 py-2 border border-[var(--p-primary-200)] rounded-md bg-[#F2EBFF]"
+                class="flex items-center gap-2 px-3 py-2 border border-[var(--p-primary-200)] rounded-md bg-[var(--p-primary-50)]"
               >
                 <Checkbox :model-value="mergeCouponSelected.has(o.id)" binary @update:model-value="toggleMergeCoupon(o.id)" />
                 <span class="text-[var(--p-text-color)]">{{ o.couponActivity }}({{ o.orderNo }})</span>
@@ -2457,8 +2454,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </div>
         </div>
 
-        <!-- 合併後試算總計 card:主色 Soft #F2EBFF 底 -->
-        <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-md bg-[#F2EBFF] border border-[var(--p-primary-200)]">
+        <!-- 合併後試算總計 card:主色 Soft 底(走 --p-primary-50 token,深色自動配對) -->
+        <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-md bg-[var(--p-primary-50)] border border-[var(--p-primary-200)]">
           <div class="flex flex-col gap-1">
             <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
               <i class="pi pi-calculator" style="font-size: 14px"></i>
@@ -2511,7 +2508,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
     >
       <div class="flex flex-col">
         <!-- 說明 banner(綠色成功語意) -->
-        <div class="px-5 py-3 border-b border-[var(--p-content-border-color)] bg-[#DCFCE7] flex items-center gap-2">
+        <div class="px-5 py-3 border-b border-[var(--p-content-border-color)] bg-green-50 dark:bg-green-950/40 flex items-center gap-2">
           <i class="pi pi-info-circle text-green-600 dark:text-green-400" style="font-size: 14px"></i>
           <span class="text-sm text-[var(--p-text-color)]">
             {{ activeBatchConfig.confirmDescription(selectedForBatchOrders.length) }}

@@ -321,26 +321,8 @@ function confirmStatusSwitch(): void {
   statusSwitchTarget.value = null
 }
 
-/**
- * 終止狀態（已完成）：僅「已送達」之後顯示於出貨狀態下方,供商家手動標記訂單已完成。
- */
-const showTerminalStatus = computed(() =>
-  (['arrived', 'completed'] as OrderRow['shippingStatus'][]).includes(props.order.shippingStatus),
-)
-/** 終止狀態目前選取：completed / null（已送達但尚未標記）——供 chip 選中樣式與 aria-pressed 用 */
-type TerminalTarget = 'completed'
-const terminalSelection = computed<TerminalTarget | null>(() =>
-  props.order.shippingStatus === 'completed' ? 'completed' : null,
-)
-function setTerminalStatus(target: TerminalTarget): void {
-  if (props.order.shippingStatus === target) return
-  props.order.shippingStatus = target
-  toast.add({
-    severity: 'success',
-    summary: `訂單 ${props.order.orderNo} 已更新為「已完成」`,
-    life: 2000,
-  })
-}
+// 「已完成」不再另設終止狀態捷徑:改由上方進度 Timeline 最後一站或「狀態切換」鈕達成
+// (兩者都會跳二次確認 Dialog),避免出現第三條跳過確認、行為不一致的路徑。
 
 /** 設定配送 Dialog：委派給 ShippingConfigDialog 共用元件（與訂單列表表格共用） */
 const shippingConfigDialogVisible = ref(false)
@@ -748,10 +730,7 @@ function commitInvoice(): void {
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">多購物車</span>
-          <span
-            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-            :style="{ background: order.cartTag.bg, color: order.cartTag.color }"
-          >{{ order.cartTag.label }}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300">{{ order.cartTag.label }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">場次名稱</span>
@@ -980,27 +959,6 @@ function commitInvoice(): void {
                 <span class="block h-px w-full" style="background: var(--p-content-border-color)"></span>
               </template>
             </Timeline>
-          </div>
-
-          <!-- 終止狀態（已完成）：僅已送達之後顯示；與上方進度用 hairline 分隔，避免被誤讀成第 6 站 -->
-          <div
-            v-if="showTerminalStatus"
-            class="flex items-center gap-2 pt-3 border-t border-[var(--p-content-border-color)]"
-            role="group"
-            aria-label="終止狀態"
-          >
-            <span class="text-[var(--p-text-muted-color)] text-sm w-[80px] shrink-0">終止狀態</span>
-            <!-- 選中=實心 secondary；未選=secondary outlined，靠實心/外框區分而非借用 success 綠 -->
-            <Button
-              label="已完成"
-              icon="pi pi-check"
-              size="small"
-              severity="secondary"
-              :variant="terminalSelection === 'completed' ? undefined : 'outlined'"
-              :aria-pressed="terminalSelection === 'completed'"
-              aria-label="將終止狀態設為已完成"
-              @click="setTerminalStatus('completed')"
-            />
           </div>
         </div>
 
