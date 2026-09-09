@@ -627,15 +627,24 @@ function onCopyOrderNo(no: string): void {
  */
 const detailDialogVisible = ref(false)
 const detailDialogOrder = ref<OrderRow | null>(null)
+/** OrderRowDetail 元件實例參考;儲存前呼叫其 flushEdits() 收攏未打勾的卡片編輯 */
+const detailRef = ref<{ flushEdits: () => void } | null>(null)
+/** 每次開啟遞增 → 當 key 讓詳情元件重新掛載,避免上次未儲存的編輯狀態殘留 */
+const detailInstanceKey = ref(0)
 /** 被編輯訂單在 orders 陣列中的原件參考;儲存時把副本寫回它 */
 const detailDialogOriginal = ref<OrderRow | null>(null)
 function openDetailDialog(o: OrderRow): void {
   detailDialogOriginal.value = o
   detailDialogOrder.value = structuredClone(toRaw(o))
+  detailInstanceKey.value++
   detailDialogVisible.value = true
 }
-/** 儲存:把副本的所有欄位寫回原始訂單 → 列表即時更新 */
+/**
+ * 儲存:先收攏還在編輯中的卡片(避免使用者忘按卡片打勾導致編輯遺失),
+ * 再把副本的所有欄位寫回原始訂單 → 列表即時更新。取消 / 關閉則整份副本捨棄。
+ */
 function saveDetailDialog(): void {
+  detailRef.value?.flushEdits()
   if (detailDialogOriginal.value && detailDialogOrder.value) {
     Object.assign(detailDialogOriginal.value, detailDialogOrder.value)
     toast.add({ severity: 'success', summary: `訂單 ${detailDialogOrder.value.orderNo} 已儲存`, life: 2000 })
@@ -2052,7 +2061,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
       :style="{ width: 'min(1200px, calc(100vw - 32px))' }"
       :pt="{ content: { style: 'padding: 0' } }"
     >
-      <OrderRowDetail v-if="detailDialogOrder" :order="detailDialogOrder" @open-split-page="openSplitPage" />
+      <OrderRowDetail v-if="detailDialogOrder" :key="detailInstanceKey" ref="detailRef" :order="detailDialogOrder" @open-split-page="openSplitPage" />
       <!-- footer：取消訂單獨立靠左（destructive 動作分區）；右側維持取消/儲存 -->
       <template #footer>
         <div class="flex items-center justify-between gap-2 w-full">

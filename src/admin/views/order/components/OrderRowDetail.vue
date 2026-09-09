@@ -248,6 +248,15 @@ function commitPayment(): void {
   if (canEditPaymentMethod.value) props.order.paymentMethodLabel = editPaymentMethod.value
   editingPayment.value = false
 }
+/**
+ * 收攏所有「還在編輯中」的卡片:供父層在按「儲存」前呼叫,
+ * 讓使用者忘記按卡片打勾的欄位編輯也一併寫入副本,不再被靜默丟棄。
+ */
+function flushEdits(): void {
+  if (editingShipping.value) commitShipping()
+  if (editingPayment.value) commitPayment()
+}
+defineExpose({ flushEdits })
 
 /**
  * 狀態切換 Dialog：
