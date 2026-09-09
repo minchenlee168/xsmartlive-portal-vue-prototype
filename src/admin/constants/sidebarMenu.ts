@@ -75,6 +75,11 @@ export const sidebarMenu: MenuItem[] = [
         icon: ['far', 'list-radio'],
         to: RouteName.OrderList,
       },
+      {
+        labelKey: 'nav.order_list_legacy',
+        icon: ['far', 'list-radio'],
+        to: RouteName.OrderListLegacy,
+      },
     ],
   },
   // 多購物車設定：獨立頂層項，與訂單管理同級（依規劃藍圖）
