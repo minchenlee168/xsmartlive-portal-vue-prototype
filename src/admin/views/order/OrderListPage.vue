@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, watch, type Ref } from 'vue'
 import type { MenuItem } from 'primevue/menuitem'
 import { useLayoutStore } from '@/admin/stores/layout'
 import { useToast } from 'primevue/usetoast'
@@ -336,6 +336,33 @@ function onSearch(): void {
   onApplyFilters()
   advancedFilterExpanded.value = false
 }
+
+/** 手機:進階搜尋 + 精準搜尋整合成彈窗(桌機維持內嵌展開/收合) */
+const advSearchDialogVisible = ref(false)
+function onAdvancedSearchClick(): void {
+  if (window.matchMedia('(max-width: 767px)').matches) advSearchDialogVisible.value = true
+  else advancedFilterExpanded.value = !advancedFilterExpanded.value
+}
+function applyAdvancedFromDialog(): void {
+  onApplyFilters()
+  advSearchDialogVisible.value = false
+}
+/** 進階搜尋下拉設定(供彈窗 v-for) */
+const ADV_FILTERS: Array<{ model: Ref<string[]>; options: unknown[]; placeholder: string; group?: boolean }> = [
+  { model: filterOrderStatus,   options: ORDER_STATUS_OPTIONS,  placeholder: '訂單狀態' },
+  { model: filterShipping,      options: shippingMethodOptions, placeholder: '配送方式' },
+  { model: filterShippingStatus, options: shippingStatusOptions, placeholder: '出貨狀態' },
+  { model: filterCarrier,       options: carrierOptionGroups,   placeholder: '物流商', group: true },
+  { model: filterTracking,      options: trackingStatusOptions, placeholder: '取號狀態' },
+  { model: filterPaymentMethod, options: paymentMethodOptions,  placeholder: '付款方式' },
+  { model: filterPayment,       options: paymentStatusOptions,  placeholder: '付款狀態' },
+  { model: filterOrderSource,   options: orderSourceOptions,    placeholder: '訂單來源' },
+  { model: filterSocialPlatform, options: socialPlatformOptions, placeholder: '社群平台' },
+  { model: filterMultiCart,     options: multiCartOptions,      placeholder: '多購物車' },
+  { model: filterSessionName,   options: sessionNameOptions,    placeholder: '場次名稱' },
+]
+/** 手機「進階搜尋」按鈕上的已選數量(進階 + 精準) */
+const advTotalCount = computed(() => appliedAdvancedCount.value + appliedPrecisionCount.value)
 
 // 快速篩選 chip 點按 → 只更新 applied.quickFilter 即時過濾表格,不需按套用
 // 同時把對應的進階篩選下拉自動選到該項(取消時清掉先前同步的值)
@@ -1357,29 +1384,35 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <Button label="上月"     severity="secondary" variant="outlined" size="small" @click="setDateRangePreset('lastMonth')" />
           </div>
 
-          <!-- 清除 / 搜尋:置於日期列右側;清除只清進階條件,搜尋 commit 所有已填條件(關鍵字 / 日期 / 進階)並查詢 -->
-          <div class="ml-auto flex items-center gap-2">
+          <!-- 清除 / 搜尋(桌機):置於日期列右側;手機改到進階搜尋下方獨立一排。搜尋 commit 所有已填條件並查詢 -->
+          <div class="ml-auto hidden md:flex items-center gap-2">
             <Button label="清除" severity="secondary" variant="outlined" size="small" class="shrink-0" @click="clearAdvancedFilters" />
             <Button label="搜尋" size="small" class="shrink-0" @click="onSearch" />
           </div>
         </div>
 
-        <!-- 進階搜尋(可收合) / 精準搜尋 checkbox:同一列 -->
+        <!-- 進階搜尋(桌機內嵌收合 / 手機開彈窗) + 精準搜尋 checkbox(桌機) -->
         <div class="px-5 py-1 flex items-center gap-6 flex-wrap">
           <button
             type="button"
             class="inline-flex items-center gap-2 text-sm text-[var(--p-text-color)] hover:text-[var(--p-primary-color)]"
-            @click="advancedFilterExpanded = !advancedFilterExpanded"
+            @click="onAdvancedSearchClick"
           >
             <span class="font-medium">進階搜尋</span>
+            <!-- 桌機 badge:僅進階數量;手機 badge:進階 + 精準合計 -->
             <span
               v-if="appliedAdvancedCount > 0"
-              class="bg-[var(--p-primary-color)] text-white text-xs font-bold leading-none rounded-full min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center"
+              class="hidden md:inline-flex bg-[var(--p-primary-color)] text-white text-xs font-bold leading-none rounded-full min-w-[16px] h-[16px] px-1 items-center justify-center"
             >{{ appliedAdvancedCount }}</span>
-            <i :class="advancedFilterExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" style="font-size: 11px"></i>
+            <span
+              v-if="advTotalCount > 0"
+              class="md:hidden inline-flex bg-[var(--p-primary-color)] text-white text-xs font-bold leading-none rounded-full min-w-[16px] h-[16px] px-1 items-center justify-center"
+            >{{ advTotalCount }}</span>
+            <i :class="advancedFilterExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="!hidden md:!inline" style="font-size: 11px"></i>
+            <i class="pi pi-angle-right md:!hidden" style="font-size: 13px"></i>
           </button>
-          <!-- 精準搜尋:前置 checkbox,勾選後才顯示下方輸入匡 -->
-          <div class="inline-flex items-center gap-2">
+          <!-- 精準搜尋 checkbox:桌機內嵌;手機併入進階搜尋彈窗 -->
+          <div class="hidden md:inline-flex items-center gap-2">
             <Checkbox v-model="precisionExpanded" binary input-id="precision-toggle" />
             <label for="precision-toggle" class="text-sm font-medium text-[var(--p-text-color)] cursor-pointer select-none">精準搜尋</label>
             <span
@@ -1389,8 +1422,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </div>
         </div>
 
-        <!-- 進階搜尋展開區:兩排 Select(第一排狀態/物流/付款,第二排來源/通路);可收合 -->
-        <div v-if="advancedFilterExpanded" class="flex flex-col gap-2 px-5 pb-2">
+        <!-- 進階搜尋展開區(桌機內嵌;手機改彈窗):兩排 Select;可收合 -->
+        <div v-if="advancedFilterExpanded" class="hidden md:flex flex-col gap-2 px-5 pb-2">
           <!-- 第一排:訂單狀態 / 配送方式 / 出貨狀態 / 物流商 / 取號狀態 / 付款方式 / 付款狀態 -->
           <div class="adv-filters flex items-center gap-2 flex-wrap">
           <MultiSelect v-model="filterOrderStatus"   :options="ORDER_STATUS_OPTIONS"  option-label="label" option-value="value" placeholder="訂單狀態" :max-selected-labels="0" :show-toggle-all="false" size="small" class="!w-[156px]">
@@ -1432,8 +1465,8 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </div>
         </div>
 
-        <!-- 精準搜尋展開區:勾選 checkbox 後顯示;有自己獨立的「套用」鈕 -->
-        <div v-if="precisionExpanded" class="px-5 pb-3 flex items-stretch gap-2 flex-wrap">
+        <!-- 精準搜尋展開區(桌機;手機併入進階搜尋彈窗):勾選 checkbox 後顯示,有獨立「套用」鈕 -->
+        <div v-if="precisionExpanded" class="hidden md:flex items-stretch gap-2 flex-wrap px-5 pb-3">
           <Select
             v-model="filterPrecisionField"
             :options="precisionFieldOptions"
@@ -1451,6 +1484,12 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             @keyup.enter="onApplyFilters"
           />
           <Button label="套用" size="small" class="shrink-0" @click="onApplyFilters" />
+        </div>
+
+        <!-- 清除 / 搜尋(手機):進階搜尋下方獨立一排,整寬按鈕 -->
+        <div class="md:hidden flex items-center gap-2 px-5 pb-3">
+          <Button label="清除" severity="secondary" variant="outlined" size="small" class="flex-1" @click="clearAdvancedFilters" />
+          <Button label="搜尋" size="small" class="flex-1" @click="onSearch" />
         </div>
 
         <!-- 快速篩選 chips + 搜尋按鈕 + 總筆數 -->
@@ -1940,6 +1979,69 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
         </div>
       </template>
     </Card>
+
+    <!-- 手機:進階搜尋 + 精準搜尋彈窗(桌機用內嵌,不會觸發此彈窗) -->
+    <Dialog
+      v-model:visible="advSearchDialogVisible"
+      modal
+      :draggable="false"
+      header="進階搜尋"
+      :style="{ width: 'min(560px, calc(100vw - 24px))' }"
+    >
+      <div class="flex flex-col gap-4">
+        <!-- 進階下拉:2 欄 grid -->
+        <div class="grid grid-cols-2 gap-2">
+          <MultiSelect
+            v-for="f in ADV_FILTERS"
+            :key="f.placeholder"
+            v-model="f.model.value"
+            :options="f.options"
+            option-label="label"
+            option-value="value"
+            :option-group-label="f.group ? 'group' : undefined"
+            :option-group-children="f.group ? 'items' : undefined"
+            :placeholder="f.placeholder"
+            :max-selected-labels="0"
+            :show-toggle-all="false"
+            scroll-height="180px"
+            size="small"
+            class="w-full"
+          >
+            <template #value="{ value }">
+              <span class="inline-flex items-center gap-2">{{ f.placeholder }}<Badge v-if="value?.length" :value="value.length" /></span>
+            </template>
+          </MultiSelect>
+        </div>
+
+        <!-- 精準搜尋:欄位 + 輸入 -->
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-[var(--p-text-color)]">精準搜尋</span>
+          <Select
+            v-model="filterPrecisionField"
+            :options="precisionFieldOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-full"
+            scroll-height="auto"
+          />
+          <InputText
+            v-model="filterPrecisionValue"
+            :placeholder="precisionPlaceholder"
+            size="small"
+            class="w-full"
+            @keyup.enter="applyAdvancedFromDialog"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center gap-2">
+          <Button label="清除" severity="secondary" variant="outlined" size="small" class="flex-1" @click="clearAdvancedFilters" />
+          <Button label="套用" size="small" class="flex-1" @click="applyAdvancedFromDialog" />
+        </div>
+      </template>
+    </Dialog>
 
     <!-- 「查看更多」彈窗：點訂單列眼睛 icon 開啟，顯示 OrderRowDetail 完整資訊 -->
     <Dialog
