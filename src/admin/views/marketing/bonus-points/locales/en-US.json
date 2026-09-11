@@ -1,0 +1,197 @@
+{
+  "bonus_points": {
+    "title": "Bonus Points",
+    "breadcrumb": {
+      "parent": "Marketing"
+    },
+    "subtitle": "Manage member rewards and spending incentives with bonus points.",
+    "conversion_badge": "Conversion rate: 1 point = NT$1",
+    "status_tab": {
+      "all": "All",
+      "in_progress": "Active",
+      "upcoming": "Upcoming",
+      "ended": "Ended"
+    },
+    "lifecycle": {
+      "in_progress": "Active",
+      "upcoming": "Upcoming",
+      "ended": "Ended"
+    },
+    "reward_type": {
+      "percentage": "Percentage",
+      "fixed": "Fixed points"
+    },
+    "status_switch": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "aria": "Toggle status for {name}"
+    },
+    "button": {
+      "create": "New bonus activity",
+      "search": "Search",
+      "batch_delete": "Bulk delete",
+      "batch_delete_confirm": "Delete selected",
+      "batch_cancel": "Cancel",
+      "view": "View",
+      "edit": "Edit",
+      "copy": "Duplicate",
+      "copy_link": "Copy claim link",
+      "records": "Claim records",
+      "delete": "Delete"
+    },
+    "form": {
+      "placeholder": {
+        "search": "Search by activity name"
+      }
+    },
+    "table": {
+      "name": "Activity name",
+      "reward_type": "Source",
+      "claim_limit": "Claim limit",
+      "claimed_count": "Claimed",
+      "period": "Period",
+      "link": "Claim link",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "value": {
+      "unlimited": "Unlimited",
+      "percent": "{value}%",
+      "points": "{value} pts",
+      "points_cap": "Cap {value} pts",
+      "no_threshold": "No threshold",
+      "min_spend": "Min NT${value}"
+    },
+    "batch": {
+      "selected": "{count} selected",
+      "none_selected": "No activities selected"
+    },
+    "toast": {
+      "created": "Bonus activity created",
+      "updated": "Bonus activity updated",
+      "deleted": "Bonus activity deleted",
+      "batch_deleted": "Deleted {count} bonus activities",
+      "status_on": "\"{name}\" enabled",
+      "status_off": "\"{name}\" disabled",
+      "link_copied": "Claim link copied"
+    },
+    "records": {
+      "header": "{name} · Claim records",
+      "expired_badge": "Expired",
+      "filter": {
+        "status": "Status",
+        "status_all": "All",
+        "category": "Filter by",
+        "keyword": "Keyword",
+        "keyword_placeholder": "Member name / ID / claim code",
+        "search": "Search",
+        "export": "Export Excel"
+      },
+      "status_option": {
+        "claimed": "Claimed",
+        "unclaimed": "Unclaimed"
+      },
+      "category_option": {
+        "member_name": "Member name",
+        "member_id": "Member ID",
+        "claim_code": "Claim code"
+      },
+      "summary": {
+        "reward_type": "Source",
+        "reward_value": "Reward",
+        "min_spend": "Threshold",
+        "claim_limit": "Claim limit",
+        "claimed_count": "Claimed",
+        "start_at": "Start",
+        "end_at": "End"
+      },
+      "table": {
+        "claim_code": "Claim code",
+        "member_name": "Member name",
+        "claimed_at": "Claimed at",
+        "points": "Points granted",
+        "member_id": "Member ID",
+        "used_by_id": "Used by ID",
+        "order_no": "Order no.",
+        "status": "Status"
+      },
+      "status": {
+        "claimed": "Claimed",
+        "unclaimed": "Unclaimed"
+      },
+      "empty_value": "—",
+      "empty_state": "No claim records match your filters",
+      "toast": {
+        "exported": "Export started"
+      },
+      "close": "Close"
+    },
+    "confirm": {
+      "delete_title": "Confirm delete",
+      "delete_message": "Delete \"{name}\"? This cannot be undone.",
+      "batch_delete_message": "Delete the {count} selected activities? This cannot be undone.",
+      "accept": "Delete",
+      "reject": "Cancel"
+    },
+    "form_dialog": {
+      "header": {
+        "create": "New bonus activity",
+        "edit": "Edit bonus activity",
+        "view": "View bonus activity",
+        "copy": "Duplicate bonus activity"
+      },
+      "copy_suffix": " (copy)",
+      "optional_suffix": " (optional)",
+      "section": {
+        "basic": "Basic info",
+        "reward": "Reward settings",
+        "schedule": "Schedule & quota",
+        "note": "Description"
+      },
+      "field": {
+        "name": "Activity name",
+        "status": "Status",
+        "reward_type": "Reward type",
+        "reward_value_percentage": "Reward rate",
+        "reward_value_fixed": "Points granted",
+        "points_cap": "Per-order point cap",
+        "min_spend": "Spending threshold",
+        "period": "Period",
+        "claim_limit": "Claim limit",
+        "description": "Description"
+      },
+      "status": {
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "placeholder": {
+        "name": "Enter activity name",
+        "period": "YYYY/MM/DD - YYYY/MM/DD",
+        "claim_limit": "Leave blank for unlimited",
+        "description": "Shown to members, e.g. reward rules and notes"
+      },
+      "hint": {
+        "points_cap": "Max points per order to avoid over-granting on large purchases; blank means no cap.",
+        "min_spend": "Reward triggers only above this amount; 0 means no threshold.",
+        "claim_limit": "Activity stops granting once reached; blank means unlimited.",
+        "description": "This text appears in the member-facing activity description."
+      },
+      "unit": {
+        "percent": "%",
+        "points": "pts",
+        "people": "people"
+      },
+      "validation": {
+        "name": "Please enter an activity name",
+        "reward_value": "Please enter a reward value greater than 0",
+        "period": "Please select the activity period"
+      },
+      "button": {
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "close": "Close"
+      }
+    }
+  }
+}

@@ -120,6 +120,11 @@ export const sidebarMenu: MenuItem[] = [
         icon: ['far', 'hashtag'],
         to: RouteName.KeywordLotteryList,
       },
+      {
+        labelKey: 'nav.bonus_points',
+        icon: ['far', 'coins'],
+        to: RouteName.BonusPointsList,
+      },
     ],
   },
   // 會員管理：會員列表 + 會員等級設定

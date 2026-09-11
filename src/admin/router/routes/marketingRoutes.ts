@@ -10,6 +10,7 @@ export const MarketingRouteName = {
   BidGiftLotteryList: 'marketing.bid-gift-lottery.list',
   BidGiftLotteryDraw: 'marketing.bid-gift-lottery.draw',
   KeywordLotteryList: 'marketing.keyword-lottery.list',
+  BonusPointsList: 'marketing.bonus-points.list',
 } as const
 
 /**
@@ -31,6 +32,15 @@ export const marketingRoutes: RouteRecordRaw[] = [
     component: () => import('@/admin/views/marketing/keyword-lottery/KeywordLotteryListPage.vue'),
     meta: {
       i18nKey: 'route.keyword_lottery_list',
+      layout: 'default',
+    },
+  },
+  {
+    path: 'marketing/bonus-points',
+    name: MarketingRouteName.BonusPointsList,
+    component: () => import('@/admin/views/marketing/bonus-points/BonusPointsListPage.vue'),
+    meta: {
+      i18nKey: 'route.bonus_points_list',
       layout: 'default',
     },
   },

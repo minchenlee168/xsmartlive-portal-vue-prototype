@@ -12,6 +12,8 @@ import bidGiftLotteryZhTW from '@/admin/views/marketing/bid-gift-lottery/locales
 import bidGiftLotteryEnUS from '@/admin/views/marketing/bid-gift-lottery/locales/en-US.json'
 import keywordLotteryZhTW from '@/admin/views/marketing/keyword-lottery/locales/zh-TW.json'
 import keywordLotteryEnUS from '@/admin/views/marketing/keyword-lottery/locales/en-US.json'
+import bonusPointsZhTW from '@/admin/views/marketing/bonus-points/locales/zh-TW.json'
+import bonusPointsEnUS from '@/admin/views/marketing/bonus-points/locales/en-US.json'
 import storeManagementZhTW from '@/admin/views/merchant-management/store-management/locales/zh-TW.json'
 import storeManagementEnUS from '@/admin/views/merchant-management/store-management/locales/en-US.json'
 import bidListZhTW from '@/admin/views/live/bid-list/locales/zh-TW.json'
@@ -39,6 +41,7 @@ const messages = {
     liveRecordsZhTW,
     bidGiftLotteryZhTW,
     keywordLotteryZhTW,
+    bonusPointsZhTW,
     storeManagementZhTW,
     bidListZhTW,
     memberListZhTW,
@@ -51,6 +54,7 @@ const messages = {
     liveRecordsEnUS,
     bidGiftLotteryEnUS,
     keywordLotteryEnUS,
+    bonusPointsEnUS,
     storeManagementEnUS,
     bidListEnUS,
     memberListEnUS,
