@@ -339,7 +339,8 @@ function handleBatchDelete() {
               :value="$t('bonus_points.conversion_badge')"
             />
           </div>
-          <div class="flex items-center gap-2">
+          <!-- 桌機：操作鈕在副標右側（手機移到共 N 筆下方獨立一列） -->
+          <div class="hidden items-center gap-2 md:flex">
             <Button
               v-if="!batchMode"
               severity="danger"
@@ -421,6 +422,33 @@ function handleBatchDelete() {
           <span class="text-sm text-[var(--p-text-muted-color)] whitespace-nowrap">
             {{ $t('common.pagination.total_records', { count: filteredList.length }) }}
           </span>
+        </div>
+
+        <!-- 手機：批次刪除 + 新增 獨立一列（放在共 N 筆下方） -->
+        <div class="mb-4 flex gap-2 md:hidden">
+          <Button
+            v-if="!batchMode"
+            class="flex-1"
+            severity="danger"
+            variant="outlined"
+            size="small"
+            :label="$t('bonus_points.button.batch_delete')"
+            @click="enterBatchMode"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'trash']" class="mr-2" />
+            </template>
+          </Button>
+          <Button
+            class="flex-1"
+            size="small"
+            :label="$t('bonus_points.button.create')"
+            @click="handleCreate"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['fas', 'plus']" class="mr-2" />
+            </template>
+          </Button>
         </div>
 
         <!-- 桌機表格：欄多會橫向捲動，凍結「操作」欄 + 左右捲動提示（design.md §7.5） -->
