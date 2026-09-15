@@ -96,7 +96,7 @@
         "keyword": "Keyword",
         "keyword_placeholder": "Member name / ID / order no.",
         "search": "Search",
-        "export": "Export Excel"
+        "export": "Export"
       },
       "category_option": {
         "member_name": "Member name",

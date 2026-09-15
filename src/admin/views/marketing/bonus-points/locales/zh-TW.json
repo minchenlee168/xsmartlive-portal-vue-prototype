@@ -96,7 +96,7 @@
         "keyword": "關鍵字",
         "keyword_placeholder": "請輸入會員名稱 / 會員 ID / 訂單編號",
         "search": "搜尋",
-        "export": "Excel 匯出"
+        "export": "匯出"
       },
       "category_option": {
         "member_name": "會員名稱",
