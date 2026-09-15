@@ -109,7 +109,7 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
 const giftValueText = (row: BonusPointsRow) =>
   row.giftType === BonusGiftType.Percentage
     ? t('bonus_points.value.percent', { value: row.giftValue })
-    : t('bonus_points.value.points', { value: formatNumber(row.giftValue) });
+    : t('bonus_points.value.cash', { value: formatNumber(row.giftValue) });
 
 /** 贈送細節：贈送值 + 門檻 + 上限（百分比才有上限） */
 const giftDetailText = (row: BonusPointsRow) => {

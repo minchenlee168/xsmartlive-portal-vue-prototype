@@ -35,6 +35,8 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
     :style="{ width: 'min(56rem, calc(100vw - 32px))' }"
   >
     <div v-if="detail" class="flex flex-col gap-6">
+      <!-- 商品清單區：固定高度、內部捲動；金額明細固定於下方 -->
+      <div class="flex h-96 flex-col gap-6 overflow-y-auto pr-1">
       <section
         v-for="(cart, ci) in carts"
         :key="ci"
@@ -48,38 +50,58 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
           </span>
         </div>
 
-        <!-- 商品列 -->
-        <div class="divide-y divide-[var(--p-content-border-color)]">
-          <div
-            v-for="(item, ii) in cart.items"
-            :key="ii"
-            class="flex flex-wrap items-center gap-x-6 gap-y-2 py-3"
-          >
-            <!-- 圖 + 名稱 + 單價 -->
-            <div class="flex min-w-[220px] flex-1 items-center gap-3">
-              <span class="size-14 shrink-0 rounded-md bg-surface-200 dark:bg-surface-700"></span>
+        <!-- 桌機：商品 DataTable（依 design.md §6.8） -->
+        <DataTable
+          :value="cart.items"
+          striped-rows
+          size="small"
+          class="hidden md:block"
+        >
+          <Column :header="$t('bonus_points.records.items_modal.col.product')">
+            <template #body="{ data }">
+              <div class="flex items-center gap-3">
+                <span class="size-12 shrink-0 rounded-md bg-surface-200 dark:bg-surface-700"></span>
+                <div class="flex min-w-0 flex-col gap-1">
+                  <span class="font-medium break-words">{{ data.name }}</span>
+                  <span class="text-xs text-surface-500 dark:text-surface-400">NTD ${{ formatNumber(data.unitPrice) }}</span>
+                </div>
+              </div>
+            </template>
+          </Column>
+          <Column :header="$t('bonus_points.records.items_modal.col.quantity')">
+            <template #body="{ data }">{{ data.quantity }}</template>
+          </Column>
+          <Column :header="$t('bonus_points.records.items_modal.col.cost')">
+            <template #body="{ data }">{{ data.cost === null ? '-' : formatNumber(data.cost) }}</template>
+          </Column>
+          <Column :header="$t('bonus_points.records.items_modal.col.price')">
+            <template #body="{ data }">{{ formatNumber(data.price) }}</template>
+          </Column>
+        </DataTable>
+
+        <!-- 手機（<768px）：商品卡片 -->
+        <div class="divide-y divide-[var(--p-content-border-color)] md:hidden">
+          <div v-for="(item, ii) in cart.items" :key="ii" class="flex flex-col gap-2 px-1 py-3">
+            <div class="flex items-center gap-3">
+              <span class="size-12 shrink-0 rounded-md bg-surface-200 dark:bg-surface-700"></span>
               <div class="flex min-w-0 flex-col gap-1">
-                <span class="text-base font-medium break-words">{{ item.name }}</span>
+                <span class="text-sm font-medium break-words">{{ item.name }}</span>
                 <span class="text-xs text-surface-500 dark:text-surface-400">NTD ${{ formatNumber(item.unitPrice) }}</span>
               </div>
             </div>
-
-            <!-- 購買數量 -->
-            <div class="flex min-w-[90px] flex-col gap-1">
-              <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.col.quantity') }}</span>
-              <span class="text-base">{{ item.quantity }}</span>
-            </div>
-
-            <!-- 成本價 -->
-            <div class="flex min-w-[80px] flex-col gap-1">
-              <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.col.cost') }}</span>
-              <span class="text-base">{{ item.cost === null ? '-' : formatNumber(item.cost) }}</span>
-            </div>
-
-            <!-- 價格 -->
-            <div class="flex min-w-[90px] flex-col gap-1">
-              <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.col.price') }}</span>
-              <span class="text-base">{{ formatNumber(item.price) }}</span>
+            <div class="flex flex-col gap-1 rounded-md bg-surface-50 px-2 py-2 text-sm dark:bg-surface-800/40">
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.items_modal.col.quantity') }}</span>
+                <span>{{ item.quantity }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.items_modal.col.cost') }}</span>
+                <span>{{ item.cost === null ? '-' : formatNumber(item.cost) }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.items_modal.col.price') }}</span>
+                <span>{{ formatNumber(item.price) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -90,6 +112,7 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
           <span class="text-base font-semibold text-primary">{{ formatNumber(cart.subtotal) }}</span>
         </p>
       </section>
+      </div>
 
       <!-- 訂單金額明細（比照商城前台結帳計算） -->
       <div class="flex flex-col gap-2 border-t border-[var(--p-content-border-color)] pt-4">

@@ -61,7 +61,9 @@
     "value": {
       "unlimited": "無限制",
       "full": "已額滿",
+      "times": "{value} 次",
       "percent": "{value}%",
+      "cash": "{value} 元",
       "points": "{value} 點",
       "points_cap": "上限 {value} 點",
       "no_threshold": "無門檻",
@@ -114,6 +116,7 @@
       "order_count": "訂單",
       "order_total": "訂單總金額",
       "table": {
+        "member": "會員",
         "order_no": "訂單編號",
         "ordered_at": "下單時間",
         "points_used": "折抵點數",
@@ -125,6 +128,7 @@
         "header": "查看商品項目",
         "item_unit": " 件商品",
         "col": {
+          "product": "商品",
           "quantity": "購買數量",
           "cost": "成本價",
           "price": "價格"
@@ -159,8 +163,9 @@
         "status": "狀態",
         "source": "取得來源",
         "send_limit": "發送人數限制",
+        "per_member_limit": "每人領取次數上限",
         "threshold": "取得門檻",
-        "gift_type": "贈送類型",
+        "gift_type": "贈點條件",
         "gift_cap": "單筆贈送上限",
         "description": "描述",
         "note": "紅利點數備註",
@@ -171,21 +176,28 @@
         "amount": "消費滿"
       },
       "unit": {
+        "point": "點",
         "yuan": "元"
       },
       "percent_note": {
         "line1": "百分比類型：依消費金額的比例贈送點數，可自行設定「贈送上限」。",
         "line2": "例如：消費 100 元、贈送比例 10% → 可獲得 10 點紅利點數。"
       },
+      "cash_note": {
+        "line1": "現金類型：每筆固定贈送指定金額的紅利點數（1 點 = NT$1）。",
+        "line2": "例如：設定 100 元 → 每筆可獲得 100 點紅利點數。"
+      },
       "placeholder": {
         "name": "請輸入活動名稱...",
         "source": "請選擇紅利點數來源",
         "send_limit": "留空表示不限人數",
+        "per_member_limit": "不限",
         "note": "請輸入備註內容",
         "period": "YYYY-MM-DD ~ YYYY-MM-DD"
       },
       "hint": {
         "send_limit": "達上限後自動停止發送；留空表示不限人數。",
+        "per_member_limit": "每位會員最多可領取的次數；留空表示不限（如註冊禮建議設 1 次）。",
         "gift_cap": "單筆最高贈點數，避免高額消費換算出過多點數；留空為不設上限。"
       },
       "validation": {

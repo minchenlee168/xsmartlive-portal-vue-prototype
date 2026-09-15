@@ -44,8 +44,10 @@ export interface BonusPointsRow {
   name: string;
   /** 取得來源（手動新增 / 註冊 / 消費） */
   source: BonusSource;
-  /** 發送人數限制；null = 無限制 */
+  /** 發送人數限制（總名額，全活動可發給幾人）；null = 無限制 */
   sendLimit: number | null;
+  /** 每人領取次數上限（每位會員可領幾次）；null = 不限 */
+  perMemberLimit: number | null;
   /** 取得門檻（消費滿 NT$）；0 = 無門檻 */
   minSpend: number;
   /** 贈送類型（百分比 / 現金） */

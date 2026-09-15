@@ -51,6 +51,7 @@ const dialogHeader = computed(() => {
 const name = ref('');
 const source = ref<BonusSource | null>(null);
 const sendLimit = ref<number | null>(null);
+const perMemberLimit = ref<number | null>(null);
 /** 取得門檻模式：none = 無門檻；amount = 消費滿 */
 const thresholdMode = ref<'none' | 'amount'>('none');
 const minSpend = ref<number | null>(null);
@@ -64,6 +65,17 @@ const period = ref<[Date, Date] | null>(null);
 const hasError = ref(false);
 
 const isPercentage = computed(() => giftType.value === BonusGiftType.Percentage);
+/** 取得來源＝消費才有「消費門檻」與「百分比」可選；註冊 / 手動只有固定點數 */
+const isConsumption = computed(() => source.value === BonusSource.Consumption);
+
+// 切到非消費來源時，收斂為固定點數、清掉消費門檻（百分比 / 門檻對註冊、手動沒有意義）
+watch(source, (val) => {
+  if (val !== BonusSource.Consumption) {
+    giftType.value = BonusGiftType.Cash;
+    thresholdMode.value = 'none';
+    minSpend.value = null;
+  }
+});
 
 // ---- 檢視模式：直接呈現資訊（唯讀 KV，不用 disabled 表單元件） ----
 const formatNumber = (v: number) => v.toLocaleString('en-US');
@@ -77,7 +89,7 @@ const viewGift = computed(() => {
       : '';
     return `${t('bonus_points.gift_type.percentage')}・${t('bonus_points.value.percent', { value: r.giftValue })}${cap}`;
   }
-  return `${t('bonus_points.gift_type.cash')}・${t('bonus_points.value.points', { value: formatNumber(r.giftValue) })}`;
+  return `${t('bonus_points.gift_type.cash')}・${t('bonus_points.value.cash', { value: formatNumber(r.giftValue) })}`;
 });
 const viewThreshold = computed(() => {
   const r = props.row;
@@ -90,6 +102,13 @@ const viewSendLimit = computed(() => {
   const r = props.row;
   if (!r) return '';
   return r.sendLimit === null ? t('bonus_points.value.unlimited') : formatNumber(r.sendLimit);
+});
+const viewPerMemberLimit = computed(() => {
+  const r = props.row;
+  if (!r) return '';
+  return r.perMemberLimit === null
+    ? t('bonus_points.value.unlimited')
+    : t('bonus_points.value.times', { value: formatNumber(r.perMemberLimit) });
 });
 const viewPeriod = computed(() =>
   (props.row ? `${props.row.startAt.slice(0, 10)} ~ ${props.row.endAt.slice(0, 10)}` : ''));
@@ -141,6 +160,7 @@ function resetForm() {
     name.value = isCopy.value ? `${r.name}${t('bonus_points.form_dialog.copy_suffix')}` : r.name;
     source.value = r.source;
     sendLimit.value = r.sendLimit;
+    perMemberLimit.value = r.perMemberLimit;
     thresholdMode.value = r.minSpend > 0 ? 'amount' : 'none';
     minSpend.value = r.minSpend > 0 ? r.minSpend : null;
     giftType.value = r.giftType;
@@ -155,6 +175,7 @@ function resetForm() {
     name.value = '';
     source.value = null;
     sendLimit.value = null;
+    perMemberLimit.value = null;
     thresholdMode.value = 'none';
     minSpend.value = null;
     giftType.value = BonusGiftType.Percentage;
@@ -192,6 +213,7 @@ function handleSave() {
     name: name.value.trim(),
     source: source.value ?? BonusSource.Manual,
     sendLimit: sendLimit.value,
+    perMemberLimit: perMemberLimit.value,
     minSpend: thresholdMode.value === 'amount' ? (minSpend.value ?? 0) : 0,
     giftType: giftType.value,
     giftValue: giftValue.value ?? 0,
@@ -244,6 +266,10 @@ function handleSave() {
             <span class="text-sm">{{ viewSendLimit }}</span>
           </div>
           <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.per_member_limit') }}</span>
+            <span class="text-sm">{{ viewPerMemberLimit }}</span>
+          </div>
+          <div v-if="isConsumption" class="flex flex-col gap-1">
             <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.threshold') }}</span>
             <span class="text-sm">{{ viewThreshold }}</span>
           </div>
@@ -329,8 +355,28 @@ function handleSave() {
         />
       </FormField>
 
-      <!-- 取得門檻 -->
+      <!-- 每人領取次數上限 -->
       <FormField
+        :label="$t('bonus_points.form_dialog.field.per_member_limit')"
+        :hint="$t('bonus_points.form_dialog.hint.per_member_limit')"
+        class-name="max-w-none"
+      >
+        <InputNumber
+          v-model="perMemberLimit"
+          :min="1"
+          :max="9999"
+          :max-fraction-digits="0"
+          :disabled="isView"
+          :aria-label="$t('bonus_points.form_dialog.field.per_member_limit')"
+          class="w-48"
+          :input-style="{ width: '100%' }"
+          :placeholder="$t('bonus_points.form_dialog.placeholder.per_member_limit')"
+        />
+      </FormField>
+
+      <!-- 取得門檻（僅消費來源） -->
+      <FormField
+        v-if="isConsumption"
         :label="$t('bonus_points.form_dialog.field.threshold')"
         class-name="max-w-none"
       >
@@ -383,7 +429,8 @@ function handleSave() {
         :required="!isView"
         class-name="max-w-none"
       >
-        <InputGroup>
+        <!-- 消費來源：可選 百分比 / 現金 -->
+        <InputGroup v-if="isConsumption" class="w-full sm:w-72">
           <Select
             v-model="giftType"
             :options="giftTypeOptions"
@@ -391,7 +438,7 @@ function handleSave() {
             option-value="value"
             :disabled="isView"
             :aria-label="$t('bonus_points.form_dialog.field.gift_type')"
-            class="w-auto shrink-0"
+            class="w-24 shrink-0"
           />
           <InputNumber
             v-model="giftValue"
@@ -407,21 +454,44 @@ function handleSave() {
             {{ isPercentage ? '%' : $t('bonus_points.form_dialog.unit.yuan') }}
           </InputGroupAddon>
         </InputGroup>
+        <!-- 註冊 / 手動來源：固定現金 -->
+        <InputGroup v-else class="w-full sm:w-56">
+          <InputNumber
+            v-model="giftValue"
+            :min="0"
+            :max="9999999"
+            :max-fraction-digits="0"
+            :disabled="isView"
+            :invalid="giftValueInvalid"
+            :aria-label="$t('bonus_points.form_dialog.field.gift_type')"
+            :input-style="{ width: '100%' }"
+          />
+          <InputGroupAddon>
+            {{ $t('bonus_points.form_dialog.unit.yuan') }}
+          </InputGroupAddon>
+        </InputGroup>
         <Message v-if="giftValueInvalid" size="small" severity="error" variant="simple">
           {{ $t('bonus_points.form_dialog.validation.gift_value') }}
         </Message>
         <!-- 百分比類型說明框 -->
-        <Message v-if="isPercentage" severity="info" :closable="false" class="mt-1">
+        <Message v-if="isConsumption && isPercentage" severity="info" :closable="false" class="mt-1">
           <div class="flex flex-col gap-1 text-sm">
             <span>{{ $t('bonus_points.form_dialog.percent_note.line1') }}</span>
             <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.percent_note.line2') }}</span>
           </div>
         </Message>
+        <!-- 現金類型說明框 -->
+        <Message v-if="!isPercentage" severity="info" :closable="false" class="mt-1">
+          <div class="flex flex-col gap-1 text-sm">
+            <span>{{ $t('bonus_points.form_dialog.cash_note.line1') }}</span>
+            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.cash_note.line2') }}</span>
+          </div>
+        </Message>
       </FormField>
 
-      <!-- 單筆贈送上限（百分比才顯示） -->
+      <!-- 單筆贈送上限（消費 + 百分比才顯示） -->
       <FormField
-        v-if="isPercentage"
+        v-if="isConsumption && isPercentage"
         :label="$t('bonus_points.form_dialog.field.gift_cap')"
         :hint="$t('bonus_points.form_dialog.hint.gift_cap')"
         class-name="max-w-none"
@@ -431,7 +501,7 @@ function handleSave() {
           :min="0"
           :max="9999999"
           :max-fraction-digits="0"
-          prefix="NT$ "
+          :suffix="` ${$t('bonus_points.form_dialog.unit.point')}`"
           :disabled="isView"
           :aria-label="$t('bonus_points.form_dialog.field.gift_cap')"
           class="w-56"

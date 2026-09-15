@@ -61,7 +61,9 @@
     "value": {
       "unlimited": "Unlimited",
       "full": "Full",
+      "times": "{value}x",
       "percent": "{value}%",
+      "cash": "NT${value}",
       "points": "{value} pts",
       "points_cap": "Cap {value} pts",
       "no_threshold": "No threshold",
@@ -114,6 +116,7 @@
       "order_count": "Orders",
       "order_total": "Total amount",
       "table": {
+        "member": "Member",
         "order_no": "Order no.",
         "ordered_at": "Ordered at",
         "points_used": "Points used",
@@ -125,6 +128,7 @@
         "header": "Order items",
         "item_unit": " items",
         "col": {
+          "product": "Product",
           "quantity": "Quantity",
           "cost": "Cost",
           "price": "Price"
@@ -159,8 +163,9 @@
         "status": "Status",
         "source": "Source",
         "send_limit": "Send limit",
+        "per_member_limit": "Per-member limit",
         "threshold": "Threshold",
-        "gift_type": "Reward type",
+        "gift_type": "Point condition",
         "gift_cap": "Per-order cap",
         "description": "Description",
         "note": "Note",
@@ -171,21 +176,28 @@
         "amount": "Spend at least"
       },
       "unit": {
+        "point": "pts",
         "yuan": "NT$"
       },
       "percent_note": {
         "line1": "Percentage: grant points as a ratio of the spend; you can set a per-order cap.",
         "line2": "E.g. spend NT$100 at 10% → earn 10 bonus points."
       },
+      "cash_note": {
+        "line1": "Cash: grant a fixed amount of bonus points per order (1 point = NT$1).",
+        "line2": "E.g. set NT$100 → earn 100 bonus points per order."
+      },
       "placeholder": {
         "name": "Enter activity name...",
         "source": "Select a source",
         "send_limit": "Leave blank for unlimited",
+        "per_member_limit": "Unlimited",
         "note": "Enter a note",
         "period": "YYYY-MM-DD ~ YYYY-MM-DD"
       },
       "hint": {
         "send_limit": "Stops sending once reached; blank means unlimited.",
+        "per_member_limit": "Max times each member can claim; blank means unlimited (e.g. set 1 for sign-up gifts).",
         "gift_cap": "Max points per order to avoid over-granting; blank means no cap."
       },
       "validation": {

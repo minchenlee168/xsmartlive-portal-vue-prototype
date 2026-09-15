@@ -108,7 +108,7 @@ const giftValueText = computed(() => {
       : '';
     return `${t('bonus_points.value.percent', { value: r.giftValue })}${cap}`;
   }
-  return t('bonus_points.value.points', { value: formatNumber(r.giftValue) });
+  return t('bonus_points.value.cash', { value: formatNumber(r.giftValue) });
 });
 
 const minSpendText = computed(() => {
@@ -273,55 +273,81 @@ function openItems(rec: BonusSendRecord) {
         </span>
       </div>
 
-      <!-- 訂單卡片列表（依 Image #5：頭像 + 會員 / 訂單編號 / 下單時間 / 折抵點數 / 消費金額(已抵扣) / 查看商品項目） -->
-      <div class="divide-y divide-[var(--p-content-border-color)]">
-        <div
-          v-for="rec in pagedRecords"
-          :key="rec.orderNo"
-          class="flex flex-wrap items-center gap-x-6 gap-y-3 py-3"
-        >
-          <!-- 會員 -->
-          <div class="flex min-w-[200px] flex-1 items-center gap-3">
-            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-200 text-sm font-medium text-surface-700 dark:bg-surface-700 dark:text-surface-200">
+      <!-- 桌機：訂單 DataTable（依 design.md §6.8：唯讀分頁資料列用 DataTable） -->
+      <DataTable
+        :value="pagedRecords"
+        data-key="orderNo"
+        striped-rows
+        size="small"
+        class="hidden md:block"
+      >
+        <Column :header="$t('bonus_points.records.table.member')">
+          <template #body="{ data }">
+            <div class="flex items-center gap-3">
+              <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-200 text-sm font-medium text-surface-700 dark:bg-surface-700 dark:text-surface-200">
+                {{ avatarText(data.memberName) }}
+              </span>
+              <div class="flex min-w-0 flex-col">
+                <span class="font-medium">{{ data.memberName }}</span>
+                <span class="text-xs break-all text-surface-500 dark:text-surface-400">{{ data.memberRef }}</span>
+              </div>
+            </div>
+          </template>
+        </Column>
+        <Column field="orderNo" :header="$t('bonus_points.records.table.order_no')" />
+        <Column :header="$t('bonus_points.records.table.ordered_at')">
+          <template #body="{ data }">{{ formatDateTime(data.orderedAt) }}</template>
+        </Column>
+        <Column :header="$t('bonus_points.records.table.points_used')">
+          <template #body="{ data }"><span class="font-semibold text-primary">{{ formatNumber(data.pointsUsed) }}</span></template>
+        </Column>
+        <Column :header="$t('bonus_points.records.table.amount')">
+          <template #body="{ data }"><span class="font-semibold text-primary">{{ formatNumber(data.amountAfterDeduction) }}</span></template>
+        </Column>
+        <Column :header="$t('bonus_points.records.table.items')">
+          <template #body="{ data }">
+            <a class="cursor-pointer text-primary hover:underline" @click="openItems(data)">{{ $t('bonus_points.records.view_detail') }}</a>
+          </template>
+        </Column>
+        <template #empty>
+          <div class="py-12 text-center text-muted-color">{{ $t('bonus_points.records.empty_state') }}</div>
+        </template>
+      </DataTable>
+
+      <!-- 手機（<768px）：卡片列表（design.md §7.5） -->
+      <div class="divide-y divide-[var(--p-content-border-color)] md:hidden">
+        <div v-for="rec in pagedRecords" :key="rec.orderNo" class="flex flex-col gap-2 px-1 py-3">
+          <div class="flex items-center gap-3">
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-200 text-sm font-medium text-surface-700 dark:bg-surface-700 dark:text-surface-200">
               {{ avatarText(rec.memberName) }}
             </span>
             <div class="flex min-w-0 flex-col">
-              <span class="text-base font-semibold">{{ rec.memberName }}</span>
+              <span class="text-sm font-semibold">{{ rec.memberName }}</span>
               <span class="text-xs break-all text-surface-500 dark:text-surface-400">{{ rec.memberRef }}</span>
             </div>
           </div>
-
-          <!-- 訂單編號 -->
-          <div class="flex min-w-[150px] flex-col gap-1">
-            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.order_no') }}</span>
-            <span class="text-base">{{ rec.orderNo }}</span>
+          <div class="flex flex-col gap-1 rounded-md bg-surface-50 px-2 py-2 text-sm dark:bg-surface-800/40">
+            <div class="flex gap-2">
+              <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.table.order_no') }}</span>
+              <span>{{ rec.orderNo }}</span>
+            </div>
+            <div class="flex gap-2">
+              <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.table.ordered_at') }}</span>
+              <span>{{ formatDateTime(rec.orderedAt) }}</span>
+            </div>
+            <div class="flex gap-2">
+              <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.table.points_used') }}</span>
+              <span class="font-semibold text-primary">{{ formatNumber(rec.pointsUsed) }}</span>
+            </div>
+            <div class="flex gap-2">
+              <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.table.amount') }}</span>
+              <span class="font-semibold text-primary">{{ formatNumber(rec.amountAfterDeduction) }}</span>
+            </div>
           </div>
-
-          <!-- 下單時間 -->
-          <div class="flex min-w-[140px] flex-col gap-1">
-            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.ordered_at') }}</span>
-            <span class="text-base">{{ formatDateTime(rec.orderedAt) }}</span>
-          </div>
-
-          <!-- 折抵點數 -->
-          <div class="flex min-w-[90px] flex-col gap-1">
-            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.points_used') }}</span>
-            <span class="text-base font-semibold text-primary">{{ formatNumber(rec.pointsUsed) }}</span>
-          </div>
-
-          <!-- 消費金額（已抵扣） -->
-          <div class="flex min-w-[120px] flex-col gap-1">
-            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.amount') }}</span>
-            <span class="text-base font-semibold text-primary">{{ formatNumber(rec.amountAfterDeduction) }}</span>
-          </div>
-
-          <!-- 查看商品項目 -->
-          <div class="flex min-w-[110px] flex-col gap-1">
-            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.items') }}</span>
-            <a class="cursor-pointer text-base text-primary hover:underline" @click="openItems(rec)">{{ $t('bonus_points.records.view_detail') }}</a>
+          <div class="flex justify-end">
+            <a class="cursor-pointer text-sm text-primary hover:underline" @click="openItems(rec)">{{ $t('bonus_points.records.view_detail') }}</a>
           </div>
         </div>
-
         <div v-if="!filteredRecords.length" class="py-12 text-center text-muted-color">
           {{ $t('bonus_points.records.empty_state') }}
         </div>
