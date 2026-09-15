@@ -51,9 +51,9 @@
 
 | 層 | 設定 |
 | --- | --- |
-| 切換 | `stores/config.ts` 在 `<html>` 上 toggle `.my-app-dark` |
-| PrimeVue | `main.ts` 的 `darkModeSelector: '.my-app-dark'` |
-| Tailwind | `main.css` 的 `@custom-variant dark (&:where(.my-app-dark, .my-app-dark *))` |
+| 切換 | `stores/config.ts` 在 `<html>` 上 toggle `.dark` |
+| PrimeVue | `main.ts` 的 `darkModeSelector: '.dark'` |
+| Tailwind | `main.css` 的 `@custom-variant dark (&:where(.dark, .dark *))` |
 
 **鐵則：顏色一律走 token，不裸寫單一色階。**
 
@@ -125,7 +125,7 @@
 3. **顏色不可單獨承載語意**
    狀態、層級必須同時用文字 / 圖示 / 形狀傳達，確保色盲使用者可辨識。例如「啟用」標籤不只用綠色，要有文字 +（必要時）圓點圖示。
 4. **不使用 emoji / 表情符號當作 UI 元素**
-   icon、狀態標記、地點/警告等符號一律用 PrimeVue primeicons（`pi pi-*`）或 FontAwesome，**禁止用 emoji（📍✅⚠️🔴🟢 等）**。emoji 跨平台 / 字體渲染不一致、無法統一配色與尺寸、也不符品牌調性；需要視覺符號時挑對應語意的 icon（地點 `pi pi-map-marker`、警告 `pi pi-exclamation-triangle`、成功 `pi pi-check-circle`…），並用 `font-size` / `var(--p-*)` 控制尺寸與顏色。
+   icon、狀態標記、地點/警告等符號一律用 FontAwesome（`<FontAwesomeIcon :icon>`，已全域註冊），**禁用 PrimeVue Icon（`pi pi-*`）、禁止用 emoji（📍✅⚠️🔴🟢 等）**。emoji 跨平台 / 字體渲染不一致、無法統一配色與尺寸、也不符品牌調性；需要視覺符號時挑對應語意的 icon（地點 `['fas','location-dot']`、警告 `['fas','triangle-exclamation']`、成功 `['fas','circle-check']`…），並用 utility（`size-4` / `text-primary`）控制尺寸與顏色。
 
 ## 六、Layout 設計規則
 
@@ -254,12 +254,13 @@
 
 - **頁面標題 + 麵包屑**放在**頁首列（Card 外、獨立一行）**：標題靠左（Display 級，`text-2xl font-bold text-neutral-700 dark:text-neutral-100`），麵包屑靠右（`ml-auto`）。**標題不放進 Card 內**（此為現行標準，取代舊版「標題放搜尋 Card 內」寫法；同步見 6.6、7.6）。
   - 頁首列容器：`flex flex-wrap items-center gap-3`。
-  - **麵包屑**：`ml-auto flex items-center gap-2 text-sm`；上層節點（分類/選單群組，通常不可點）用 `text-color-secondary`，分隔符 `<i class="pi pi-chevron-right text-color-secondary" style="font-size: 10px">`，**當前頁**用 `text-primary`。麵包屑文字用 i18n，不硬寫。
+  - **麵包屑**：`ml-auto flex items-center gap-2 text-sm`；上層節點（分類/選單群組，通常不可點）用 `text-muted-color`，分隔符 `<FontAwesomeIcon :icon="['far','chevron-right']" class="text-muted-color text-xs" />`，**當前頁**用 `text-primary`。麵包屑文字用 i18n，不硬寫。
   - 標題與麵包屑**同一列**：桌機左右對齊（標題左、麵包屑 `ml-auto` 靠右）；窄螢幕靠 `flex-wrap` 自動換行、不擠壓。
 - **頁首操作鈕列**（新增/建立、批次作業、匯出、設定入口…）放搜尋 Card 內、搜尋列右側（`justify-between`：搜尋群組靠左、操作鈕靠右）。**多個並列操作全部用 outlined**（次要視覺）；若只有單一主導的「新增/建立」動作，該動作可用實心主色 CTA（見 6.9）。下拉型操作用 PrimeVue `<Menu :popup>`（`#start`/`#end` slot 放說明與提示），不要手刻 `<button>`。
 - **即時 vs 按鈕套用要一致區分**：快速篩選 tag chip 即時套用；進階篩選 / 下拉搜尋條件按「搜尋」才套用（pending → applied）。
 - **批次操作**：進入批次模式後 DataTable 首欄出現勾選框，並出現批次操作 banner / 列；未進入批次模式不顯示勾選框。
 - **「共 N 筆」**放篩選列最右。
+- **實作一律用共用元件**：頁首列（標題 + 麵包屑）用 `PageHeader`；列表骨架用 `BasePageContainer` + `PaginationTable` + `PaginationTableToolbar`（承載搜尋 / 篩選 / 操作鈕）。本節描述的是版面意圖，元件的唯一接法與 props 契約見專案 `component-rule` 與 `libs/ui` catalog，不手刻等價物。
 
 ### 6.8 彈窗內容版型選用
 
@@ -356,12 +357,12 @@
 | **Icon 使用** | 主要功能按鈕（CTA、新增、儲存等）**前面加 icon**；次要、輔助、文字按鈕不一定要加 |
 | **Table 操作欄 icon 唯一性** | Table 操作欄的按鈕（檢視、編輯、刪除等）**避免不同功能用同一個 icon**，否則使用者難以辨識 |
 | **Table 操作欄按鈕樣式** | 通常**只放 icon**（無文字），並以 **tooltip** 顯示操作名稱。**例外於 7.6 搜尋按鈕的 icon-only 禁令** — 此情境多按鈕密集排列，靠 tooltip 補語意更省空間 |
-| **Table 操作欄「編輯」規格** | icon 一律用 `pi pi-pen-to-square`（鉛筆＋方框），**不用 `pi-pencil` 或其他變體**；配色走**主色紫**（`<Button>` 不指定 `severity`，即 PrimeVue 預設 primary），**不用 `severity="info"`**，作為列內主要操作的視覺焦點 |
-| **Table 操作欄「刪除」規格** | icon 一律用 `pi pi-trash`；配色走**危險紅**（`severity="danger"`），對應色票系統的「危險 / 停用」語意 |
+| **Table 操作欄「編輯」規格** | icon 一律用 FontAwesome `['far','edit']`（鉛筆＋方框），**不用 `pi-*` 或其他變體**；配色走**主色紫**（`<Button>` 不指定 `severity`，即 PrimeVue 預設 primary），**不用 `severity="info"`**，作為列內主要操作的視覺焦點 |
+| **Table 操作欄「刪除」規格** | icon 一律用 FontAwesome `['far','trash']`；配色走**危險紅**（`severity="danger"`），對應色票系統的「危險 / 停用」語意 |
 | **Table 操作欄其餘次要操作** | 檢視、更多等次要操作用 `severity="secondary"` |
-| **Table 操作欄按鈕共通屬性** | 編輯 / 刪除一律加 `variant="text"`（無底色，避免整欄視覺過重）、`size="small"`、`v-tooltip.top`（操作名稱）與 `:aria-label`（icon-only 按鈕的無障礙名稱，**不可省略**） |
+| **Table 操作欄按鈕共通屬性** | 一律用共用元件 `TableActionButton`（已封裝 `variant="text"`、`size="small"`、`v-tooltip.top` 與 `aria-label`；`label` 為已翻譯字串、兼作 tooltip 與 `aria-label`，**不可省略**），不手刻 `<Button>`。細節見專案 `component-rule` 與 `libs/ui` catalog |
 | **次要按鈕樣式** | 次要按鈕可選用**紫色框線**樣式（outlined + 主色 `#7008E7`），與主要實心紫按鈕形成階層 |
-| **新增按鈕 icon** | 「新增」類按鈕（新增 XXX、Add、Create 等）一律用 `icon="pi pi-plus"`（PrimeIcon），不用 FontAwesome `circle-plus` / `plus` 或其他變體。目的：跨頁面視覺一致 |
+| **新增按鈕 icon** | 「新增」類按鈕（新增 XXX、Add、Create 等）一律用 FontAwesome `['fas','plus']`，不用 `circle-plus` 或其他變體。目的：跨頁面視覺一致 |
 | **Dialog 主色按鈕不加 icon** | Dialog footer 的主色 CTA 按鈕（`確認 / 儲存 / 送出 / 合併` 等）**不加 icon**（**覆蓋上面的「Icon 使用」規則**）;Dialog 內文字已聚焦、footer 空間有限,按鈕文字已足夠表意,加 icon 反而視覺雜訊。次要按鈕（取消、關閉）本來就不加 icon |
 | **「送出申請」按鈕規格** | 申請送出類動作（金鑰申請、配號模式異動申請等）一律統一：label 用「**送出申請**」、icon 用 FontAwesome `['far', 'paper-plane']`（透過 `#icon` slot）、**主色實心**（`<Button>` 不指定 `severity`）。paper-plane 為此類動作的識別標記，**跨頁面一致**。此為上一列「Dialog 主色按鈕不加 icon」的**具名例外**——一般 `送出` 表單仍不加 icon，唯「送出**申請**」需 paper-plane 強化「提出申請」語意 |
 
@@ -371,15 +372,17 @@
 | --- | --- |
 | **全選 checkbox 位置** | 統一放在 table header（第一欄表頭內），**不獨立放在 table 外部上方** |
 | **欄位對齊** | 一律**靠左**對齊。數字、數量、金額不強制靠右——後台表格欄位數多、寬度不一，靠右反而讓視線在欄與欄之間跳動；需要縱向比較數值的場景（如財務報表）再個別評估 |
-| **沿用 PrimeVue Aura 預設樣式** | DataTable **不寫 `:pt` 客製化** `headerCell` / `bodyCell` 的 background、padding、font-size、font-weight；header / body padding（≈12px 縱、16px 橫）、字級（14px / weight 600 表頭、14px / weight 400 內文）、分隔線色（`var(--p-content-border-color)`）全部走 Aura theme tokens |
+| **沿用 PrimeVue Aura 預設樣式** | DataTable **不寫 `:pt` 客製化** `headerCell` / `bodyCell` 的 background、padding、font-size、font-weight；header / body padding（≈12px 縱、16px 橫）、weight（600 表頭、400 內文）、分隔線色（`var(--p-content-border-color)`）全部走 Aura theme tokens。字級方面 Aura 未對 cell 設 font-size token，cell 繼承 root **16px**（見上方「Cell 內字級」列）——不需、也不要新增 font-size token 或全域 CSS 覆寫 |
 | **隔行底色** | 一律加 `striped-rows`（PaginationTable / BaseDataTable 也預設開啟），讓多列資料更易視覺掃讀 |
 | **dataKey 必填** | DataTable 一律設 `dataKey`（通常 `"id"`），給選取 / 展開 / 群組功能依賴 |
-| **Cell 內字級** | 主資訊用預設 14px；補充說明 / 變體名 / metadata 等次要文字用 `text-xs`（12px）+ `text-surface-500 dark:text-surface-400`（**不要用 `text-gray-500`**，深色主題下不會變，見 2.4），與主資訊形成階層 |
-| **空狀態** | 用 `<template #empty>` 渲染，文字色用 `text-color-secondary`，垂直 padding ≥ `py-12` |
+| **Cell 內字級** | 主資訊用 **16px（Body 級）**；補充說明 / 變體名 / metadata 等次要文字用 `text-xs`（12px）+ `text-surface-500 dark:text-surface-400`（**不要用 `text-gray-500`**，深色主題下不會變，見 2.4），與主資訊形成階層。**16px 為全站表格內文標準**，且是「零設定」的預設：DataTable cell 不繼承任何 14px base、PrimeVue 也沒對 cell 寫 font-size，故 cell **直接繼承 root 16px**——主資訊欄位**維持不加字級 class 即可**（`text-base` 只在需明示時用）。**不要對主資訊加 `text-sm`**（那會降成 14px；舊程式碼常見此殘留，屬待清） |
+| **空狀態** | 用 `<template #empty>` 渲染，文字色用 `text-muted-color`，垂直 padding ≥ `py-12` |
 | **緊湊模式** | 對話框內或空間受限時加 `size="small"`（≈8-10px 縱 / 12px 橫 padding），不關掉 `striped-rows` |
 | **格線模式** | 需要顯示縱橫格線時加 `show-gridlines`；適用場景：規格表 / 群組合併，以及**列印預覽 / 出貨單 / 發票 / 收據等**需列印或視覺對照的表格（讓每格邊界清楚，印刷後仍能辨識欄位）；**一般資料列表不開**，避免視覺過重 |
 | **凍結欄 + 橫向捲動提示** | Table 用**凍結欄**（如固定在右側的「操作」欄）且資料會橫向捲動時，**一律加捲動可發現性提示**，避免使用者不知後面還有隱藏欄位：<br>① 水平捲軸**常駐可見**（`overflow-x: scroll` + `scrollbar-gutter: stable`）；<br>② 在可捲資料區左右邊緣疊**漸層 fade + 可點的 chevron**（`‹` / `›`，點擊捲動約 60% 視寬）；右側提示要**貼齊凍結欄內側**（`right: 凍結欄寬`，避免蓋到操作 icon）；<br>③ 依捲動位置顯示：捲到最左隱藏 `‹`、最右隱藏 `›`。判斷「還能往右」時**要扣掉常駐捲軸保留的殘差**：`scrollWidth − (scrollLeft + clientWidth) > ~16px` 才算，否則捲到底 `›` 仍會誤顯示；<br>④ 提示顏色一律走 `var(--p-*)` token（深色安全）。實作範例見 `OrderListPage.vue` |
-| **窄螢幕改手機卡片列表** | 資料表格在 `< md`（<768px）**改用手機卡片列表**，不要讓多欄表格在手機硬橫向捲動（捲動僅適用桌機超寬表格，見上一列）。做法（雙渲染，純 Tailwind 斷點、無 JS）：<br>① 桌機 DataTable 加 `class="hidden md:block"`；<br>② 另以 `<div class="md:hidden divide-y divide-[var(--p-content-border-color)]">` 渲染卡片列——**每列用 `divide-y` 分隔，不各自包 `border`/`rounded` 卡片**（表格已在外層 Card 內，避免巢狀 Card，見 6.5）；<br>③ 每列 `flex flex-col gap-2 px-1 py-3`，由上而下分層：**主要識別**（`text-sm font-semibold`，如名稱／抬頭）＋同列右側放**狀態 Tag**（`shrink-0`）→ **次要 metadata**（`text-xs text-surface-500 dark:text-surface-400`）→ **操作列靠右**（`flex justify-end gap-2`）；<br>④ 手機操作鈕**加回文字 label**（tooltip 在觸控裝置不觸發，不用 icon-only）；<br>⑤ 空狀態放兩個容器之外或各自渲染一次，`py-12 text-center`；長名稱／抬頭 `break-words` 不 truncate。實作範例見 `BlankListPage.vue`（下載空白發票號碼檔）；原型參照為會員列表 `MemberListPage.vue` |
+| **窄螢幕改手機卡片列表** | 資料表格在 `< md`（<768px）**改用手機卡片列表**，不要讓多欄表格在手機硬橫向捲動（捲動僅適用桌機超寬表格，見上一列）。做法（雙渲染，純 Tailwind 斷點、無 JS）：<br>① 桌機 DataTable 加 `class="hidden md:block"`；<br>② 另以 `<div class="md:hidden divide-y divide-[var(--p-content-border-color)]">` 渲染卡片列——**每列用 `divide-y` 分隔，不各自包 `border`/`rounded` 卡片**（表格已在外層 Card 內，避免巢狀 Card，見 6.5）；<br>③ 每列 `flex flex-col gap-2 px-1 py-3`，由上而下分層：**主要識別**（`font-semibold`，如名稱／抬頭）＋同列右側放**狀態 Tag**（`shrink-0`）→ **次要資訊**（字級與呈現見下方「手機卡片字級一致」「多資訊欄位收為一區」）→ **操作列靠右**（`flex justify-end gap-2`）；<br>④ 手機操作鈕**加回文字 label**（tooltip 在觸控裝置不觸發，不用 icon-only）；<br>⑤ 空狀態放兩個容器之外或各自渲染一次，`py-12 text-center`；長名稱／抬頭 `break-words` 不 truncate。實作範例見 `BlankListPage.vue`（下載空白發票號碼檔）；原型參照為會員列表 `MemberListPage.vue` |
+| **手機卡片字級一致** | 手機卡片內容**一律 `text-sm`（14px）**，與該表桌機 DataTable、搜尋區 chip 一致；**不要混用 `text-xs`／`text-base`**（否則出現 12／14／16 三種字級、顯得雜亂）。層級改用**顏色與字重**表現：欄位 label 用 muted（`text-surface-400 dark:text-surface-500`）、值用 `text-surface-600/700 dark:text-surface-200/300`；需強調的數值（如金額）用 `font-semibold`、**不放大字級**。僅次級 id／彩色徽章文字可保留 `text-xs` |
+| **多資訊欄位收為一區** | 桌機同一欄塞多筆資訊時（如「標單來源/收單方式/場次/留言」），手機卡片要把該欄**收成一個底色區塊**（`rounded-md bg-surface-50 dark:bg-surface-800/40 px-2 py-2`，內部 `flex flex-col gap-1`）以視覺群組，區塊內每筆資訊加 muted label（`label value`）；**單一資訊欄**則直接一行 `label value`（label muted、`shrink-0`）、不加框。原則：**一個桌機欄＝手機卡片一個視覺群組，每筆資訊都要有 label**，避免多欄資訊混成一片無法辨識 |
 
 ### 7.6 搜尋區規範
 
@@ -420,9 +423,11 @@
 | **文字色** | 超連結 / 外部連結文字一律用資訊藍 `#2563EB`，與「資訊提示」共用色票。**不用綠色 / 紫色**（綠色屬成功語意、紫色是主色 CTA） |
 | **Hover 樣式** | `hover:underline` 提示可點；不改字色 |
 | **外部連結另開分頁** | `target="_blank"` + `rel="noopener noreferrer"`（安全 + 防止 reverse tabnabbing） |
-| **可選 icon** | 連結前可加小型 icon（`pi pi-book` / `pi pi-external-link` 等）幫助辨識用途；icon 顏色沿用文字色 |
+| **可選 icon** | 連結前可加小型 icon（FontAwesome `['far','book']` / `['far','arrow-up-right-from-square']` 等）幫助辨識用途；icon 顏色沿用文字色 |
 
 ### 7.8 表單排版規範
+
+> 表單一律用共用元件承載：欄位用 `BaseFormField`（label / 錯誤 / 提示排版）、可儲存的視窗用 `BaseFormDialog`、金額用 `CurrencyInputNumber`、日期用 `BaseDatePicker`。下表為版面意圖，元件唯一接法見專案 `component-rule` 與 `libs/ui` catalog。
 
 | 規則 | 說明 |
 | --- | --- |
@@ -430,7 +435,7 @@
 | **上下欄寬對齊** | 表單有多列時，**所有列共用同一個 grid** 讓欄寬垂直對齊：Row 1 用 `1fr 200px 200px`，Row 2 / Row 3 也用同一組 grid columns，欄位不足時放空 div 佔位。**禁止** Row 1 用 3 欄、Row 2 用 2 欄、Row 3 又寫 `max-w-[280px]` 各自為政（視覺會參差不齊） |
 | **grid 欄寬留餘裕** | 多欄 form 用 grid 分欄時，每欄寬度預留元件內部裝飾至少 40px 空間：<br>• **InputText / 純 InputNumber（無 show-buttons）**：最窄 140px<br>• **InputNumber `show-buttons stacked`**（上下 stepper）：最窄 **200px**（stepper 佔 ~40px + 數字空間）<br>• **InputNumber `show-buttons horizontal`**（左右 stepper）：最窄 **220px**（−/+ 兩側 + 數字）<br>• **InputNumber mode="currency"**：最窄 **200px**（currency prefix "NT$" + 大數字）<br>• **Select / DatePicker**：最窄 160px（chevron / icon 佔 ~30px）<br>寧可寬 20-40px，不要拿最緊寬度 |
 | **label 位置** | 一律**放在 input 上方**（`flex flex-col gap-2`），不採用 label 左、input 右的橫式排列（RWD 相容性差） |
-| **必填標示** | label 後面加紅色 `<span class="text-[#DC2626]">*</span>`（不加圓點、不加空格） |
+| **必填標示** | 由 `BaseFormField`（傳 `required`）承載；若需手寫，紅色星號色走 token（`text-[var(--p-red-500)]`），**不硬編碼色碼**、不加圓點、不加空格 |
 | **placeholder** | 只寫「提示 / 範例」（如「請輸入品名」），**不當 label 用**；label 永遠可見（Design.md 十）。**唯一例外**：搜尋區條件過多時可用緊湊模式（見 7.6），一般表單不適用 |
 | **disabled input placeholder** | 依賴其他欄位自動帶入的欄位，placeholder 用「↑ 選擇 XXX 後自動帶入」提示來源 |
 | **選填 label** | label 後面加淺灰 `<span class="text-xs text-[var(--p-text-muted-color)]">（選填）</span>` |
@@ -482,7 +487,7 @@
 | **視覺基調** | 用線條風格、抽象幾何或實拍截圖 | 卡通插畫、Q 版吉祥物（與商務專業定位不符） |
 | **明暗** | 顏色走 `surface-*` token 與成對的 `dark:` 語意色，淺色／深色主題都要驗過（見 2.4） | 裸寫 `bg-white`、`text-gray-*`、`border-gray-*`（深色主題下不會變，直接破圖）；用 `:pt` 覆寫 PrimeVue 元件顏色 |
 | **邊框** | 使用淺灰 token（`border-gray-200` / `var(--p-content-border-color)`），讓區塊輕柔分隔 | 用黑色或深灰高對比邊框（視覺突兀，與簡約調性衝突） |
-| **圖示** | FontAwesome + PrimeIcons 皆可(同一組視覺元素內保持一致):PrimeIcons 用 `pi pi-*` class、FontAwesome 用 `<FontAwesomeIcon>` component;優先選擇語意最貼近的圖示 | 在 UI 文案中混入 emoji 字元(跨平台渲染不一致);同一按鈕組內兩種圖示庫混搭致視覺不一致 |
+| **圖示** | 一律 FontAwesome（`<FontAwesomeIcon :icon>`，全域註冊）;優先選擇語意最貼近的圖示;FA 無對應時才退 SVG asset | 用 PrimeVue Icon（`pi pi-*`）——與全站 icon 系統分裂;在 UI 文案中混入 emoji 字元(跨平台渲染不一致) |
 | **狀態語意** | 同類狀態跨頁面一律使用相同色（成功=綠、危險=紅） | 為每個新狀態自創新色 |
 | **層級** | 一層 Card 已足以界定獨立內容區；內部用底線 / 間距區隔 | 巢狀 Card（重複陰影與邊框造成層級混亂） |
 | **操作** | 同一組操作按鈕（如 table 上方操作列、彈窗 footer）內只有一個實心主色鈕，主要動作置於視線終點（群組最右側） | 同一組按鈕放兩顆以上實心主色按鈕（彼此稀釋）；不同區塊各有一顆主色 CTA 則可接受 |
@@ -496,7 +501,7 @@
 
 1. **動畫 / Motion 設計** — 除了基本 fade 0.2s 與 hover 過渡外，沒定義頁面切換、stagger、loading 動畫等規範。
 2. **圖片與插圖風格** — 截圖、示意圖、空狀態插畫、行銷用圖等視覺資產風格未定義。
-3. **Loading / Skeleton 狀態** — spinner、骨架屏、進度條等狀態樣式未定義。
+3. **Loading / Skeleton 狀態** — `PaginationTable` 已內建載入狀態（`loading` / `load-failed`）；其餘 spinner、骨架屏、進度條等狀態樣式尚未系統化定義。
 4. **多語系視覺適配** — 中英文字寬差異、長字串截斷策略未列。
 5. **品牌網站 / 對外行銷視覺** — 另有獨立文件（尚未建立），不在本文件範圍。
 
@@ -505,4 +510,4 @@
 ## 十二、延伸資源
 
 - **產品實作基準**：`apps/backend/`（PrimeVue Aura theme + Tailwind CSS 4 + Noto Sans TC 的實際整合範例）
-- **元件層級規格**（button、status-badge、form-field、confirm-dialog 等的完整 hierarchy、states、do/dont 與無障礙標準）：待整合至 repo
+- **元件層級規格**（button、status-badge、form-field、confirm-dialog 等的完整 hierarchy、states、do/dont 與無障礙標準）：見專案 `.claude/rules/component-rule.md` 與 `libs/ui/README.md`（共用元件 catalog）
