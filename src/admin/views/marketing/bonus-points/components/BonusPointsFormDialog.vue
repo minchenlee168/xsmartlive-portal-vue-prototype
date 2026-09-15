@@ -239,7 +239,7 @@ function handleSave() {
     modal
     :draggable="false"
     :header="dialogHeader"
-    :style="{ width: 'min(720px, calc(100vw - 32px))' }"
+    :style="{ width: isView ? 'min(520px, calc(100vw - 32px))' : 'min(720px, calc(100vw - 32px))' }"
   >
     <div class="flex flex-col gap-4">
       <h3 class="text-base font-semibold text-[var(--p-text-color)]">
