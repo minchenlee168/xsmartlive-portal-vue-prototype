@@ -1,12 +1,24 @@
-/** 紅利點數活動：回饋方式（取得來源） */
-export const BonusRewardType = {
-  /** 比例回饋：依消費金額百分比贈點（可設單筆上限點數） */
-  Percentage: 'percentage',
-  /** 固定回饋：固定贈送指定點數 */
-  Fixed: 'fixed',
+/** 紅利點數取得來源 */
+export const BonusSource = {
+  /** 手動新增 */
+  Manual: 'manual',
+  /** 註冊 */
+  Register: 'register',
+  /** 消費 */
+  Consumption: 'consumption',
 } as const;
 
-export type BonusRewardType = (typeof BonusRewardType)[keyof typeof BonusRewardType];
+export type BonusSource = (typeof BonusSource)[keyof typeof BonusSource];
+
+/** 贈送類型 */
+export const BonusGiftType = {
+  /** 百分比：依消費金額比例贈點，可設單筆贈送上限 */
+  Percentage: 'percentage',
+  /** 現金：固定贈送指定點數 */
+  Cash: 'cash',
+} as const;
+
+export type BonusGiftType = (typeof BonusGiftType)[keyof typeof BonusGiftType];
 
 /**
  * 活動生命週期狀態（供 Tabs 篩選）。
@@ -30,54 +42,98 @@ export interface BonusPointsRow {
   id: string;
   /** 紅利點數名稱 */
   name: string;
-  /** 取得來源 / 回饋方式 */
-  rewardType: BonusRewardType;
-  /** 回饋值：比例制為百分比（%），固定制為點數 */
-  rewardValue: number;
-  /** 單筆上限點數；僅比例制有意義，null = 不設上限 */
-  pointsCap: number | null;
-  /** 消費門檻（NT$）；0 = 無門檻 */
+  /** 取得來源（手動新增 / 註冊 / 消費） */
+  source: BonusSource;
+  /** 發送人數限制；null = 無限制 */
+  sendLimit: number | null;
+  /** 取得門檻（消費滿 NT$）；0 = 無門檻 */
   minSpend: number;
-  /** 領取人數上限；null = 無限制 */
-  claimLimit: number | null;
-  /** 已領取人數 */
-  claimedCount: number;
+  /** 贈送類型（百分比 / 現金） */
+  giftType: BonusGiftType;
+  /** 贈送值：百分比為 %，現金為點數 */
+  giftValue: number;
+  /** 單筆贈送上限（點）；僅百分比制有意義，null = 不設上限 */
+  giftCap: number | null;
+  /** 已發送人數 */
+  sentCount: number;
+  /** 描述（富文本 HTML，會員端可見） */
+  description: string;
+  /** 紅利點數備註（內部備註） */
+  note: string;
   /** 活動開始 'YYYY-MM-DD HH:mm:ss' */
   startAt: string;
   /** 活動結束 'YYYY-MM-DD HH:mm:ss' */
   endAt: string;
   /** 啟用 / 停用（手動開關，獨立於生命週期） */
   enabled: boolean;
-  /** 活動說明（會員端可見） */
-  description: string;
 }
 
-/** 領取明細單筆狀態 */
-export const BonusClaimStatus = {
-  /** 已領取 */
-  Claimed: 'claimed',
-  /** 未領取（已發行但尚無人領） */
-  Unclaimed: 'unclaimed',
+/** 發送明細單筆狀態 */
+export const BonusSendStatus = {
+  /** 已發送 */
+  Sent: 'sent',
+  /** 未發送（已發行但尚無人領取） */
+  Unsent: 'unsent',
 } as const;
 
-export type BonusClaimStatus = (typeof BonusClaimStatus)[keyof typeof BonusClaimStatus];
+export type BonusSendStatus = (typeof BonusSendStatus)[keyof typeof BonusSendStatus];
 
-/** 領取明細 row：對應某活動已發行的一組領取碼，可能已領或未領 */
-export interface BonusClaimRecord {
-  /** 領取代碼 */
-  claimCode: string;
-  /** 會員名稱；未領取為 null */
-  memberName: string | null;
-  /** 領取時間 'YYYY-MM-DD HH:mm:ss'；未領取為 null */
-  claimedAt: string | null;
-  /** 實際贈點；未領取為 null */
-  points: number | null;
-  /** 歸戶會員 ID；未領取為 null */
-  memberId: string | null;
-  /** 使用人 ID（代領 / 轉贈時可能不同於歸戶會員）；未領取為 null */
-  usedById: string | null;
-  /** 訂單編號；未觸發消費贈點為 null */
-  orderNo: string | null;
-  /** 狀態 */
-  status: BonusClaimStatus;
+/** 訂單商品項目（查看商品項目彈窗用） */
+export interface BonusOrderItem {
+  /** 商品名稱 */
+  name: string;
+  /** 單價（NTD） */
+  unitPrice: number;
+  /** 購買數量 */
+  quantity: number;
+  /** 成本價；null = 不顯示（以「-」呈現） */
+  cost: number | null;
+  /** 價格（小計＝單價 × 數量） */
+  price: number;
+}
+
+/** 訂單購物車（一張訂單可能含多個購物車 / 賣場） */
+export interface BonusOrderCart {
+  /** 購物車 / 賣場名稱 */
+  cartName: string;
+  /** 商品項目 */
+  items: BonusOrderItem[];
+  /** 購物車總金額 */
+  subtotal: number;
+}
+
+/** 訂單金額明細（比照商城前台結帳計算） */
+export interface BonusOrderDetail {
+  /** 各購物車 */
+  carts: BonusOrderCart[];
+  /** 商品金額（所有購物車小計加總） */
+  productTotal: number;
+  /** 運費 */
+  shippingFee: number;
+  /** 運費折抵 */
+  shippingDiscount: number;
+  /** 優惠券折抵；null = 未使用（顯示「—」） */
+  couponDiscount: number | null;
+  /** 紅利點數折抵 */
+  pointsDeduction: number;
+  /** 訂單金額小計 */
+  total: number;
+}
+
+/** 發送明細 row（以「使用此活動的訂單」呈現） */
+export interface BonusSendRecord {
+  /** 會員名稱 */
+  memberName: string;
+  /** 會員識別（FBID / ID / 會員編號） */
+  memberRef: string;
+  /** 訂單編號 */
+  orderNo: string;
+  /** 下單時間 'YYYY-MM-DD HH:mm:ss' */
+  orderedAt: string;
+  /** 折抵點數 */
+  pointsUsed: number;
+  /** 消費金額（已抵扣） */
+  amountAfterDeduction: number;
+  /** 狀態（保留供上方篩選，此列表一律 Sent） */
+  status: BonusSendStatus;
 }

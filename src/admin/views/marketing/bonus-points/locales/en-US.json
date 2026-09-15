@@ -17,9 +17,14 @@
       "upcoming": "Upcoming",
       "ended": "Ended"
     },
-    "reward_type": {
+    "source": {
+      "manual": "Manual",
+      "register": "Registration",
+      "consumption": "Purchase"
+    },
+    "gift_type": {
       "percentage": "Percentage",
-      "fixed": "Fixed points"
+      "cash": "Cash"
     },
     "status_switch": {
       "enabled": "Enabled",
@@ -27,7 +32,7 @@
       "aria": "Toggle status for {name}"
     },
     "button": {
-      "create": "New bonus activity",
+      "create": "New bonus points",
       "search": "Search",
       "batch_delete": "Bulk delete",
       "batch_delete_confirm": "Delete selected",
@@ -35,13 +40,13 @@
       "view": "View",
       "edit": "Edit",
       "copy": "Duplicate",
-      "copy_link": "Copy claim link",
-      "records": "Claim records",
+      "records": "Send records",
       "delete": "Delete"
     },
     "form": {
       "placeholder": {
-        "search": "Search by activity name"
+        "search": "Search by activity name",
+        "date_range": "Activity period"
       }
     },
     "table": {
@@ -50,12 +55,12 @@
       "claim_limit": "Claim limit",
       "claimed_count": "Claimed",
       "period": "Period",
-      "link": "Claim link",
       "status": "Status",
       "actions": "Actions"
     },
     "value": {
       "unlimited": "Unlimited",
+      "full": "Full",
       "percent": "{value}%",
       "points": "{value} pts",
       "points_cap": "Cap {value} pts",
@@ -72,59 +77,7 @@
       "deleted": "Bonus activity deleted",
       "batch_deleted": "Deleted {count} bonus activities",
       "status_on": "\"{name}\" enabled",
-      "status_off": "\"{name}\" disabled",
-      "link_copied": "Claim link copied"
-    },
-    "records": {
-      "header": "{name} · Claim records",
-      "expired_badge": "Expired",
-      "filter": {
-        "status": "Status",
-        "status_all": "All",
-        "category": "Filter by",
-        "keyword": "Keyword",
-        "keyword_placeholder": "Member name / ID / claim code",
-        "search": "Search",
-        "export": "Export Excel"
-      },
-      "status_option": {
-        "claimed": "Claimed",
-        "unclaimed": "Unclaimed"
-      },
-      "category_option": {
-        "member_name": "Member name",
-        "member_id": "Member ID",
-        "claim_code": "Claim code"
-      },
-      "summary": {
-        "reward_type": "Source",
-        "reward_value": "Reward",
-        "min_spend": "Threshold",
-        "claim_limit": "Claim limit",
-        "claimed_count": "Claimed",
-        "start_at": "Start",
-        "end_at": "End"
-      },
-      "table": {
-        "claim_code": "Claim code",
-        "member_name": "Member name",
-        "claimed_at": "Claimed at",
-        "points": "Points granted",
-        "member_id": "Member ID",
-        "used_by_id": "Used by ID",
-        "order_no": "Order no.",
-        "status": "Status"
-      },
-      "status": {
-        "claimed": "Claimed",
-        "unclaimed": "Unclaimed"
-      },
-      "empty_value": "—",
-      "empty_state": "No claim records match your filters",
-      "toast": {
-        "exported": "Export started"
-      },
-      "close": "Close"
+      "status_off": "\"{name}\" disabled"
     },
     "confirm": {
       "delete_title": "Confirm delete",
@@ -133,62 +86,117 @@
       "accept": "Delete",
       "reject": "Cancel"
     },
+    "records": {
+      "header": "{name} · Send records",
+      "expired_badge": "Expired",
+      "filter": {
+        "category": "Filter by",
+        "keyword": "Keyword",
+        "keyword_placeholder": "Member name / ID / order no.",
+        "search": "Search",
+        "export": "Export Excel"
+      },
+      "category_option": {
+        "member_name": "Member name",
+        "member_id": "Member ID",
+        "order_no": "Order no."
+      },
+      "summary": {
+        "source": "Source",
+        "gift": "Reward",
+        "min_spend": "Threshold",
+        "send_limit": "Send limit",
+        "sent_count": "Sent",
+        "start_at": "Start",
+        "end_at": "End",
+        "status": "Status"
+      },
+      "order_count": "Orders",
+      "order_total": "Total amount",
+      "table": {
+        "order_no": "Order no.",
+        "ordered_at": "Ordered at",
+        "points_used": "Points used",
+        "amount": "Amount (deducted)",
+        "items": "Items"
+      },
+      "view_detail": "View details",
+      "items_modal": {
+        "header": "Order items",
+        "item_unit": " items",
+        "col": {
+          "quantity": "Quantity",
+          "cost": "Cost",
+          "price": "Price"
+        },
+        "cart_total": "Cart total",
+        "product_total": "Products",
+        "shipping_fee": "Shipping",
+        "shipping_discount": "Shipping discount",
+        "coupon": "Coupon",
+        "points": "Bonus points",
+        "order_total": "Order subtotal"
+      },
+      "empty_state": "No orders match your filters",
+      "toast": {
+        "exported": "Export started"
+      },
+      "close": "Close"
+    },
     "form_dialog": {
       "header": {
-        "create": "New bonus activity",
-        "edit": "Edit bonus activity",
-        "view": "View bonus activity",
-        "copy": "Duplicate bonus activity"
+        "create": "New bonus points",
+        "edit": "Edit bonus points",
+        "view": "Bonus points",
+        "copy": "Duplicate bonus points"
       },
       "copy_suffix": " (copy)",
-      "optional_suffix": " (optional)",
       "section": {
-        "basic": "Basic info",
-        "reward": "Reward settings",
-        "schedule": "Schedule & quota",
-        "note": "Description"
+        "basic": "Basic info"
       },
       "field": {
         "name": "Activity name",
         "status": "Status",
-        "reward_type": "Reward type",
-        "reward_value_percentage": "Reward rate",
-        "reward_value_fixed": "Points granted",
-        "points_cap": "Per-order point cap",
-        "min_spend": "Spending threshold",
-        "period": "Period",
-        "claim_limit": "Claim limit",
-        "description": "Description"
+        "source": "Source",
+        "send_limit": "Send limit",
+        "threshold": "Threshold",
+        "gift_type": "Reward type",
+        "gift_cap": "Per-order cap",
+        "description": "Description",
+        "note": "Note",
+        "period": "Start – end time"
       },
-      "status": {
-        "enabled": "Enabled",
-        "disabled": "Disabled"
-      },
-      "placeholder": {
-        "name": "Enter activity name",
-        "period": "YYYY/MM/DD - YYYY/MM/DD",
-        "claim_limit": "Leave blank for unlimited",
-        "description": "Shown to members, e.g. reward rules and notes"
-      },
-      "hint": {
-        "points_cap": "Max points per order to avoid over-granting on large purchases; blank means no cap.",
-        "min_spend": "Reward triggers only above this amount; 0 means no threshold.",
-        "claim_limit": "Activity stops granting once reached; blank means unlimited.",
-        "description": "This text appears in the member-facing activity description."
+      "threshold": {
+        "none": "No threshold",
+        "amount": "Spend at least"
       },
       "unit": {
-        "percent": "%",
-        "points": "pts",
-        "people": "people"
+        "yuan": "NT$"
+      },
+      "percent_note": {
+        "line1": "Percentage: grant points as a ratio of the spend; you can set a per-order cap.",
+        "line2": "E.g. spend NT$100 at 10% → earn 10 bonus points."
+      },
+      "placeholder": {
+        "name": "Enter activity name...",
+        "source": "Select a source",
+        "send_limit": "Leave blank for unlimited",
+        "note": "Enter a note",
+        "period": "YYYY-MM-DD ~ YYYY-MM-DD"
+      },
+      "hint": {
+        "send_limit": "Stops sending once reached; blank means unlimited.",
+        "gift_cap": "Max points per order to avoid over-granting; blank means no cap."
       },
       "validation": {
         "name": "Please enter an activity name",
-        "reward_value": "Please enter a reward value greater than 0",
+        "source": "Please select a source",
+        "gift_value": "Please enter a reward value greater than 0",
+        "min_spend": "Please enter a threshold amount",
         "period": "Please select the activity period"
       },
       "button": {
         "cancel": "Cancel",
-        "create": "Create",
         "save": "Save",
         "close": "Close"
       }

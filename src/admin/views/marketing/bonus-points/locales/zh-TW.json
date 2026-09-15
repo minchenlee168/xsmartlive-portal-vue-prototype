@@ -17,9 +17,14 @@
       "upcoming": "接下來",
       "ended": "已結束"
     },
-    "reward_type": {
-      "percentage": "比例回饋",
-      "fixed": "固定回饋"
+    "source": {
+      "manual": "手動新增",
+      "register": "註冊",
+      "consumption": "消費"
+    },
+    "gift_type": {
+      "percentage": "百分比",
+      "cash": "現金"
     },
     "status_switch": {
       "enabled": "啟用",
@@ -27,7 +32,7 @@
       "aria": "{name} 狀態開關"
     },
     "button": {
-      "create": "新增紅利點數活動",
+      "create": "新增紅利點數",
       "search": "搜尋",
       "batch_delete": "批次刪除",
       "batch_delete_confirm": "刪除所選",
@@ -35,27 +40,27 @@
       "view": "檢視",
       "edit": "編輯",
       "copy": "複製",
-      "copy_link": "複製領取連結",
-      "records": "領取明細",
+      "records": "發送紀錄",
       "delete": "刪除"
     },
     "form": {
       "placeholder": {
-        "search": "搜尋活動名稱"
+        "search": "搜尋活動名稱",
+        "date_range": "活動區間"
       }
     },
     "table": {
-      "name": "紅利點數名稱",
+      "name": "活動名稱",
       "reward_type": "取得來源",
       "claim_limit": "領取人數上限",
       "claimed_count": "已領取人數",
       "period": "活動期間",
-      "link": "領取連結",
       "status": "狀態",
       "actions": "操作"
     },
     "value": {
       "unlimited": "無限制",
+      "full": "已額滿",
       "percent": "{value}%",
       "points": "{value} 點",
       "points_cap": "上限 {value} 點",
@@ -72,59 +77,7 @@
       "deleted": "已刪除紅利點數活動",
       "batch_deleted": "已刪除 {count} 筆紅利點數活動",
       "status_on": "已啟用「{name}」",
-      "status_off": "已停用「{name}」",
-      "link_copied": "已複製領取連結"
-    },
-    "records": {
-      "header": "{name} · 領取明細",
-      "expired_badge": "已過期",
-      "filter": {
-        "status": "使用狀況",
-        "status_all": "全部",
-        "category": "篩選類別",
-        "keyword": "關鍵字",
-        "keyword_placeholder": "請輸入會員名稱 / 會員 ID / 領取代碼",
-        "search": "搜尋",
-        "export": "Excel 匯出"
-      },
-      "status_option": {
-        "claimed": "已領取",
-        "unclaimed": "未領取"
-      },
-      "category_option": {
-        "member_name": "會員名稱",
-        "member_id": "會員 ID",
-        "claim_code": "領取代碼"
-      },
-      "summary": {
-        "reward_type": "取得來源",
-        "reward_value": "回饋值",
-        "min_spend": "消費門檻",
-        "claim_limit": "領取人數上限",
-        "claimed_count": "已領取人數",
-        "start_at": "開始時間",
-        "end_at": "結束時間"
-      },
-      "table": {
-        "claim_code": "領取代碼",
-        "member_name": "會員名稱",
-        "claimed_at": "領取時間",
-        "points": "實際贈點",
-        "member_id": "會員 ID",
-        "used_by_id": "使用人 ID",
-        "order_no": "訂單編號",
-        "status": "狀態"
-      },
-      "status": {
-        "claimed": "已領取",
-        "unclaimed": "未領取"
-      },
-      "empty_value": "—",
-      "empty_state": "沒有符合條件的領取紀錄",
-      "toast": {
-        "exported": "已開始匯出領取明細"
-      },
-      "close": "關閉"
+      "status_off": "已停用「{name}」"
     },
     "confirm": {
       "delete_title": "確認刪除",
@@ -133,62 +86,117 @@
       "accept": "確認刪除",
       "reject": "取消"
     },
+    "records": {
+      "header": "{name} · 發送紀錄",
+      "expired_badge": "已過期",
+      "filter": {
+        "category": "篩選類別",
+        "keyword": "關鍵字",
+        "keyword_placeholder": "請輸入會員名稱 / 會員 ID / 訂單編號",
+        "search": "搜尋",
+        "export": "Excel 匯出"
+      },
+      "category_option": {
+        "member_name": "會員名稱",
+        "member_id": "會員 ID",
+        "order_no": "訂單編號"
+      },
+      "summary": {
+        "source": "取得來源",
+        "gift": "贈送內容",
+        "min_spend": "取得門檻",
+        "send_limit": "發送人數限制",
+        "sent_count": "已發送人數",
+        "start_at": "開始時間",
+        "end_at": "結束時間",
+        "status": "狀態"
+      },
+      "order_count": "訂單",
+      "order_total": "訂單總金額",
+      "table": {
+        "order_no": "訂單編號",
+        "ordered_at": "下單時間",
+        "points_used": "折抵點數",
+        "amount": "消費金額（已抵扣）",
+        "items": "查看商品項目"
+      },
+      "view_detail": "查看詳情",
+      "items_modal": {
+        "header": "查看商品項目",
+        "item_unit": " 件商品",
+        "col": {
+          "quantity": "購買數量",
+          "cost": "成本價",
+          "price": "價格"
+        },
+        "cart_total": "購物車總金額",
+        "product_total": "商品金額",
+        "shipping_fee": "運費",
+        "shipping_discount": "運費折抵",
+        "coupon": "優惠券",
+        "points": "紅利點數",
+        "order_total": "訂單金額小計"
+      },
+      "empty_state": "沒有符合條件的發送紀錄",
+      "toast": {
+        "exported": "已開始匯出發送紀錄"
+      },
+      "close": "關閉"
+    },
     "form_dialog": {
       "header": {
-        "create": "新增紅利點數活動",
-        "edit": "編輯紅利點數活動",
-        "view": "檢視紅利點數活動",
-        "copy": "複製紅利點數活動"
+        "create": "新增紅利點數",
+        "edit": "編輯紅利點數",
+        "view": "檢視紅利點數",
+        "copy": "複製紅利點數"
       },
       "copy_suffix": "（複製）",
-      "optional_suffix": "（選填）",
       "section": {
-        "basic": "基本資料",
-        "reward": "回饋設定",
-        "schedule": "活動期間與名額",
-        "note": "活動說明"
+        "basic": "基本資訊"
       },
       "field": {
         "name": "活動名稱",
         "status": "狀態",
-        "reward_type": "回饋方式",
-        "reward_value_percentage": "回饋比例",
-        "reward_value_fixed": "贈送點數",
-        "points_cap": "單筆上限點數",
-        "min_spend": "消費門檻",
-        "period": "活動期間",
-        "claim_limit": "領取人數上限",
-        "description": "活動說明"
+        "source": "取得來源",
+        "send_limit": "發送人數限制",
+        "threshold": "取得門檻",
+        "gift_type": "贈送類型",
+        "gift_cap": "單筆贈送上限",
+        "description": "描述",
+        "note": "紅利點數備註",
+        "period": "開始至結束時間"
       },
-      "status": {
-        "enabled": "啟用",
-        "disabled": "停用"
-      },
-      "placeholder": {
-        "name": "請輸入活動名稱",
-        "period": "YYYY/MM/DD - YYYY/MM/DD",
-        "claim_limit": "留空表示不限人數",
-        "description": "說明將顯示於會員端，例如回饋規則與注意事項"
-      },
-      "hint": {
-        "points_cap": "單筆最高贈點數，避免高額消費換算出過多點數；留空為不設上限。",
-        "min_spend": "消費滿此金額才觸發回饋，0 表示無門檻。",
-        "claim_limit": "達上限後活動自動停止發放；留空表示不限人數。",
-        "description": "此段文字會顯示在會員端的活動說明。"
+      "threshold": {
+        "none": "無門檻",
+        "amount": "消費滿"
       },
       "unit": {
-        "percent": "%",
-        "points": "點",
-        "people": "人"
+        "yuan": "元"
+      },
+      "percent_note": {
+        "line1": "百分比類型：依消費金額的比例贈送點數，可自行設定「贈送上限」。",
+        "line2": "例如：消費 100 元、贈送比例 10% → 可獲得 10 點紅利點數。"
+      },
+      "placeholder": {
+        "name": "請輸入活動名稱...",
+        "source": "請選擇紅利點數來源",
+        "send_limit": "留空表示不限人數",
+        "note": "請輸入備註內容",
+        "period": "YYYY-MM-DD ~ YYYY-MM-DD"
+      },
+      "hint": {
+        "send_limit": "達上限後自動停止發送；留空表示不限人數。",
+        "gift_cap": "單筆最高贈點數，避免高額消費換算出過多點數；留空為不設上限。"
       },
       "validation": {
         "name": "請輸入活動名稱",
-        "reward_value": "請輸入大於 0 的回饋值",
+        "source": "請選擇取得來源",
+        "gift_value": "請輸入大於 0 的贈送值",
+        "min_spend": "請輸入消費門檻金額",
         "period": "請選擇活動期間"
       },
       "button": {
         "cancel": "取消",
-        "create": "新增",
         "save": "儲存",
         "close": "關閉"
       }

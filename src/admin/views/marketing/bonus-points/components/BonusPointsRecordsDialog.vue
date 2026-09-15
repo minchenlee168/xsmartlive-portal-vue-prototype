@@ -1,21 +1,21 @@
 <script setup lang="ts">
 /**
- * 紅利點數活動「領取明細」Dialog（原型版，唯讀查閱）
+ * 紅利點數活動「發送紀錄」Dialog（原型版，唯讀查閱）
  * — 三段式：篩選工具列（使用狀況 / 篩選類別 / 關鍵字 + 搜尋 + Excel 匯出）／活動摘要（唯讀 KV）／明細 DataTable
- * — 明細為示範取樣資料（createMockClaimRecords）；未領取欄位以「—」佔位
- * — 每列「複製領取連結」走 navigator.clipboard + toast；Excel 匯出於原型階段僅 toast 回饋
+ * — 明細為示範取樣資料（createMockSendRecords）；未發送欄位以「—」佔位
+ * — Excel 匯出於原型階段僅 toast 回饋
  */
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
-import { createMockClaimRecords } from '../mockData';
+import { createMockSendRecords } from '../mockData';
 import {
-  BonusClaimStatus,
-  BonusRewardType,
-  type BonusClaimRecord,
+  BonusGiftType,
   type BonusPointsRow,
+  type BonusSendRecord,
 } from '../types';
+import BonusOrderItemsDialog from './BonusOrderItemsDialog.vue';
 
 const props = defineProps<{
   /** 要看明細的活動；為 null 時不載入 */
@@ -27,73 +27,88 @@ const visible = defineModel<boolean>('visible', { required: true });
 const { t } = useI18n();
 const { showInfo } = useGlobalToast();
 
-type StatusFilter = 'all' | BonusClaimStatus;
-type CategoryFilter = 'member_name' | 'member_id' | 'claim_code';
+type CategoryFilter = 'member_name' | 'member_id' | 'order_no';
 
-const statusFilter = ref<StatusFilter>('all');
 const category = ref<CategoryFilter>('member_name');
+const appliedCategory = ref<CategoryFilter>('member_name');
 const keyword = ref('');
 const appliedKeyword = ref('');
 
-const records = ref<BonusClaimRecord[]>([]);
+const records = ref<BonusSendRecord[]>([]);
+
+// 分頁（訂單卡片列表，client 端分頁）
+const ROWS = 10;
+const currentPage = ref(1);
 
 // 開窗時依活動產出示範明細；換活動或重開都重建，並重置篩選
 watch([visible, () => props.row], ([isOpen]) => {
   if (!isOpen || !props.row) return;
-  records.value = createMockClaimRecords(props.row);
-  statusFilter.value = 'all';
+  records.value = createMockSendRecords(props.row);
   category.value = 'member_name';
+  appliedCategory.value = 'member_name';
   keyword.value = '';
   appliedKeyword.value = '';
+  currentPage.value = 1;
 });
-
-const statusOptions = computed<{ label: string; value: StatusFilter }[]>(() => [
-  { label: t('bonus_points.records.filter.status_all'), value: 'all' },
-  { label: t('bonus_points.records.status_option.claimed'), value: BonusClaimStatus.Claimed },
-  { label: t('bonus_points.records.status_option.unclaimed'), value: BonusClaimStatus.Unclaimed },
-]);
 
 const categoryOptions = computed<{ label: string; value: CategoryFilter }[]>(() => [
   { label: t('bonus_points.records.category_option.member_name'), value: 'member_name' },
   { label: t('bonus_points.records.category_option.member_id'), value: 'member_id' },
-  { label: t('bonus_points.records.category_option.claim_code'), value: 'claim_code' },
+  { label: t('bonus_points.records.category_option.order_no'), value: 'order_no' },
 ]);
 
 function onSearch() {
+  appliedCategory.value = category.value;
   appliedKeyword.value = keyword.value;
+  currentPage.value = 1;
 }
 
-const filteredRecords = computed<BonusClaimRecord[]>(() => {
+const filteredRecords = computed<BonusSendRecord[]>(() => {
   const kw = appliedKeyword.value.trim().toLowerCase();
   return records.value.filter((r) => {
-    const matchStatus = statusFilter.value === 'all' || r.status === statusFilter.value;
-    if (!matchStatus) return false;
     if (kw.length === 0) return true;
     const field
-      = category.value === 'member_name' ? r.memberName
-        : category.value === 'member_id' ? r.memberId
-          : r.claimCode;
-    return (field ?? '').toLowerCase().includes(kw);
+      = appliedCategory.value === 'member_name' ? r.memberName
+        : appliedCategory.value === 'member_id' ? r.memberRef
+          : r.orderNo;
+    return field.toLowerCase().includes(kw);
   });
 });
 
+// 當前頁資料
+const pagedRecords = computed<BonusSendRecord[]>(() =>
+  filteredRecords.value.slice((currentPage.value - 1) * ROWS, currentPage.value * ROWS));
+
+// 訂單摘要：筆數與訂單總金額（已抵扣金額加總）
+const orderCount = computed(() => filteredRecords.value.length);
+const totalAmount = computed(() =>
+  filteredRecords.value.reduce((sum, r) => sum + r.amountAfterDeduction, 0));
+
+// 篩選結果變動 → 回第一頁
+watch(filteredRecords, () => { currentPage.value = 1; });
+
+function onPage(event: { page: number }) {
+  currentPage.value = event.page + 1;
+}
+
 // ---- 摘要呈現 ----
-const EMPTY = computed(() => t('bonus_points.records.empty_value'));
 const formatNumber = (value: number) => value.toLocaleString('en-US');
+/** 頭像文字：取會員名稱首字 */
+const avatarText = (name: string) => name.charAt(0);
 
-const rewardTypeLabel = computed(() =>
-  props.row ? t(`bonus_points.reward_type.${props.row.rewardType}`) : '');
+const sourceLabel = computed(() =>
+  props.row ? t(`bonus_points.source.${props.row.source}`) : '');
 
-const rewardValueText = computed(() => {
+const giftValueText = computed(() => {
   const r = props.row;
   if (!r) return '';
-  if (r.rewardType === BonusRewardType.Percentage) {
-    const cap = r.pointsCap !== null
-      ? `・${t('bonus_points.value.points_cap', { value: formatNumber(r.pointsCap) })}`
+  if (r.giftType === BonusGiftType.Percentage) {
+    const cap = r.giftCap !== null
+      ? `・${t('bonus_points.value.points_cap', { value: formatNumber(r.giftCap) })}`
       : '';
-    return `${t('bonus_points.value.percent', { value: r.rewardValue })}${cap}`;
+    return `${t('bonus_points.value.percent', { value: r.giftValue })}${cap}`;
   }
-  return t('bonus_points.value.points', { value: formatNumber(r.rewardValue) });
+  return t('bonus_points.value.points', { value: formatNumber(r.giftValue) });
 });
 
 const minSpendText = computed(() => {
@@ -104,11 +119,23 @@ const minSpendText = computed(() => {
     : t('bonus_points.value.no_threshold');
 });
 
-const claimLimitText = computed(() => {
+const sendLimitText = computed(() => {
   const r = props.row;
   if (!r) return '';
-  return r.claimLimit === null ? t('bonus_points.value.unlimited') : formatNumber(r.claimLimit);
+  return r.sendLimit === null ? t('bonus_points.value.unlimited') : formatNumber(r.sendLimit);
 });
+
+const statusText = computed(() => {
+  const r = props.row;
+  if (!r) return '';
+  return r.enabled
+    ? t('bonus_points.status_switch.enabled')
+    : t('bonus_points.status_switch.disabled');
+});
+
+/** 已發送人數是否已達發送人數上限（額滿） */
+const isFull = computed(() =>
+  !!props.row && props.row.sendLimit !== null && props.row.sentCount >= props.row.sendLimit);
 
 const isExpired = computed(() => {
   const r = props.row;
@@ -118,13 +145,21 @@ const isExpired = computed(() => {
 
 // §7.9 日期時間：YYYY/MM/DD HH:mm（不顯示秒）
 const formatDateTime = (value: string) =>
-  `${value.slice(0, 10).replace(/-/g, '/')} ${value.slice(11, 16)}`;
+  `${value.slice(0, 10)} ${value.slice(11, 16)}`;
 
 const header = computed(() =>
   props.row ? t('bonus_points.records.header', { name: props.row.name }) : '');
 
 function handleExport() {
   showInfo({ detail: t('bonus_points.records.toast.exported') });
+}
+
+// 查看商品項目彈窗
+const isItemsDialogVisible = ref(false);
+const itemsRecord = ref<BonusSendRecord | null>(null);
+function openItems(rec: BonusSendRecord) {
+  itemsRecord.value = rec;
+  isItemsDialogVisible.value = true;
 }
 </script>
 
@@ -140,19 +175,6 @@ function handleExport() {
       <!-- 篩選工具列 -->
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div class="flex flex-wrap items-end gap-2">
-          <div class="flex flex-col gap-1">
-            <label for="records-status-filter" class="text-xs text-surface-500 dark:text-surface-400">
-              {{ $t('bonus_points.records.filter.status') }}
-            </label>
-            <Select
-              v-model="statusFilter"
-              input-id="records-status-filter"
-              :options="statusOptions"
-              option-label="label"
-              option-value="value"
-              class="w-36"
-            />
-          </div>
           <div class="flex flex-col gap-1">
             <label for="records-category-filter" class="text-xs text-surface-500 dark:text-surface-400">
               {{ $t('bonus_points.records.filter.category') }}
@@ -185,42 +207,46 @@ function handleExport() {
         </div>
         <Button
           :label="$t('bonus_points.records.filter.export')"
-          icon="pi pi-file-export"
           severity="secondary"
           variant="outlined"
           @click="handleExport"
-        />
+        >
+          <template #icon>
+            <FontAwesomeIcon :icon="['far', 'file-export']" class="mr-2" />
+          </template>
+        </Button>
       </div>
 
-      <!-- 活動摘要（唯讀 KV） -->
+      <!-- 活動摘要（唯讀 KV；label = Label 14px、值 = Body 16px，見 design.md §三 字級階梯） -->
       <div class="grid grid-cols-2 gap-x-6 gap-y-3 rounded-md bg-surface-50 px-4 py-3 md:grid-cols-4 dark:bg-surface-800">
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.reward_type') }}</span>
-          <span class="text-sm">{{ rewardTypeLabel }}</span>
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.source') }}</span>
+          <span class="text-base">{{ sourceLabel }}</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.reward_value') }}</span>
-          <span class="text-sm">{{ rewardValueText }}</span>
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.gift') }}</span>
+          <span class="text-base">{{ giftValueText }}</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.min_spend') }}</span>
-          <span class="text-sm">{{ minSpendText }}</span>
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.min_spend') }}</span>
+          <span class="text-base">{{ minSpendText }}</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.claim_limit') }}</span>
-          <span class="text-sm">{{ claimLimitText }}</span>
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.send_limit') }}</span>
+          <span class="text-base">{{ sendLimitText }}</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.claimed_count') }}</span>
-          <span class="text-sm">{{ formatNumber(row.claimedCount) }}</span>
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.sent_count') }}</span>
+          <span v-if="isFull" class="text-base font-medium text-[var(--p-red-500)]">{{ $t('bonus_points.value.full') }}</span>
+          <span v-else class="text-base">{{ formatNumber(row.sentCount) }}</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.start_at') }}</span>
-          <span class="text-sm">{{ formatDateTime(row.startAt) }}</span>
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.start_at') }}</span>
+          <span class="text-base">{{ formatDateTime(row.startAt) }}</span>
         </div>
-        <div class="flex flex-col gap-1 md:col-span-2">
-          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.end_at') }}</span>
-          <span class="flex items-center gap-2 text-sm">
+        <div class="flex flex-col gap-1">
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.end_at') }}</span>
+          <span class="flex items-center gap-2 text-base">
             {{ formatDateTime(row.endAt) }}
             <Tag
               v-if="isExpired"
@@ -229,64 +255,86 @@ function handleExport() {
             />
           </span>
         </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.summary.status') }}</span>
+          <span class="text-base">{{ statusText }}</span>
+        </div>
       </div>
 
-      <!-- 共 N 筆 -->
-      <div class="flex justify-end">
-        <span class="text-sm text-[var(--p-text-muted-color)]">
-          {{ $t('common.pagination.total_records', { count: filteredRecords.length }) }}
+      <!-- 訂單摘要列：訂單數（左）+ 訂單總金額（右） -->
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--p-content-border-color)] pb-3">
+        <span class="text-base font-semibold">
+          {{ $t('bonus_points.records.order_count') }}
+          <span class="text-primary">{{ formatNumber(orderCount) }}</span>
+        </span>
+        <span class="text-base font-semibold">
+          {{ $t('bonus_points.records.order_total') }}
+          <span class="text-primary">{{ formatNumber(totalAmount) }}</span>
         </span>
       </div>
 
-      <!-- 明細表 -->
-      <DataTable
-        :value="filteredRecords"
-        data-key="claimCode"
-        striped-rows
-        size="small"
-        paginator
-        scrollable
-        :rows="10"
-        :rows-per-page-options="[10, 20, 50]"
-      >
-        <Column field="claimCode" :header="$t('bonus_points.records.table.claim_code')" />
-        <Column :header="$t('bonus_points.records.table.member_name')">
-          <template #body="{ data }">{{ data.memberName ?? EMPTY }}</template>
-        </Column>
-        <Column :header="$t('bonus_points.records.table.claimed_at')">
-          <template #body="{ data }">
-            {{ data.claimedAt ? formatDateTime(data.claimedAt) : EMPTY }}
-          </template>
-        </Column>
-        <Column :header="$t('bonus_points.records.table.points')">
-          <template #body="{ data }">
-            {{ data.points === null ? EMPTY : formatNumber(data.points) }}
-          </template>
-        </Column>
-        <Column :header="$t('bonus_points.records.table.member_id')">
-          <template #body="{ data }">{{ data.memberId ?? EMPTY }}</template>
-        </Column>
-        <Column :header="$t('bonus_points.records.table.used_by_id')">
-          <template #body="{ data }">{{ data.usedById ?? EMPTY }}</template>
-        </Column>
-        <Column :header="$t('bonus_points.records.table.order_no')">
-          <template #body="{ data }">{{ data.orderNo ?? EMPTY }}</template>
-        </Column>
-        <Column :header="$t('bonus_points.records.table.status')">
-          <template #body="{ data }">
-            <Tag
-              :value="$t(`bonus_points.records.status.${data.status}`)"
-              :severity="data.status === BonusClaimStatus.Claimed ? 'success' : 'secondary'"
-            />
-          </template>
-        </Column>
-
-        <template #empty>
-          <div class="py-12 text-center text-color-secondary">
-            {{ $t('bonus_points.records.empty_state') }}
+      <!-- 訂單卡片列表（依 Image #5：頭像 + 會員 / 訂單編號 / 下單時間 / 折抵點數 / 消費金額(已抵扣) / 查看商品項目） -->
+      <div class="divide-y divide-[var(--p-content-border-color)]">
+        <div
+          v-for="rec in pagedRecords"
+          :key="rec.orderNo"
+          class="flex flex-wrap items-center gap-x-6 gap-y-3 py-3"
+        >
+          <!-- 會員 -->
+          <div class="flex min-w-[200px] flex-1 items-center gap-3">
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-200 text-sm font-medium text-surface-700 dark:bg-surface-700 dark:text-surface-200">
+              {{ avatarText(rec.memberName) }}
+            </span>
+            <div class="flex min-w-0 flex-col">
+              <span class="text-base font-semibold">{{ rec.memberName }}</span>
+              <span class="text-xs break-all text-surface-500 dark:text-surface-400">{{ rec.memberRef }}</span>
+            </div>
           </div>
-        </template>
-      </DataTable>
+
+          <!-- 訂單編號 -->
+          <div class="flex min-w-[150px] flex-col gap-1">
+            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.order_no') }}</span>
+            <span class="text-base">{{ rec.orderNo }}</span>
+          </div>
+
+          <!-- 下單時間 -->
+          <div class="flex min-w-[140px] flex-col gap-1">
+            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.ordered_at') }}</span>
+            <span class="text-base">{{ formatDateTime(rec.orderedAt) }}</span>
+          </div>
+
+          <!-- 折抵點數 -->
+          <div class="flex min-w-[90px] flex-col gap-1">
+            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.points_used') }}</span>
+            <span class="text-base font-semibold text-primary">{{ formatNumber(rec.pointsUsed) }}</span>
+          </div>
+
+          <!-- 消費金額（已抵扣） -->
+          <div class="flex min-w-[120px] flex-col gap-1">
+            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.amount') }}</span>
+            <span class="text-base font-semibold text-primary">{{ formatNumber(rec.amountAfterDeduction) }}</span>
+          </div>
+
+          <!-- 查看商品項目 -->
+          <div class="flex min-w-[110px] flex-col gap-1">
+            <span class="text-sm text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.table.items') }}</span>
+            <a class="cursor-pointer text-base text-primary hover:underline" @click="openItems(rec)">{{ $t('bonus_points.records.view_detail') }}</a>
+          </div>
+        </div>
+
+        <div v-if="!filteredRecords.length" class="py-12 text-center text-muted-color">
+          {{ $t('bonus_points.records.empty_state') }}
+        </div>
+      </div>
+
+      <!-- 分頁 -->
+      <Paginator
+        v-if="filteredRecords.length > ROWS"
+        :rows="ROWS"
+        :total-records="filteredRecords.length"
+        :first="(currentPage - 1) * ROWS"
+        @page="onPage"
+      />
     </div>
 
     <template #footer>
@@ -297,5 +345,10 @@ function handleExport() {
         @click="visible = false"
       />
     </template>
+
+    <BonusOrderItemsDialog
+      v-model:visible="isItemsDialogVisible"
+      :record="itemsRecord"
+    />
   </Dialog>
 </template>

@@ -1,22 +1,21 @@
 <script setup lang="ts">
 /**
- * 紅利點數活動「新增 / 編輯 / 檢視」共用 Dialog（原型版）
- * — mode 決定 header、footer 主鈕文字、是否唯讀（view 時全欄位 disabled、footer 只留關閉）
- * — 四段落：基本資料 / 回饋設定 / 活動期間與名額 / 活動說明，段落間以 Section 標題 + 上分隔線區隔
- * — 回饋方式（比例 / 固定）以 RadioButton 切換，連動顯示對應欄位；兩種佈局共用同一組 grid 欄寬避免跳版
- * — 原型階段：不打後端，emit 表單資料交由列表頁寫入本地資料
+ * 紅利點數「新增 / 編輯 / 檢視 / 複製」共用 Dialog（依 Figma / 設計圖）
+ * — 單一「基本資訊」區塊，欄位順序：名稱 / 取得來源 / 發送人數限制 / 取得門檻 /
+ *   贈送類型(+單筆贈送上限) / 描述(富文本) / 備註 / 開始至結束時間
+ * — 取得門檻選「消費滿」才啟用金額；贈送類型選「百分比」才顯示說明框與單筆贈送上限
+ * — footer：取消 / 儲存（檢視模式僅關閉）；原型階段不打後端，emit 表單資料交由列表頁寫入
  */
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import FormField from '@/admin/components/ui/FormField.vue';
-import { BonusRewardType, type BonusPointsRow } from '../types';
+import { BonusGiftType, BonusSource, type BonusPointsRow } from '../types';
 
 interface Props {
   visible: boolean;
   /** 'create' = 新增；'edit' = 編輯；'view' = 唯讀檢視；'copy' = 以既有活動為範本新增 */
   mode?: 'create' | 'edit' | 'view' | 'copy';
-  /** 編輯 / 檢視 / 複製模式帶入的既有資料 */
   row?: BonusPointsRow | null;
 }
 
@@ -50,71 +49,120 @@ const dialogHeader = computed(() => {
 
 // ---- 表單狀態 ----
 const name = ref('');
-const enabled = ref(true);
-const rewardType = ref<BonusRewardType>(BonusRewardType.Percentage);
-/** 回饋值：比例制為百分比，固定制為點數 */
-const rewardValue = ref<number | null>(null);
-const pointsCap = ref<number | null>(null);
-const minSpend = ref<number | null>(0);
-const claimLimit = ref<number | null>(null);
-const period = ref<[Date, Date] | null>(null);
+const source = ref<BonusSource | null>(null);
+const sendLimit = ref<number | null>(null);
+/** 取得門檻模式：none = 無門檻；amount = 消費滿 */
+const thresholdMode = ref<'none' | 'amount'>('none');
+const minSpend = ref<number | null>(null);
+const giftType = ref<BonusGiftType>(BonusGiftType.Percentage);
+const giftValue = ref<number | null>(null);
+const giftCap = ref<number | null>(null);
 const description = ref('');
+const note = ref('');
+const period = ref<[Date, Date] | null>(null);
 
 const hasError = ref(false);
 
-const isPercentage = computed(() => rewardType.value === BonusRewardType.Percentage);
+const isPercentage = computed(() => giftType.value === BonusGiftType.Percentage);
 
-const rewardValueLabel = computed(() =>
-  isPercentage.value
-    ? t('bonus_points.form_dialog.field.reward_value_percentage')
-    : t('bonus_points.form_dialog.field.reward_value_fixed'),
-);
+// ---- 檢視模式：直接呈現資訊（唯讀 KV，不用 disabled 表單元件） ----
+const formatNumber = (v: number) => v.toLocaleString('en-US');
+const viewSource = computed(() => (props.row ? t(`bonus_points.source.${props.row.source}`) : ''));
+const viewGift = computed(() => {
+  const r = props.row;
+  if (!r) return '';
+  if (r.giftType === BonusGiftType.Percentage) {
+    const cap = r.giftCap !== null
+      ? `・${t('bonus_points.value.points_cap', { value: formatNumber(r.giftCap) })}`
+      : '';
+    return `${t('bonus_points.gift_type.percentage')}・${t('bonus_points.value.percent', { value: r.giftValue })}${cap}`;
+  }
+  return `${t('bonus_points.gift_type.cash')}・${t('bonus_points.value.points', { value: formatNumber(r.giftValue) })}`;
+});
+const viewThreshold = computed(() => {
+  const r = props.row;
+  if (!r) return '';
+  return r.minSpend > 0
+    ? t('bonus_points.value.min_spend', { value: formatNumber(r.minSpend) })
+    : t('bonus_points.value.no_threshold');
+});
+const viewSendLimit = computed(() => {
+  const r = props.row;
+  if (!r) return '';
+  return r.sendLimit === null ? t('bonus_points.value.unlimited') : formatNumber(r.sendLimit);
+});
+const viewPeriod = computed(() =>
+  (props.row ? `${props.row.startAt.slice(0, 10)} ~ ${props.row.endAt.slice(0, 10)}` : ''));
+const viewStatus = computed(() => {
+  const r = props.row;
+  if (!r) return '';
+  return r.enabled
+    ? t('bonus_points.status_switch.enabled')
+    : t('bonus_points.status_switch.disabled');
+});
+
+const sourceOptions = computed(() => [
+  { label: t('bonus_points.source.manual'), value: BonusSource.Manual },
+  { label: t('bonus_points.source.register'), value: BonusSource.Register },
+  { label: t('bonus_points.source.consumption'), value: BonusSource.Consumption },
+]);
+
+const giftTypeOptions = computed(() => [
+  { label: t('bonus_points.gift_type.percentage'), value: BonusGiftType.Percentage },
+  { label: t('bonus_points.gift_type.cash'), value: BonusGiftType.Cash },
+]);
 
 // ---- 驗證 ----
 const nameInvalid = computed(() => hasError.value && !name.value.trim());
-const rewardValueInvalid = computed(
-  () => hasError.value && (rewardValue.value === null || rewardValue.value <= 0),
+const sourceInvalid = computed(() => hasError.value && source.value === null);
+const giftValueInvalid = computed(
+  () => hasError.value && (giftValue.value === null || giftValue.value <= 0),
+);
+const minSpendInvalid = computed(
+  () => hasError.value && thresholdMode.value === 'amount' && (minSpend.value === null || minSpend.value <= 0),
 );
 const periodInvalid = computed(() => hasError.value && !period.value);
 
-/** 解析 mock 的 'YYYY-MM-DD HH:mm:ss' → Date */
 function parseDate(value: string): Date | null {
   const d = new Date(value.replace(' ', 'T'));
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Date → 'YYYY-MM-DD HH:mm:ss'（時分秒以起訖端點補齊） */
-function formatDateTime(d: Date, time: string): string {
+function formatDateTime(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${time}`;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} `
+    + `${p(d.getHours())}:${p(d.getMinutes())}:00`;
 }
 
 function resetForm() {
   hasError.value = false;
   const r = props.row;
   if (r && (isEdit.value || isView.value || isCopy.value)) {
-    // 複製：以來源活動為範本，名稱補「（複製）」後綴，其餘沿用；送出時列表頁會補新 id、領取數歸零
     name.value = isCopy.value ? `${r.name}${t('bonus_points.form_dialog.copy_suffix')}` : r.name;
-    enabled.value = r.enabled;
-    rewardType.value = r.rewardType;
-    rewardValue.value = r.rewardValue;
-    pointsCap.value = r.pointsCap;
-    minSpend.value = r.minSpend;
-    claimLimit.value = r.claimLimit;
+    source.value = r.source;
+    sendLimit.value = r.sendLimit;
+    thresholdMode.value = r.minSpend > 0 ? 'amount' : 'none';
+    minSpend.value = r.minSpend > 0 ? r.minSpend : null;
+    giftType.value = r.giftType;
+    giftValue.value = r.giftValue;
+    giftCap.value = r.giftCap;
+    description.value = r.description;
+    note.value = r.note;
     const start = parseDate(r.startAt);
     const end = parseDate(r.endAt);
     period.value = start && end ? [start, end] : null;
-    description.value = r.description;
   } else {
     name.value = '';
-    enabled.value = true;
-    rewardType.value = BonusRewardType.Percentage;
-    rewardValue.value = null;
-    pointsCap.value = null;
-    minSpend.value = 0;
-    claimLimit.value = null;
-    period.value = null;
+    source.value = null;
+    sendLimit.value = null;
+    thresholdMode.value = 'none';
+    minSpend.value = null;
+    giftType.value = BonusGiftType.Percentage;
+    giftValue.value = null;
+    giftCap.value = null;
     description.value = '';
+    note.value = '';
+    period.value = null;
   }
 }
 
@@ -128,9 +176,11 @@ function handleCancel() {
 
 function handleSave() {
   const invalid = !name.value.trim()
-    || rewardValue.value === null
-    || rewardValue.value <= 0
-    || !period.value;
+    || source.value === null
+    || giftValue.value === null
+    || giftValue.value <= 0
+    || !period.value
+    || (thresholdMode.value === 'amount' && (minSpend.value === null || minSpend.value <= 0));
   if (invalid) {
     hasError.value = true;
     return;
@@ -140,17 +190,20 @@ function handleSave() {
   const payload: BonusPointsRow = {
     id: props.row?.id ?? '',
     name: name.value.trim(),
-    rewardType: rewardType.value,
-    rewardValue: rewardValue.value ?? 0,
-    pointsCap: isPercentage.value ? pointsCap.value : null,
-    minSpend: minSpend.value ?? 0,
-    claimLimit: claimLimit.value,
-    // 編輯沿用既有領取數；新增 / 複製一律歸零（複製出的是全新活動）
-    claimedCount: isEdit.value ? (props.row?.claimedCount ?? 0) : 0,
-    startAt: start ? formatDateTime(start, '08:00:00') : '',
-    endAt: end ? formatDateTime(end, '23:59:59') : '',
-    enabled: enabled.value,
-    description: description.value.trim(),
+    source: source.value ?? BonusSource.Manual,
+    sendLimit: sendLimit.value,
+    minSpend: thresholdMode.value === 'amount' ? (minSpend.value ?? 0) : 0,
+    giftType: giftType.value,
+    giftValue: giftValue.value ?? 0,
+    giftCap: isPercentage.value ? giftCap.value : null,
+    // 編輯沿用既有發送數；新增 / 複製一律歸零
+    sentCount: isEdit.value ? (props.row?.sentCount ?? 0) : 0,
+    description: description.value,
+    note: note.value.trim(),
+    startAt: start ? formatDateTime(start) : '',
+    endAt: end ? formatDateTime(end) : '',
+    // 新增 / 複製預設啟用；編輯沿用既有狀態（狀態改由列表開關控制）
+    enabled: (isEdit.value || isView.value) ? (props.row?.enabled ?? true) : true,
   };
 
   emit('submit', payload);
@@ -164,236 +217,289 @@ function handleSave() {
     modal
     :draggable="false"
     :header="dialogHeader"
-    :style="{ width: 'min(680px, calc(100vw - 32px))' }"
+    :style="{ width: 'min(720px, calc(100vw - 32px))' }"
   >
-    <div class="flex flex-col gap-6">
-      <!-- ===== 基本資料 ===== -->
-      <section class="flex flex-col gap-4">
-        <h3 class="text-base font-semibold text-[var(--p-text-color)]">
-          {{ $t('bonus_points.form_dialog.section.basic') }}
-        </h3>
+    <div class="flex flex-col gap-4">
+      <h3 class="text-base font-semibold text-[var(--p-text-color)]">
+        {{ $t('bonus_points.form_dialog.section.basic') }}
+      </h3>
 
+      <!-- 檢視模式：直接呈現資訊（唯讀） -->
+      <template v-if="isView && row">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            :label="$t('bonus_points.form_dialog.field.name')"
-            :required="!isView"
-            class-name="max-w-none"
-          >
-            <InputText
-              v-model="name"
-              fluid
-              :maxlength="60"
-              :disabled="isView"
-              :invalid="nameInvalid"
-              :placeholder="$t('bonus_points.form_dialog.placeholder.name')"
-            />
-            <Message
-              v-if="nameInvalid"
-              size="small"
-              severity="error"
-              variant="simple"
-            >
-              {{ $t('bonus_points.form_dialog.validation.name') }}
-            </Message>
-          </FormField>
-
-          <FormField
-            :label="$t('bonus_points.form_dialog.field.status')"
-            class-name="max-w-none"
-          >
-            <div class="flex h-[44px] items-center gap-2">
-              <ToggleSwitch
-                v-model="enabled"
-                :disabled="isView"
-                :aria-label="$t('bonus_points.form_dialog.field.status')"
-              />
-              <span class="text-sm text-[var(--p-text-color)]">
-                {{ enabled
-                  ? $t('bonus_points.form_dialog.status.enabled')
-                  : $t('bonus_points.form_dialog.status.disabled') }}
-              </span>
-            </div>
-          </FormField>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.name') }}</span>
+            <span class="text-sm">{{ row.name }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.status') }}</span>
+            <span class="text-sm">{{ viewStatus }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.source') }}</span>
+            <span class="text-sm">{{ viewSource }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.send_limit') }}</span>
+            <span class="text-sm">{{ viewSendLimit }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.threshold') }}</span>
+            <span class="text-sm">{{ viewThreshold }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.gift_type') }}</span>
+            <span class="text-sm">{{ viewGift }}</span>
+          </div>
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.period') }}</span>
+            <span class="text-sm">{{ viewPeriod }}</span>
+          </div>
         </div>
-      </section>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.description') }}</span>
+          <div class="text-sm" v-html="row.description || '—'"></div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.note') }}</span>
+          <span class="text-sm whitespace-pre-wrap">{{ row.note || '—' }}</span>
+        </div>
+      </template>
 
-      <!-- ===== 回饋設定 ===== -->
-      <section class="flex flex-col gap-4 border-t border-surface-200 pt-6 dark:border-surface-700">
-        <h3 class="text-base font-semibold text-[var(--p-text-color)]">
-          {{ $t('bonus_points.form_dialog.section.reward') }}
-        </h3>
+      <!-- 新增 / 編輯 / 複製：表單 -->
+      <template v-else>
+      <!-- 紅利點數名稱 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.name')"
+        :required="!isView"
+        class-name="max-w-none"
+      >
+        <InputText
+          v-model="name"
+          fluid
+          :maxlength="60"
+          :disabled="isView"
+          :invalid="nameInvalid"
+          :aria-label="$t('bonus_points.form_dialog.field.name')"
+          :placeholder="$t('bonus_points.form_dialog.placeholder.name')"
+        />
+        <Message v-if="nameInvalid" size="small" severity="error" variant="simple">
+          {{ $t('bonus_points.form_dialog.validation.name') }}
+        </Message>
+      </FormField>
 
-        <!-- 回饋方式 -->
-        <FormField
-          :label="$t('bonus_points.form_dialog.field.reward_type')"
-          :required="!isView"
-          class-name="max-w-none"
-        >
+      <!-- 取得來源 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.source')"
+        :required="!isView"
+        class-name="max-w-none"
+      >
+        <Select
+          v-model="source"
+          fluid
+          :options="sourceOptions"
+          option-label="label"
+          option-value="value"
+          :disabled="isView"
+          :invalid="sourceInvalid"
+          :aria-label="$t('bonus_points.form_dialog.field.source')"
+          :placeholder="$t('bonus_points.form_dialog.placeholder.source')"
+        />
+        <Message v-if="sourceInvalid" size="small" severity="error" variant="simple">
+          {{ $t('bonus_points.form_dialog.validation.source') }}
+        </Message>
+      </FormField>
+
+      <!-- 發送人數限制 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.send_limit')"
+        :hint="$t('bonus_points.form_dialog.hint.send_limit')"
+        class-name="max-w-none"
+      >
+        <InputNumber
+          v-model="sendLimit"
+          :min="0"
+          :max="9999999"
+          :max-fraction-digits="0"
+          :disabled="isView"
+          :aria-label="$t('bonus_points.form_dialog.field.send_limit')"
+          class="w-48"
+          :input-style="{ width: '100%' }"
+          :placeholder="$t('bonus_points.form_dialog.placeholder.send_limit')"
+        />
+      </FormField>
+
+      <!-- 取得門檻 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.threshold')"
+        class-name="max-w-none"
+      >
+        <div class="flex flex-col gap-2">
           <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
             <div class="flex items-center gap-2">
               <RadioButton
-                v-model="rewardType"
-                :value="BonusRewardType.Percentage"
-                input-id="bonus-reward-percentage"
+                v-model="thresholdMode"
+                value="none"
+                input-id="bonus-threshold-none"
                 :disabled="isView"
               />
-              <label for="bonus-reward-percentage" class="text-sm text-[var(--p-text-color)]" :class="{ 'cursor-pointer': !isView }">
-                {{ $t('bonus_points.reward_type.percentage') }}
+              <label for="bonus-threshold-none" class="text-sm text-[var(--p-text-color)]" :class="{ 'cursor-pointer': !isView }">
+                {{ $t('bonus_points.form_dialog.threshold.none') }}
               </label>
             </div>
             <div class="flex items-center gap-2">
               <RadioButton
-                v-model="rewardType"
-                :value="BonusRewardType.Fixed"
-                input-id="bonus-reward-fixed"
+                v-model="thresholdMode"
+                value="amount"
+                input-id="bonus-threshold-amount"
                 :disabled="isView"
               />
-              <label for="bonus-reward-fixed" class="text-sm text-[var(--p-text-color)]" :class="{ 'cursor-pointer': !isView }">
-                {{ $t('bonus_points.reward_type.fixed') }}
+              <label for="bonus-threshold-amount" class="text-sm text-[var(--p-text-color)]" :class="{ 'cursor-pointer': !isView }">
+                {{ $t('bonus_points.form_dialog.threshold.amount') }}
               </label>
+              <InputNumber
+                v-model="minSpend"
+                :min="0"
+                :max="9999999"
+                :max-fraction-digits="0"
+                prefix="NT$ "
+                :disabled="isView || thresholdMode !== 'amount'"
+                :invalid="minSpendInvalid"
+                :aria-label="$t('bonus_points.form_dialog.threshold.amount')"
+                class="w-40"
+                :input-style="{ width: '100%' }"
+              />
             </div>
           </div>
-        </FormField>
-
-        <!-- 回饋值（+ 上限點數，比例制才顯示）／消費門檻：共用同一組 grid 欄寬避免切換跳版 -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            :label="rewardValueLabel"
-            :required="!isView"
-            class-name="max-w-none"
-          >
-            <InputNumber
-              v-model="rewardValue"
-              fluid
-              :min="0"
-              :max="isPercentage ? 100 : 9999999"
-              :max-fraction-digits="isPercentage ? 2 : 0"
-              :suffix="isPercentage ? ' %' : undefined"
-              :disabled="isView"
-              :invalid="rewardValueInvalid"
-            />
-            <Message
-              v-if="rewardValueInvalid"
-              size="small"
-              severity="error"
-              variant="simple"
-            >
-              {{ $t('bonus_points.form_dialog.validation.reward_value') }}
-            </Message>
-          </FormField>
-
-          <FormField
-            v-if="isPercentage"
-            :label="`${$t('bonus_points.form_dialog.field.points_cap')}${$t('bonus_points.form_dialog.optional_suffix')}`"
-            :hint="$t('bonus_points.form_dialog.hint.points_cap')"
-            class-name="max-w-none"
-          >
-            <InputNumber
-              v-model="pointsCap"
-              fluid
-              :min="0"
-              :max="9999999"
-              :max-fraction-digits="0"
-              :suffix="` ${$t('bonus_points.form_dialog.unit.points')}`"
-              :disabled="isView"
-              :placeholder="$t('bonus_points.value.unlimited')"
-            />
-          </FormField>
-          <!-- 固定制無上限欄位，留空 div 佔位維持右欄不塌陷 -->
-          <div v-else class="hidden sm:block"></div>
-
-          <FormField
-            :label="$t('bonus_points.form_dialog.field.min_spend')"
-            :hint="$t('bonus_points.form_dialog.hint.min_spend')"
-            class-name="max-w-none"
-          >
-            <InputNumber
-              v-model="minSpend"
-              fluid
-              :min="0"
-              :max="9999999"
-              :max-fraction-digits="0"
-              prefix="NT$ "
-              :disabled="isView"
-            />
-          </FormField>
+          <Message v-if="minSpendInvalid" size="small" severity="error" variant="simple">
+            {{ $t('bonus_points.form_dialog.validation.min_spend') }}
+          </Message>
         </div>
-      </section>
+      </FormField>
 
-      <!-- ===== 活動期間與名額 ===== -->
-      <section class="flex flex-col gap-4 border-t border-surface-200 pt-6 dark:border-surface-700">
-        <h3 class="text-base font-semibold text-[var(--p-text-color)]">
-          {{ $t('bonus_points.form_dialog.section.schedule') }}
-        </h3>
-
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            :label="$t('bonus_points.form_dialog.field.period')"
-            :required="!isView"
-            class-name="max-w-none"
-          >
-            <DatePicker
-              v-model="period"
-              selection-mode="range"
-              date-format="yy/mm/dd"
-              show-icon
-              fluid
-              :manual-input="false"
-              :disabled="isView"
-              :invalid="periodInvalid"
-              :placeholder="$t('bonus_points.form_dialog.placeholder.period')"
-            />
-            <Message
-              v-if="periodInvalid"
-              size="small"
-              severity="error"
-              variant="simple"
-            >
-              {{ $t('bonus_points.form_dialog.validation.period') }}
-            </Message>
-          </FormField>
-
-          <FormField
-            :label="`${$t('bonus_points.form_dialog.field.claim_limit')}${$t('bonus_points.form_dialog.optional_suffix')}`"
-            :hint="$t('bonus_points.form_dialog.hint.claim_limit')"
-            class-name="max-w-none"
-          >
-            <InputNumber
-              v-model="claimLimit"
-              fluid
-              :min="0"
-              :max="9999999"
-              :max-fraction-digits="0"
-              :suffix="` ${$t('bonus_points.form_dialog.unit.people')}`"
-              :disabled="isView"
-              :placeholder="$t('bonus_points.form_dialog.placeholder.claim_limit')"
-            />
-          </FormField>
-        </div>
-      </section>
-
-      <!-- ===== 活動說明 ===== -->
-      <section class="flex flex-col gap-4 border-t border-surface-200 pt-6 dark:border-surface-700">
-        <h3 class="text-base font-semibold text-[var(--p-text-color)]">
-          {{ $t('bonus_points.form_dialog.section.note') }}
-        </h3>
-
-        <FormField
-          :label="`${$t('bonus_points.form_dialog.field.description')}${$t('bonus_points.form_dialog.optional_suffix')}`"
-          :hint="$t('bonus_points.form_dialog.hint.description')"
-          class-name="max-w-none"
-        >
-          <Textarea
-            v-model="description"
-            fluid
-            auto-resize
-            rows="3"
-            :maxlength="200"
+      <!-- 贈送類型 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.gift_type')"
+        :required="!isView"
+        class-name="max-w-none"
+      >
+        <InputGroup>
+          <Select
+            v-model="giftType"
+            :options="giftTypeOptions"
+            option-label="label"
+            option-value="value"
             :disabled="isView"
-            :placeholder="$t('bonus_points.form_dialog.placeholder.description')"
+            :aria-label="$t('bonus_points.form_dialog.field.gift_type')"
+            class="w-auto shrink-0"
           />
-        </FormField>
-      </section>
+          <InputNumber
+            v-model="giftValue"
+            :min="0"
+            :max="isPercentage ? 100 : 9999999"
+            :max-fraction-digits="isPercentage ? 2 : 0"
+            :disabled="isView"
+            :invalid="giftValueInvalid"
+            :aria-label="$t('bonus_points.form_dialog.field.gift_type')"
+            :input-style="{ width: '100%' }"
+          />
+          <InputGroupAddon>
+            {{ isPercentage ? '%' : $t('bonus_points.form_dialog.unit.yuan') }}
+          </InputGroupAddon>
+        </InputGroup>
+        <Message v-if="giftValueInvalid" size="small" severity="error" variant="simple">
+          {{ $t('bonus_points.form_dialog.validation.gift_value') }}
+        </Message>
+        <!-- 百分比類型說明框 -->
+        <Message v-if="isPercentage" severity="info" :closable="false" class="mt-1">
+          <div class="flex flex-col gap-1 text-sm">
+            <span>{{ $t('bonus_points.form_dialog.percent_note.line1') }}</span>
+            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.percent_note.line2') }}</span>
+          </div>
+        </Message>
+      </FormField>
+
+      <!-- 單筆贈送上限（百分比才顯示） -->
+      <FormField
+        v-if="isPercentage"
+        :label="$t('bonus_points.form_dialog.field.gift_cap')"
+        :hint="$t('bonus_points.form_dialog.hint.gift_cap')"
+        class-name="max-w-none"
+      >
+        <InputNumber
+          v-model="giftCap"
+          :min="0"
+          :max="9999999"
+          :max-fraction-digits="0"
+          prefix="NT$ "
+          :disabled="isView"
+          :aria-label="$t('bonus_points.form_dialog.field.gift_cap')"
+          class="w-56"
+          :input-style="{ width: '100%' }"
+          :placeholder="$t('bonus_points.value.unlimited')"
+        />
+      </FormField>
+
+      <!-- 描述（富文本） -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.description')"
+        class-name="max-w-none"
+      >
+        <Editor
+          v-if="!isView"
+          v-model="description"
+          editor-style="height: 180px"
+        />
+        <div
+          v-else
+          class="min-h-[80px] rounded-md border border-[var(--p-content-border-color)] px-3 py-2 text-sm"
+          v-html="description || '—'"
+        ></div>
+      </FormField>
+
+      <!-- 紅利點數備註 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.note')"
+        class-name="max-w-none"
+      >
+        <Textarea
+          v-model="note"
+          fluid
+          auto-resize
+          rows="3"
+          :maxlength="200"
+          :disabled="isView"
+          :aria-label="$t('bonus_points.form_dialog.field.note')"
+          :placeholder="$t('bonus_points.form_dialog.placeholder.note')"
+        />
+      </FormField>
+
+      <!-- 開始至結束時間 -->
+      <FormField
+        :label="$t('bonus_points.form_dialog.field.period')"
+        :required="!isView"
+        class-name="max-w-none"
+      >
+        <DatePicker
+          v-model="period"
+          selection-mode="range"
+          show-time
+          hour-format="24"
+          date-format="yy-mm-dd"
+          show-icon
+          icon-display="input"
+          :manual-input="false"
+          :disabled="isView"
+          :invalid="periodInvalid"
+          :aria-label="$t('bonus_points.form_dialog.field.period')"
+          fluid
+          :placeholder="$t('bonus_points.form_dialog.placeholder.period')"
+        />
+        <Message v-if="periodInvalid" size="small" severity="error" variant="simple">
+          {{ $t('bonus_points.form_dialog.validation.period') }}
+        </Message>
+      </FormField>
+      </template>
     </div>
 
     <template #footer>
@@ -416,9 +522,7 @@ function handleSave() {
           />
           <Button
             type="button"
-            :label="isEdit
-              ? $t('bonus_points.form_dialog.button.save')
-              : $t('bonus_points.form_dialog.button.create')"
+            :label="$t('bonus_points.form_dialog.button.save')"
             @click="handleSave"
           />
         </template>
