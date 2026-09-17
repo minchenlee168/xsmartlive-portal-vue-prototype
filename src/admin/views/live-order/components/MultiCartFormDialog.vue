@@ -12,8 +12,7 @@ import { computed, ref, watch } from 'vue'
  *    運費設定（物流方式 × 付款方式 × 地區 × 溫層 矩陣，帶預設值可編輯）
  * 4. 行銷設定：優惠券 / 紅利點數
  *
- * 設計決議：不放「結帳發票顯示」；ⓘ 說明用 hover 顯示。
- * 免運設定已從彈窗移除（列表仍顯示免運狀態；編輯沿用既有值）。
+ * 設計決議：不放「結帳發票顯示」；ⓘ 說明用 hover 顯示。免運設定已完全移除（彈窗與列表皆不顯示）。
  * 驗證：名稱未填、運費金額為負數 → 紅框標示且不可儲存。
  */
 
@@ -34,8 +33,6 @@ export interface MultiCartRecord {
   temp: TempLayer
   coupon: boolean
   reward: boolean
-  /** 免運門檻；null = 未設定 */
-  freeShip: number | null
   on: boolean
   payList: string[]
   logiList: string[]
@@ -101,7 +98,7 @@ const PAY_OPTIONS = [
   'LINE Pay',
   'iPASS MONEY',
   '貨到付款',
-  '現金付款（限自取）',
+  '取貨現場付款（限自取）',
 ]
 /** 物流方式；自取不計運費 */
 const LOGI_OPTIONS: Array<{ value: string; noFee?: boolean }> = [
@@ -377,8 +374,6 @@ function onSave(): void {
       temp: temp.value,
       coupon: couponOn.value,
       reward: rewardOn.value,
-      // 免運設定已從彈窗移除：編輯沿用既有值、新增為未設定（列表仍顯示免運狀態）
-      freeShip: props.initial?.freeShip ?? null,
       payList: PAY_OPTIONS.filter((p) => payList.value.has(p)),
       logiList: LOGI_OPTIONS.filter((o) => logiList.value.has(o.value)).map((o) => o.value),
       feeVals: { ...feeVals.value },

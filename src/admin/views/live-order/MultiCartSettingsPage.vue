@@ -33,7 +33,6 @@ const carts = ref<MultiCartRecord[]>([
     temp: '常溫',
     coupon: true,
     reward: true,
-    freeShip: 2000,
     on: true,
     payList: ['線上信用卡（藍新）', 'Apple Pay', 'ATM 繳費帳號', '超商代碼繳費', 'LINE Pay', '貨到付款'],
     logiList: ['宅配', '超商配送', '自取'],
@@ -47,7 +46,6 @@ const carts = ref<MultiCartRecord[]>([
     temp: '常溫',
     coupon: true,
     reward: true,
-    freeShip: 2000,
     on: true,
     payList: ['線上信用卡（藍新）', 'Apple Pay', 'ATM 繳費帳號', '超商代碼繳費', 'LINE Pay', '貨到付款'],
     logiList: ['宅配', '超商配送', '跨境', '自取', '商家自建（如郵局）'],
@@ -61,7 +59,6 @@ const carts = ref<MultiCartRecord[]>([
     temp: '常溫',
     coupon: false,
     reward: false,
-    freeShip: null,
     on: true,
     payList: ['貨到付款'],
     logiList: ['宅配', '超商配送'],
@@ -75,7 +72,6 @@ const carts = ref<MultiCartRecord[]>([
     temp: '冷凍',
     coupon: true,
     reward: false,
-    freeShip: 1500,
     on: true,
     payList: ['線上信用卡（藍新）', 'Apple Pay', 'LINE Pay'],
     logiList: ['宅配', '跨境'],
@@ -89,7 +85,6 @@ const carts = ref<MultiCartRecord[]>([
     temp: '冷藏',
     coupon: false,
     reward: true,
-    freeShip: null,
     on: false,
     payList: ['轉帳匯款', '貨到付款'],
     logiList: ['商家自建（如郵局）'],
@@ -103,7 +98,6 @@ const carts = ref<MultiCartRecord[]>([
     temp: '常溫',
     coupon: false,
     reward: true,
-    freeShip: 3000,
     on: true,
     payList: ['ATM 繳費帳號', '貨到付款'],
     logiList: ['宅配', '商家自建（如郵局）'],
@@ -216,9 +210,6 @@ function summaryOf(c: MultiCartRecord): SummaryLine[] {
       parts: [
         c.coupon ? { text: '啟用優惠券', tone: 'green' } : { text: '關閉優惠券', off: true },
         c.reward ? { text: '啟用紅利', tone: 'green' } : { text: '關閉紅利', off: true },
-        c.freeShip != null
-          ? { text: `免運滿 $${c.freeShip.toLocaleString()}` }
-          : { text: '未設定免運', off: true },
       ],
     },
   ]
