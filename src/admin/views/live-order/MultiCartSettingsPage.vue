@@ -155,17 +155,26 @@ function onResetFilters(): void {
 }
 
 const visibleCarts = computed(() =>
-  carts.value.filter((c) => {
-    if (c.deleted) return false
-    if (onlyEnabled.value && !c.on) return false
-    if (appliedStatus.value === 'on' && !c.on) return false
-    if (appliedStatus.value === 'off' && c.on) return false
-    if (appliedMode.value && c.mode !== appliedMode.value) return false
-    if (appliedTemp.value && c.temp !== appliedTemp.value) return false
-    const kw = appliedKeyword.value
-    if (kw && !`${c.name} ${c.id}`.includes(kw)) return false
-    return true
-  }),
+  carts.value
+    .filter((c) => {
+      if (c.deleted) return false
+      if (onlyEnabled.value && !c.on) return false
+      if (appliedStatus.value === 'on' && !c.on) return false
+      if (appliedStatus.value === 'off' && c.on) return false
+      if (appliedMode.value && c.mode !== appliedMode.value) return false
+      if (appliedTemp.value && c.temp !== appliedTemp.value) return false
+      const kw = appliedKeyword.value
+      if (kw && !`${c.name} ${c.id}`.includes(kw)) return false
+      return true
+    })
+    .sort((a, b) => {
+      // 1) 釘選的資料排到最上方
+      if (!!a.pinned !== !!b.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+      // 2) 同為釘選（或同為未釘選）時，預設購物車（locked）排在前面
+      if (!!a.locked !== !!b.locked) return (b.locked ? 1 : 0) - (a.locked ? 1 : 0)
+      // 3) 其餘維持原本相對順序（穩定排序）
+      return 0
+    }),
 )
 
 // ── 分頁（每頁 10 為單位） ─────────────────────
@@ -289,18 +298,14 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
   })
 }
 
-/** 釘選＝設為預設購物車：清掉其他車的 locked、標記本車、並移到第一列（預設車須啟用） */
-function onSetDefault(c: MultiCartRecord): void {
-  if (c.locked) return
-  carts.value.forEach((x) => { x.locked = false })
-  c.locked = true
-  c.on = true
-  const idx = carts.value.indexOf(c)
-  if (idx > 0) {
-    carts.value.splice(idx, 1)
-    carts.value.unshift(c)
-  }
-  toast.add({ severity: 'success', summary: `已將「${c.name}」設為預設購物車`, life: 1800 })
+/** 釘選置頂：純資料排序，將該筆釘到列表最上方；不影響 locked／預設購物車、啟用狀態 */
+function onTogglePin(c: MultiCartRecord): void {
+  c.pinned = !c.pinned
+  toast.add({
+    severity: 'success',
+    summary: c.pinned ? `已將「${c.name}」釘選置頂` : `已取消釘選「${c.name}」`,
+    life: 1800,
+  })
 }
 </script>
 
@@ -471,25 +476,25 @@ function onSetDefault(c: MultiCartRecord): void {
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
                 <Button
-                  v-if="data.locked"
-                  v-tooltip.top="'目前的預設購物車'"
+                  v-if="data.pinned"
+                  v-tooltip.top="'取消釘選'"
                   icon="pi pi-thumbtack"
                   variant="text"
                   rounded
                   size="small"
-                  :aria-label="`${data.name} 為目前的預設購物車`"
-                  @click="onSetDefault(data)"
+                  :aria-label="`取消釘選 ${data.name}`"
+                  @click="onTogglePin(data)"
                 />
                 <Button
                   v-else
-                  v-tooltip.top="'設為預設購物車'"
+                  v-tooltip.top="'釘選置頂'"
                   icon="pi pi-thumbtack"
                   severity="secondary"
                   variant="text"
                   rounded
                   size="small"
-                  :aria-label="`將 ${data.name} 設為預設購物車`"
-                  @click="onSetDefault(data)"
+                  :aria-label="`將 ${data.name} 釘選置頂`"
+                  @click="onTogglePin(data)"
                 />
                 <Button
                   v-tooltip.top="'編輯'"
@@ -579,25 +584,25 @@ function onSetDefault(c: MultiCartRecord): void {
               <span class="text-xs text-[var(--p-text-muted-color)]">{{ c.date }}</span>
               <div class="flex items-center gap-1 ml-auto">
                 <Button
-                  v-if="c.locked"
-                  v-tooltip.top="'目前的預設購物車'"
+                  v-if="c.pinned"
+                  v-tooltip.top="'取消釘選'"
                   icon="pi pi-thumbtack"
                   variant="text"
                   rounded
                   size="small"
-                  :aria-label="`${c.name} 為目前的預設購物車`"
-                  @click="onSetDefault(c)"
+                  :aria-label="`取消釘選 ${c.name}`"
+                  @click="onTogglePin(c)"
                 />
                 <Button
                   v-else
-                  v-tooltip.top="'設為預設購物車'"
+                  v-tooltip.top="'釘選置頂'"
                   icon="pi pi-thumbtack"
                   severity="secondary"
                   variant="text"
                   rounded
                   size="small"
-                  :aria-label="`將 ${c.name} 設為預設購物車`"
-                  @click="onSetDefault(c)"
+                  :aria-label="`將 ${c.name} 釘選置頂`"
+                  @click="onTogglePin(c)"
                 />
                 <Button
                   v-tooltip.top="'編輯'"

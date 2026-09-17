@@ -10,10 +10,11 @@ import { computed, ref, watch } from 'vue'
  *    勾「轉帳匯款」時顯示「轉帳匯款金流備註」（文字編輯器）
  * 3. 物流設定：配送溫層（單選）/ 物流方式設定（複選，自取不計運費）/
  *    運費設定（物流方式 × 付款方式 × 地區 × 溫層 矩陣，帶預設值可編輯）
- * 4. 行銷設定：優惠券 / 紅利點數 / 免運設定（留空表示不設定）
+ * 4. 行銷設定：優惠券 / 紅利點數
  *
  * 設計決議：不放「結帳發票顯示」；ⓘ 說明用 hover 顯示。
- * 驗證：名稱未填、免運或運費金額為負數 → 紅框標示且不可儲存。
+ * 免運設定已從彈窗移除（列表仍顯示免運狀態；編輯沿用既有值）。
+ * 驗證：名稱未填、運費金額為負數 → 紅框標示且不可儲存。
  */
 
 export type CheckoutMode = '標單必結' | '自選結帳' | '棄標結帳' | '暫停結帳' | '商城結帳'
@@ -25,6 +26,8 @@ export interface MultiCartRecord {
   id: string
   desc: string
   locked?: boolean
+  /** 釘選置頂（資料排序用，與 locked／預設購物車無關） */
+  pinned?: boolean
   /** 轉帳匯款金流備註（HTML） */
   note?: string
   mode: CheckoutMode
@@ -187,7 +190,6 @@ const logiList = ref<Set<string>>(new Set())
 const transferNote = ref('')
 const couponOn = ref(true)
 const rewardOn = ref(true)
-const freeShip = ref<number | null>(null)
 const feeVals = ref<Record<string, number>>({})
 const feeOff = ref<Record<string, boolean>>({})
 const feeEdit = ref<Record<string, boolean>>({})
@@ -204,7 +206,6 @@ function applyRecord(d: MultiCartRecord): void {
   logiList.value = new Set(d.logiList)
   couponOn.value = d.coupon
   rewardOn.value = d.reward
-  freeShip.value = d.freeShip
   feeVals.value = { ...(d.feeVals ?? {}) }
   feeOff.value = { ...(d.feeOff ?? {}) }
 }
@@ -349,9 +350,8 @@ function resetFees(block: FeeBlock): void {
   )
 }
 
-// ── 驗證（名稱必填；免運 / 運費不可為負數） ────
+// ── 驗證（名稱必填；運費不可為負數） ────
 const isNameInvalid = computed(() => hasTriedSave.value && name.value.trim() === '')
-const isFreeShipInvalid = computed(() => freeShip.value != null && freeShip.value < 0)
 const hasNegativeFee = computed(() => Object.values(feeVals.value).some((v) => v < 0))
 /** 有負數運費的溫層；因畫面只顯示當前溫層，錯誤訊息需指出問題落在哪個溫層 */
 const negativeFeeTemps = computed<TempLayer[]>(() => {
@@ -362,7 +362,7 @@ const negativeFeeTemps = computed<TempLayer[]>(() => {
   return [...set]
 })
 const canSave = computed(
-  () => name.value.trim() !== '' && !isFreeShipInvalid.value && !hasNegativeFee.value,
+  () => name.value.trim() !== '' && !hasNegativeFee.value,
 )
 
 // ── 動作 ──────────────────────────────────────
@@ -386,7 +386,8 @@ function onSave(): void {
       temp: temp.value,
       coupon: couponOn.value,
       reward: rewardOn.value,
-      freeShip: freeShip.value,
+      // 免運設定已從彈窗移除：編輯沿用既有值、新增為未設定（列表仍顯示免運狀態）
+      freeShip: props.initial?.freeShip ?? null,
       payList: PAY_OPTIONS.filter((p) => payList.value.has(p)),
       logiList: LOGI_OPTIONS.filter((o) => logiList.value.has(o.value)).map((o) => o.value),
       feeVals: { ...feeVals.value },
@@ -415,7 +416,7 @@ function onSave(): void {
 
     <div class="max-h-[calc(85vh-160px)] overflow-y-auto pt-2 pb-4">
       <Message v-if="hasTriedSave && !canSave" severity="error" class="mb-4" :closable="false">
-        請確認紅框標示的欄位皆已正確填寫／選擇（免運金額不可為負數）。
+        請確認紅框標示的欄位皆已正確填寫／選擇（運費金額不可為負數）。
         <template v-if="negativeFeeTemps.length">
           <br />運費為負數的溫層：{{ negativeFeeTemps.join('、') }}，請切換至該溫層修正。
         </template>
@@ -699,25 +700,12 @@ function onSave(): void {
           <span class="text-sm text-[var(--p-text-color)]">{{ couponOn ? '啟用' : '關閉' }}</span>
         </label>
       </div>
-      <div class="flex flex-col gap-2 mb-4">
+      <div class="flex flex-col gap-2 mb-2">
         <span class="text-sm text-[var(--p-text-color)]">紅利點數</span>
         <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
           <ToggleSwitch v-model="rewardOn" aria-label="紅利點數" />
           <span class="text-sm text-[var(--p-text-color)]">{{ rewardOn ? '啟用' : '關閉' }}</span>
         </label>
-      </div>
-      <div class="flex flex-col gap-2 mb-2">
-        <label for="mc-freeship" class="text-sm text-[var(--p-text-color)]">
-          免運設定 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">滿多少元免運（留空表示不設定）</span>
-        </label>
-        <InputNumber
-          v-model="freeShip"
-          input-id="mc-freeship"
-          :invalid="isFreeShipInvalid"
-          :use-grouping="false"
-          placeholder="例如 2000"
-          input-class="!w-[200px]"
-        />
       </div>
     </div>
 
