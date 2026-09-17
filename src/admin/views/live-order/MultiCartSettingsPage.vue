@@ -168,10 +168,10 @@ const visibleCarts = computed(() =>
       return true
     })
     .sort((a, b) => {
-      // 1) 釘選的資料排到最上方
-      if (!!a.pinned !== !!b.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
-      // 2) 同為釘選（或同為未釘選）時，預設購物車（locked）排在前面
+      // 1) 預設購物車（locked）永遠排在最上方（釘選鈕停用、固定第一筆）
       if (!!a.locked !== !!b.locked) return (b.locked ? 1 : 0) - (a.locked ? 1 : 0)
+      // 2) 其餘：釘選的資料排到前面
+      if (!!a.pinned !== !!b.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
       // 3) 其餘維持原本相對順序（穩定排序）
       return 0
     }),
@@ -300,6 +300,7 @@ function onDeleteCart(c: MultiCartRecord, event: Event): void {
 
 /** 釘選置頂：純資料排序，將該筆釘到列表最上方；不影響 locked／預設購物車、啟用狀態 */
 function onTogglePin(c: MultiCartRecord): void {
+  if (c.locked) return // 預設購物車固定置頂，釘選鈕停用
   c.pinned = !c.pinned
   toast.add({
     severity: 'success',
@@ -476,7 +477,18 @@ function onTogglePin(c: MultiCartRecord): void {
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
                 <Button
-                  v-if="data.pinned"
+                  v-if="data.locked"
+                  v-tooltip.top="'預設購物車固定置頂'"
+                  icon="pi pi-thumbtack"
+                  severity="secondary"
+                  variant="text"
+                  rounded
+                  size="small"
+                  disabled
+                  :aria-label="`${data.name} 為預設購物車，固定置頂`"
+                />
+                <Button
+                  v-else-if="data.pinned"
                   v-tooltip.top="'取消釘選'"
                   icon="pi pi-thumbtack"
                   variant="text"
@@ -584,7 +596,18 @@ function onTogglePin(c: MultiCartRecord): void {
               <span class="text-xs text-[var(--p-text-muted-color)]">{{ c.date }}</span>
               <div class="flex items-center gap-1 ml-auto">
                 <Button
-                  v-if="c.pinned"
+                  v-if="c.locked"
+                  v-tooltip.top="'預設購物車固定置頂'"
+                  icon="pi pi-thumbtack"
+                  severity="secondary"
+                  variant="text"
+                  rounded
+                  size="small"
+                  disabled
+                  :aria-label="`${c.name} 為預設購物車，固定置頂`"
+                />
+                <Button
+                  v-else-if="c.pinned"
                   v-tooltip.top="'取消釘選'"
                   icon="pi pi-thumbtack"
                   variant="text"

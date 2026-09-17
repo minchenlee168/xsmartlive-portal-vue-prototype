@@ -111,8 +111,8 @@ const LOGI_OPTIONS: Array<{ value: string; noFee?: boolean }> = [
   { value: '自取', noFee: true },
   { value: '商家自建（如郵局）' },
 ]
-/** checkbox 群組只放「會計運費」的物流方式；自取獨立為開關（見下方 selfPickupOn） */
-const logiMethodOptions = LOGI_OPTIONS.filter((o) => o.value !== '自取')
+/** 物流方式勾選群組（含自取；自取不計運費、不進運費矩陣） */
+const logiMethodOptions = LOGI_OPTIONS
 const TEMP_OPTIONS: TempLayer[] = ['常溫', '冷藏', '冷凍']
 
 // ── 運費矩陣定義（與規劃原始設計一致） ─────────
@@ -243,15 +243,6 @@ function toggleLogi(v: string): void {
   next.has(v) ? next.delete(v) : next.add(v)
   logiList.value = next
 }
-/** 自取獨立開關；資料仍存於 logiList（payload 不變），僅呈現改為 ToggleSwitch */
-const selfPickupOn = computed<boolean>({
-  get: () => logiList.value.has('自取'),
-  set: (v) => {
-    const next = new Set(logiList.value)
-    v ? next.add('自取') : next.delete('自取')
-    logiList.value = next
-  },
-})
 const isTransferSelected = computed(() => payList.value.has('轉帳匯款'))
 
 // ── 運費矩陣 ──────────────────────────────────
@@ -524,19 +515,9 @@ function onSave(): void {
               @update:model-value="toggleLogi(o.value)"
             />
             <label :for="`mc-logi-${o.value}`" class="text-sm text-[var(--p-text-color)] cursor-pointer whitespace-nowrap">
-              {{ o.value }}
+              {{ o.value }}<span v-if="o.noFee" class="text-xs font-normal text-[var(--p-text-muted-color)]">（不計運費）</span>
             </label>
           </span>
-        </div>
-        <!-- 自取獨立為開關：不計運費、無物流商、不進運費矩陣，與其他物流方式性質不同 -->
-        <div class="flex flex-col gap-2 mt-1">
-          <span class="text-sm text-[var(--p-text-color)]">
-            自取 <span class="text-xs font-normal text-[var(--p-text-muted-color)]">（不計運費）</span>
-          </span>
-          <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
-            <ToggleSwitch v-model="selfPickupOn" aria-label="自取" />
-            <span class="text-sm text-[var(--p-text-color)]">{{ selfPickupOn ? '啟用' : '關閉' }}</span>
-          </label>
         </div>
       </div>
 
