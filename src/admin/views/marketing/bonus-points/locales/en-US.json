@@ -5,7 +5,8 @@
       "parent": "Marketing"
     },
     "subtitle": "Manage member rewards and spending incentives with bonus points.",
-    "conversion_badge": "Conversion rate: 1 point = NT$1",
+    "currency_label": "Store currency",
+    "conversion_badge": "Conversion rate: 1 point = {symbol}1",
     "status_tab": {
       "all": "All",
       "in_progress": "Active",
@@ -18,7 +19,6 @@
       "ended": "Ended"
     },
     "source": {
-      "manual": "Manual",
       "register": "Registration",
       "consumption": "Purchase"
     },
@@ -33,6 +33,7 @@
     },
     "button": {
       "create": "New bonus points",
+      "manual_grant": "Manual grant",
       "search": "Search",
       "batch_delete": "Bulk delete",
       "batch_delete_confirm": "Delete selected",
@@ -63,11 +64,11 @@
       "full": "Full",
       "times": "{value}x",
       "percent": "{value}%",
-      "cash": "NT${value}",
+      "cash": "{amount}",
       "points": "{value} pts",
       "points_cap": "Cap {value} pts",
       "no_threshold": "No threshold",
-      "min_spend": "Min NT${value}"
+      "min_spend": "Min {amount}"
     },
     "batch": {
       "selected": "{count} selected",
@@ -147,6 +148,69 @@
       },
       "close": "Close"
     },
+    "manual_grant": {
+      "title": "Manual grant",
+      "filter": {
+        "keyword_field_label": "Search field",
+        "keyword_field": {
+          "name": "Name",
+          "code": "Member no.",
+          "phone": "Full phone number"
+        },
+        "keyword_placeholder": {
+          "name": "Enter name",
+          "code": "Enter member no.",
+          "phone": "Enter full phone number"
+        },
+        "level_all": "All levels",
+        "status_all": "All statuses",
+        "star_all": "All ratings",
+        "blacklist_only": "Blacklisted only",
+        "search": "Search",
+        "reset": "Clear"
+      },
+      "level": {
+        "normal": "Regular",
+        "bronze": "Bronze",
+        "silver": "Silver",
+        "gold": "Gold"
+      },
+      "status": {
+        "normal": "Active",
+        "suspended": "Suspended"
+      },
+      "stars_rating": "{count} stars",
+      "list": {
+        "title": "Members",
+        "selected_count": "{selected} selected / {filtered} matched",
+        "empty": "No members match your filters"
+      },
+      "col": {
+        "no": "Member no.",
+        "name": "Name",
+        "level": "Level",
+        "points": "Current points"
+      },
+      "field": {
+        "points": "Points to grant",
+        "reason": "Reason / note"
+      },
+      "hint": {
+        "reason": "Optional; note the reason for auditing later."
+      },
+      "placeholder": {
+        "points": "Enter points",
+        "reason": "e.g. complaint compensation, campaign bonus"
+      },
+      "summary": "{count} members selected, {points} points each, {total} points total",
+      "button": {
+        "cancel": "Cancel",
+        "confirm": "Grant points"
+      },
+      "toast": {
+        "granted": "Granted {points} points to {count} members"
+      }
+    },
     "form_dialog": {
       "header": {
         "create": "New bonus points",
@@ -166,6 +230,7 @@
         "per_member_limit": "Per-member limit",
         "threshold": "Threshold",
         "gift_type": "Point condition",
+        "gift_points": "Points to grant",
         "gift_cap": "Per-order cap",
         "description": "Description",
         "note": "Note",
@@ -176,16 +241,29 @@
         "amount": "Spend at least"
       },
       "unit": {
-        "point": "pts",
-        "yuan": "NT$"
+        "point": "pts"
       },
       "percent_note": {
         "line1": "Percentage: grant points as a ratio of the spend; you can set a per-order cap.",
-        "line2": "E.g. spend NT$100 at 10% → earn 10 bonus points."
+        "line2": "E.g. spend {symbol}100 at 10% → earn 10 bonus points."
       },
       "cash_note": {
-        "line1": "Cash: grant a fixed amount of bonus points per order (1 point = NT$1).",
-        "line2": "E.g. set NT$100 → earn 100 bonus points per order."
+        "line1": "Cash: grant a fixed amount of bonus points per order (1 point = {symbol}1).",
+        "line2": "E.g. set {symbol}100 → earn 100 bonus points per order."
+      },
+      "register_note": {
+        "line1": "Grant a fixed number of points on registration (1 point = {symbol}1).",
+        "line2": "E.g. set {symbol}100 → a new member earns 100 bonus points on sign-up."
+      },
+      "cross_currency": {
+        "title": "Cross-currency deduction",
+        "hint": "Points are denominated in the store currency; converted and rounded when paying in another currency",
+        "desc": "Bonus points are denominated in the store currency (currently {currency}). When a member checks out in another currency, the system converts the points to deduct by the exchange rate and rounds to that currency's smallest unit (0 decimals for TWD, 2 for MYR) before deducting.",
+        "example_title": "Example",
+        "example_line1": "Member holds 200 bonus points (denominated in TWD)",
+        "example_line2": "Product priced at 200 MYR, TWD→MYR rate 7.1",
+        "example_line3": "Deduction: 200 ÷ 7.1 = 27.348 → rounded to 27.35 MYR",
+        "example_line4": "Actual payment: 200 − 27.35 = 172.65 MYR"
       },
       "placeholder": {
         "name": "Enter activity name...",

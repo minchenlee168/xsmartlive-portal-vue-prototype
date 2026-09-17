@@ -6,23 +6,39 @@
  * — 取得門檻選「消費滿」才啟用金額；贈送類型選「百分比」才顯示說明框與單筆贈送上限
  * — footer：取消 / 儲存（檢視模式僅關閉）；原型階段不打後端，emit 表單資料交由列表頁寫入
  */
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import FormField from '@/admin/components/ui/FormField.vue';
 import { BonusGiftType, BonusSource, type BonusPointsRow } from '../types';
+import {
+  DEFAULT_CURRENCY,
+  currencyMeta,
+  formatCurrency,
+  type StoreCurrency,
+} from '../currency';
 
 interface Props {
   visible: boolean;
   /** 'create' = 新增；'edit' = 編輯；'view' = 唯讀檢視；'copy' = 以既有活動為範本新增 */
   mode?: 'create' | 'edit' | 'view' | 'copy';
   row?: BonusPointsRow | null;
+  /** 商店幣別（由列表頁傳入）：決定金額符號與小數位，彈窗不另開幣別狀態 */
+  currency?: StoreCurrency;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   mode: 'create',
   row: null,
+  currency: DEFAULT_CURRENCY,
 });
+
+// 幣別衍生值：符號 prefix / 最小單位小數位（台幣 0、馬幣 2）
+const meta = computed(() => currencyMeta(props.currency));
+/** 金額欄的四捨五入小數位：跟隨商店幣別最小單位 */
+const currencyDigits = computed(() => meta.value.minorUnit);
+/** 金額符號（去尾隨空白），供 addon / 說明文字用 */
+const currencySymbol = computed(() => meta.value.symbol.trim());
 
 const emit = defineEmits<{
   'update:visible': [value: boolean];
@@ -63,17 +79,31 @@ const note = ref('');
 const period = ref<[Date, Date] | null>(null);
 
 const hasError = ref(false);
+// 載入既有活動（編輯 / 檢視 / 複製）期間為 true：抑制 source watch 的「預設值」邏輯，避免覆寫既有值
+const isHydrating = ref(false);
 
 const isPercentage = computed(() => giftType.value === BonusGiftType.Percentage);
-/** 取得來源＝消費才有「消費門檻」與「百分比」可選；註冊 / 手動只有固定點數 */
+/** 取得來源＝消費才有「消費門檻」與「百分比」可選；註冊只有固定點數 */
 const isConsumption = computed(() => source.value === BonusSource.Consumption);
+const isRegister = computed(() => source.value === BonusSource.Register);
+/** 贈點欄位標題：消費是條件式規則（贈點條件），註冊是一次固定發放（贈送點數） */
+const giftFieldLabel = computed(() =>
+  isConsumption.value
+    ? t('bonus_points.form_dialog.field.gift_type')
+    : t('bonus_points.form_dialog.field.gift_points'));
 
-// 切到非消費來源時，收斂為固定點數、清掉消費門檻（百分比 / 門檻對註冊、手動沒有意義）
+// 使用者切換來源時套用預設（載入既有資料時由 isHydrating 跳過）
 watch(source, (val) => {
+  if (isHydrating.value) return;
+  // 切到非消費來源：收斂為固定點數、清掉消費門檻（百分比 / 門檻對註冊沒有意義）
   if (val !== BonusSource.Consumption) {
     giftType.value = BonusGiftType.Cash;
     thresholdMode.value = 'none';
     minSpend.value = null;
+  }
+  // 註冊：每人領取次數上限預設帶 1（註冊禮通常每人限領一次）
+  if (val === BonusSource.Register) {
+    perMemberLimit.value = 1;
   }
 });
 
@@ -89,13 +119,17 @@ const viewGift = computed(() => {
       : '';
     return `${t('bonus_points.gift_type.percentage')}・${t('bonus_points.value.percent', { value: r.giftValue })}${cap}`;
   }
-  return `${t('bonus_points.gift_type.cash')}・${t('bonus_points.value.cash', { value: formatNumber(r.giftValue) })}`;
+  // 註冊：一次固定發放，只顯示點數金額（無「現金／百分比」之分，不加類型前綴）
+  const amount = t('bonus_points.value.cash', { amount: formatCurrency(r.giftValue, props.currency) });
+  return r.source === BonusSource.Consumption
+    ? `${t('bonus_points.gift_type.cash')}・${amount}`
+    : amount;
 });
 const viewThreshold = computed(() => {
   const r = props.row;
   if (!r) return '';
   return r.minSpend > 0
-    ? t('bonus_points.value.min_spend', { value: formatNumber(r.minSpend) })
+    ? t('bonus_points.value.min_spend', { amount: formatCurrency(r.minSpend, props.currency) })
     : t('bonus_points.value.no_threshold');
 });
 const viewSendLimit = computed(() => {
@@ -121,7 +155,6 @@ const viewStatus = computed(() => {
 });
 
 const sourceOptions = computed(() => [
-  { label: t('bonus_points.source.manual'), value: BonusSource.Manual },
   { label: t('bonus_points.source.register'), value: BonusSource.Register },
   { label: t('bonus_points.source.consumption'), value: BonusSource.Consumption },
 ]);
@@ -155,6 +188,10 @@ function formatDateTime(d: Date): string {
 
 function resetForm() {
   hasError.value = false;
+  // 載入資料期間抑制 source watch 的預設邏輯；watch 為非同步（於本輪同步賦值後才觸發），
+  // 故用 nextTick 於 watch 執行完畢後才解除，確保既有值不被「註冊預設 1」等邏輯覆寫
+  isHydrating.value = true;
+  void nextTick(() => { isHydrating.value = false; });
   const r = props.row;
   if (r && (isEdit.value || isView.value || isCopy.value)) {
     name.value = isCopy.value ? `${r.name}${t('bonus_points.form_dialog.copy_suffix')}` : r.name;
@@ -211,7 +248,7 @@ function handleSave() {
   const payload: BonusPointsRow = {
     id: props.row?.id ?? '',
     name: name.value.trim(),
-    source: source.value ?? BonusSource.Manual,
+    source: source.value ?? BonusSource.Register,
     sendLimit: sendLimit.value,
     perMemberLimit: perMemberLimit.value,
     minSpend: thresholdMode.value === 'amount' ? (minSpend.value ?? 0) : 0,
@@ -274,7 +311,7 @@ function handleSave() {
             <span class="text-sm">{{ viewThreshold }}</span>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="text-xs text-surface-500 dark:text-surface-400">{{ $t('bonus_points.form_dialog.field.gift_type') }}</span>
+            <span class="text-xs text-surface-500 dark:text-surface-400">{{ giftFieldLabel }}</span>
             <span class="text-sm">{{ viewGift }}</span>
           </div>
           <div class="flex flex-col gap-1 sm:col-span-2">
@@ -339,6 +376,7 @@ function handleSave() {
       <!-- 發送人數限制 -->
       <FormField
         :label="$t('bonus_points.form_dialog.field.send_limit')"
+        :optional="true"
         :hint="$t('bonus_points.form_dialog.hint.send_limit')"
         class-name="max-w-none"
       >
@@ -358,6 +396,7 @@ function handleSave() {
       <!-- 每人領取次數上限 -->
       <FormField
         :label="$t('bonus_points.form_dialog.field.per_member_limit')"
+        :optional="true"
         :hint="$t('bonus_points.form_dialog.hint.per_member_limit')"
         class-name="max-w-none"
       >
@@ -407,8 +446,8 @@ function handleSave() {
                 v-model="minSpend"
                 :min="0"
                 :max="9999999"
-                :max-fraction-digits="0"
-                prefix="NT$ "
+                :max-fraction-digits="currencyDigits"
+                :prefix="meta.symbol"
                 :disabled="isView || thresholdMode !== 'amount'"
                 :invalid="minSpendInvalid"
                 :aria-label="$t('bonus_points.form_dialog.threshold.amount')"
@@ -423,9 +462,9 @@ function handleSave() {
         </div>
       </FormField>
 
-      <!-- 贈送類型 -->
+      <!-- 贈送類型 / 贈送點數（依來源動態命名） -->
       <FormField
-        :label="$t('bonus_points.form_dialog.field.gift_type')"
+        :label="giftFieldLabel"
         :required="!isView"
         class-name="max-w-none"
       >
@@ -444,14 +483,14 @@ function handleSave() {
             v-model="giftValue"
             :min="0"
             :max="isPercentage ? 100 : 9999999"
-            :max-fraction-digits="isPercentage ? 2 : 0"
+            :max-fraction-digits="isPercentage ? 2 : currencyDigits"
             :disabled="isView"
             :invalid="giftValueInvalid"
             :aria-label="$t('bonus_points.form_dialog.field.gift_type')"
             :input-style="{ width: '100%' }"
           />
           <InputGroupAddon>
-            {{ isPercentage ? '%' : $t('bonus_points.form_dialog.unit.yuan') }}
+            {{ isPercentage ? '%' : currencySymbol }}
           </InputGroupAddon>
         </InputGroup>
         <!-- 註冊 / 手動來源：固定現金 -->
@@ -460,14 +499,14 @@ function handleSave() {
             v-model="giftValue"
             :min="0"
             :max="9999999"
-            :max-fraction-digits="0"
+            :max-fraction-digits="currencyDigits"
             :disabled="isView"
             :invalid="giftValueInvalid"
             :aria-label="$t('bonus_points.form_dialog.field.gift_type')"
             :input-style="{ width: '100%' }"
           />
           <InputGroupAddon>
-            {{ $t('bonus_points.form_dialog.unit.yuan') }}
+            {{ currencySymbol }}
           </InputGroupAddon>
         </InputGroup>
         <Message v-if="giftValueInvalid" size="small" severity="error" variant="simple">
@@ -477,14 +516,21 @@ function handleSave() {
         <Message v-if="isConsumption && isPercentage" severity="info" :closable="false" class="mt-1">
           <div class="flex flex-col gap-1 text-sm">
             <span>{{ $t('bonus_points.form_dialog.percent_note.line1') }}</span>
-            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.percent_note.line2') }}</span>
+            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.percent_note.line2', { symbol: currencySymbol }) }}</span>
           </div>
         </Message>
-        <!-- 現金類型說明框 -->
-        <Message v-if="!isPercentage" severity="info" :closable="false" class="mt-1">
+        <!-- 現金類型說明框（消費來源） -->
+        <Message v-if="isConsumption && !isPercentage" severity="info" :closable="false" class="mt-1">
           <div class="flex flex-col gap-1 text-sm">
-            <span>{{ $t('bonus_points.form_dialog.cash_note.line1') }}</span>
-            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.cash_note.line2') }}</span>
+            <span>{{ $t('bonus_points.form_dialog.cash_note.line1', { symbol: currencySymbol }) }}</span>
+            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.cash_note.line2', { symbol: currencySymbol }) }}</span>
+          </div>
+        </Message>
+        <!-- 註冊來源說明框（一次固定發放） -->
+        <Message v-if="isRegister" severity="info" :closable="false" class="mt-1">
+          <div class="flex flex-col gap-1 text-sm">
+            <span>{{ $t('bonus_points.form_dialog.register_note.line1', { symbol: currencySymbol }) }}</span>
+            <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.register_note.line2', { symbol: currencySymbol }) }}</span>
           </div>
         </Message>
       </FormField>
@@ -493,6 +539,7 @@ function handleSave() {
       <FormField
         v-if="isConsumption && isPercentage"
         :label="$t('bonus_points.form_dialog.field.gift_cap')"
+        :optional="true"
         :hint="$t('bonus_points.form_dialog.hint.gift_cap')"
         class-name="max-w-none"
       >
@@ -500,7 +547,7 @@ function handleSave() {
           v-model="giftCap"
           :min="0"
           :max="9999999"
-          :max-fraction-digits="0"
+          :max-fraction-digits="currencyDigits"
           :suffix="` ${$t('bonus_points.form_dialog.unit.point')}`"
           :disabled="isView"
           :aria-label="$t('bonus_points.form_dialog.field.gift_cap')"
@@ -509,6 +556,35 @@ function handleSave() {
           :placeholder="$t('bonus_points.value.unlimited')"
         />
       </FormField>
+
+      <!-- 跨幣別扣點說明（收合，預設不展開；避免與上方贈點說明框同時擠出多個藍框） -->
+      <Accordion class="bonus-cross-currency">
+        <AccordionPanel value="cross-currency">
+          <AccordionHeader>
+            <span class="flex items-center gap-2">
+              <FontAwesomeIcon :icon="['far', 'coins']" class="text-[var(--p-text-muted-color)]" />
+              <span class="flex flex-col gap-1 text-left">
+                <span class="text-sm font-medium">{{ $t('bonus_points.form_dialog.cross_currency.title') }}</span>
+                <span class="text-xs font-normal text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.cross_currency.hint') }}</span>
+              </span>
+            </span>
+          </AccordionHeader>
+          <AccordionContent>
+            <div class="flex flex-col gap-3 text-sm">
+              <p>{{ $t('bonus_points.form_dialog.cross_currency.desc', { currency: meta.label }) }}</p>
+              <Message severity="info" :closable="false" variant="simple">
+                <div class="flex flex-col gap-1 text-sm">
+                  <span class="font-medium">{{ $t('bonus_points.form_dialog.cross_currency.example_title') }}</span>
+                  <span>{{ $t('bonus_points.form_dialog.cross_currency.example_line1') }}</span>
+                  <span>{{ $t('bonus_points.form_dialog.cross_currency.example_line2') }}</span>
+                  <span>{{ $t('bonus_points.form_dialog.cross_currency.example_line3') }}</span>
+                  <span>{{ $t('bonus_points.form_dialog.cross_currency.example_line4') }}</span>
+                </div>
+              </Message>
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
+      </Accordion>
 
       <!-- 描述（富文本） -->
       <FormField

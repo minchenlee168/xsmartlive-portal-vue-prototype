@@ -5,7 +5,8 @@
       "parent": "行銷活動"
     },
     "subtitle": "紅利點數功能，協助你管理會員回饋與消費激勵。",
-    "conversion_badge": "紅利點數換算比例 1 點 = NT$1",
+    "currency_label": "商店幣別",
+    "conversion_badge": "紅利點數換算比例 1 點 = {symbol}1",
     "status_tab": {
       "all": "全部",
       "in_progress": "進行中",
@@ -18,7 +19,6 @@
       "ended": "已結束"
     },
     "source": {
-      "manual": "手動新增",
       "register": "註冊",
       "consumption": "消費"
     },
@@ -33,6 +33,7 @@
     },
     "button": {
       "create": "新增紅利點數",
+      "manual_grant": "手動贈點",
       "search": "搜尋",
       "batch_delete": "批次刪除",
       "batch_delete_confirm": "刪除所選",
@@ -63,11 +64,11 @@
       "full": "已額滿",
       "times": "{value} 次",
       "percent": "{value}%",
-      "cash": "{value} 元",
+      "cash": "{amount}",
       "points": "{value} 點",
       "points_cap": "上限 {value} 點",
       "no_threshold": "無門檻",
-      "min_spend": "滿 NT${value}"
+      "min_spend": "滿 {amount}"
     },
     "batch": {
       "selected": "已選擇 {count} 筆",
@@ -147,6 +148,69 @@
       },
       "close": "關閉"
     },
+    "manual_grant": {
+      "title": "手動贈點",
+      "filter": {
+        "keyword_field_label": "搜尋欄位",
+        "keyword_field": {
+          "name": "姓名",
+          "code": "會員編號",
+          "phone": "完整手機號碼"
+        },
+        "keyword_placeholder": {
+          "name": "輸入姓名",
+          "code": "輸入會員編號",
+          "phone": "輸入完整手機號碼"
+        },
+        "level_all": "全部等級",
+        "status_all": "全部狀態",
+        "star_all": "全部星等",
+        "blacklist_only": "只看黑名單會員",
+        "search": "搜尋",
+        "reset": "清除"
+      },
+      "level": {
+        "normal": "一般",
+        "bronze": "銅卡",
+        "silver": "銀卡",
+        "gold": "金卡"
+      },
+      "status": {
+        "normal": "正常",
+        "suspended": "停權"
+      },
+      "stars_rating": "{count} 星",
+      "list": {
+        "title": "會員清單",
+        "selected_count": "已選 {selected} ／ 篩選到 {filtered} 人",
+        "empty": "沒有符合條件的會員"
+      },
+      "col": {
+        "no": "會員編號",
+        "name": "姓名",
+        "level": "等級",
+        "points": "目前點數"
+      },
+      "field": {
+        "points": "贈送點數",
+        "reason": "贈點原因／備註"
+      },
+      "hint": {
+        "reason": "選填；建議填寫發放原因以利日後查核。"
+      },
+      "placeholder": {
+        "points": "請輸入點數",
+        "reason": "例如：客訴補償、活動加碼"
+      },
+      "summary": "已選 {count} 人，每人各發放 {points} 點，共發放 {total} 點",
+      "button": {
+        "cancel": "取消",
+        "confirm": "確認贈點"
+      },
+      "toast": {
+        "granted": "已為 {count} 位會員各發放 {points} 點"
+      }
+    },
     "form_dialog": {
       "header": {
         "create": "新增紅利點數",
@@ -166,6 +230,7 @@
         "per_member_limit": "每人領取次數上限",
         "threshold": "取得門檻",
         "gift_type": "贈點條件",
+        "gift_points": "贈送點數",
         "gift_cap": "單筆贈送上限",
         "description": "描述",
         "note": "紅利點數備註",
@@ -176,16 +241,29 @@
         "amount": "消費滿"
       },
       "unit": {
-        "point": "點",
-        "yuan": "元"
+        "point": "點"
       },
       "percent_note": {
         "line1": "百分比類型：依消費金額的比例贈送點數，可自行設定「贈送上限」。",
-        "line2": "例如：消費 100 元、贈送比例 10% → 可獲得 10 點紅利點數。"
+        "line2": "例如：消費 {symbol}100、贈送比例 10% → 可獲得 10 點紅利點數。"
       },
       "cash_note": {
-        "line1": "現金類型：每筆固定贈送指定金額的紅利點數（1 點 = NT$1）。",
-        "line2": "例如：設定 100 元 → 每筆可獲得 100 點紅利點數。"
+        "line1": "現金類型：每筆固定贈送指定金額的紅利點數（1 點 = {symbol}1）。",
+        "line2": "例如：設定 {symbol}100 → 每筆可獲得 100 點紅利點數。"
+      },
+      "register_note": {
+        "line1": "註冊即贈送固定點數（1 點 = {symbol}1）。",
+        "line2": "例如：設定 {symbol}100 → 新會員註冊可獲得 100 點紅利點數。"
+      },
+      "cross_currency": {
+        "title": "跨幣別扣點說明",
+        "hint": "紅利點以商店貨幣為主，跨幣別結帳時依匯率換算後四捨五入",
+        "desc": "紅利點數以商店貨幣（目前為 {currency}）為主。會員以其他幣別結帳時，系統會依匯率換算應折抵的點數，並四捨五入到該幣別的最小單位（台幣 0 位、馬幣 2 位）後扣除。",
+        "example_title": "計算範例",
+        "example_line1": "會員持有紅利點數 200 點（以台幣計）",
+        "example_line2": "購買商品定價 200 馬幣，台幣兌馬幣匯率 7.1",
+        "example_line3": "折抵：200 ÷ 7.1 = 27.348 → 四捨五入為 27.35 馬幣",
+        "example_line4": "實際支付：200 − 27.35 = 172.65 馬幣"
       },
       "placeholder": {
         "name": "請輸入活動名稱...",

@@ -15,12 +15,17 @@ import {
   type BonusPointsRow,
   type BonusSendRecord,
 } from '../types';
+import { DEFAULT_CURRENCY, formatCurrency, type StoreCurrency } from '../currency';
 import BonusOrderItemsDialog from './BonusOrderItemsDialog.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** 要看明細的活動；為 null 時不載入 */
   row: BonusPointsRow | null;
-}>();
+  /** 商店幣別（由列表頁傳入）：金額顯示符號 / 小數位跟隨 */
+  currency?: StoreCurrency;
+}>(), {
+  currency: DEFAULT_CURRENCY,
+});
 
 const visible = defineModel<boolean>('visible', { required: true });
 
@@ -108,14 +113,14 @@ const giftValueText = computed(() => {
       : '';
     return `${t('bonus_points.value.percent', { value: r.giftValue })}${cap}`;
   }
-  return t('bonus_points.value.cash', { value: formatNumber(r.giftValue) });
+  return t('bonus_points.value.cash', { amount: formatCurrency(r.giftValue, props.currency) });
 });
 
 const minSpendText = computed(() => {
   const r = props.row;
   if (!r) return '';
   return r.minSpend > 0
-    ? t('bonus_points.value.min_spend', { value: formatNumber(r.minSpend) })
+    ? t('bonus_points.value.min_spend', { amount: formatCurrency(r.minSpend, props.currency) })
     : t('bonus_points.value.no_threshold');
 });
 
@@ -269,7 +274,7 @@ function openItems(rec: BonusSendRecord) {
         </span>
         <span class="text-base font-semibold">
           {{ $t('bonus_points.records.order_total') }}
-          <span class="text-primary">{{ formatNumber(totalAmount) }}</span>
+          <span class="text-primary">{{ formatCurrency(totalAmount, currency) }}</span>
         </span>
       </div>
 
@@ -302,7 +307,7 @@ function openItems(rec: BonusSendRecord) {
           <template #body="{ data }"><span class="font-semibold text-primary">{{ formatNumber(data.pointsUsed) }}</span></template>
         </Column>
         <Column :header="$t('bonus_points.records.table.amount')">
-          <template #body="{ data }"><span class="font-semibold text-primary">{{ formatNumber(data.amountAfterDeduction) }}</span></template>
+          <template #body="{ data }"><span class="font-semibold text-primary">{{ formatCurrency(data.amountAfterDeduction, currency) }}</span></template>
         </Column>
         <Column :header="$t('bonus_points.records.table.items')">
           <template #body="{ data }">
@@ -341,7 +346,7 @@ function openItems(rec: BonusSendRecord) {
             </div>
             <div class="flex gap-2">
               <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.table.amount') }}</span>
-              <span class="font-semibold text-primary">{{ formatNumber(rec.amountAfterDeduction) }}</span>
+              <span class="font-semibold text-primary">{{ formatCurrency(rec.amountAfterDeduction, currency) }}</span>
             </div>
           </div>
           <div class="flex justify-end">
@@ -375,6 +380,7 @@ function openItems(rec: BonusSendRecord) {
     <BonusOrderItemsDialog
       v-model:visible="isItemsDialogVisible"
       :record="itemsRecord"
+      :currency="currency"
     />
   </Dialog>
 </template>

@@ -1,7 +1,10 @@
-/** 紅利點數取得來源 */
+/**
+ * 紅利點數取得來源。
+ *
+ * 註：「手動新增」不列為活動來源——手動贈點屬於針對個別 / 篩選會員的直接補點操作，
+ * 由會員管理端處理（見 member-list 的紅利點數補點彈窗），非規則式的活動設定。
+ */
 export const BonusSource = {
-  /** 手動新增 */
-  Manual: 'manual',
   /** 註冊 */
   Register: 'register',
   /** 消費 */
@@ -42,7 +45,7 @@ export interface BonusPointsRow {
   id: string;
   /** 紅利點數名稱 */
   name: string;
-  /** 取得來源（手動新增 / 註冊 / 消費） */
+  /** 取得來源（註冊 / 消費） */
   source: BonusSource;
   /** 發送人數限制（總名額，全活動可發給幾人）；null = 無限制 */
   sendLimit: number | null;

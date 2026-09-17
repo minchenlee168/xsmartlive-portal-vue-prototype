@@ -9,6 +9,8 @@ const props = withDefaults(
     hintSeverity?: 'default' | 'error'
     /** 必填欄位：label 後接紅色星號（design.md §7.8） */
     required?: boolean
+    /** 選填欄位：label 後接淺灰「（選填）」（design.md §7.8） */
+    optional?: boolean
   }>(),
   {
     label: '',
@@ -16,6 +18,7 @@ const props = withDefaults(
     className: '',
     hintSeverity: 'default',
     required: false,
+    optional: false,
   },
 )
 
@@ -38,8 +41,11 @@ const hintClass = computed(() =>
     >
       {{ props.label }}<span
         v-if="props.required"
-        class="text-[#DC2626]"
-      >*</span>
+        class="text-[var(--p-red-500)]"
+      >*</span><span
+        v-if="props.optional"
+        class="ml-1 text-xs font-normal text-[var(--p-text-muted-color)]"
+      >（選填）</span>
     </span>
 
     <slot />

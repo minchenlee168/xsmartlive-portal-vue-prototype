@@ -9,11 +9,16 @@ import { useI18n } from 'vue-i18n';
 
 import { createMockOrderDetail } from '../mockData';
 import type { BonusSendRecord } from '../types';
+import { DEFAULT_CURRENCY, formatCurrency, type StoreCurrency } from '../currency';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** 要看商品項目的訂單；為 null 時不載入 */
   record: BonusSendRecord | null;
-}>();
+  /** 商店幣別（由發送紀錄彈窗傳入）：金額顯示符號 / 小數位跟隨 */
+  currency?: StoreCurrency;
+}>(), {
+  currency: DEFAULT_CURRENCY,
+});
 
 const visible = defineModel<boolean>('visible', { required: true });
 
@@ -23,7 +28,8 @@ const detail = computed(() =>
   (props.record ? createMockOrderDetail(props.record.orderNo, props.record.pointsUsed) : null));
 const carts = computed(() => detail.value?.carts ?? []);
 
-const formatNumber = (value: number) => value.toLocaleString('en-US');
+/** 依商店幣別格式化金額（含符號 + 小數位） */
+const money = (value: number) => formatCurrency(value, props.currency);
 </script>
 
 <template>
@@ -63,7 +69,7 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
                 <span class="size-12 shrink-0 rounded-md bg-surface-200 dark:bg-surface-700"></span>
                 <div class="flex min-w-0 flex-col gap-1">
                   <span class="font-medium break-words">{{ data.name }}</span>
-                  <span class="text-xs text-surface-500 dark:text-surface-400">NTD ${{ formatNumber(data.unitPrice) }}</span>
+                  <span class="text-xs text-surface-500 dark:text-surface-400">{{ money(data.unitPrice) }}</span>
                 </div>
               </div>
             </template>
@@ -72,10 +78,10 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
             <template #body="{ data }">{{ data.quantity }}</template>
           </Column>
           <Column :header="$t('bonus_points.records.items_modal.col.cost')">
-            <template #body="{ data }">{{ data.cost === null ? '-' : formatNumber(data.cost) }}</template>
+            <template #body="{ data }">{{ data.cost === null ? '-' : money(data.cost) }}</template>
           </Column>
           <Column :header="$t('bonus_points.records.items_modal.col.price')">
-            <template #body="{ data }">{{ formatNumber(data.price) }}</template>
+            <template #body="{ data }">{{ money(data.price) }}</template>
           </Column>
         </DataTable>
 
@@ -86,7 +92,7 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
               <span class="size-12 shrink-0 rounded-md bg-surface-200 dark:bg-surface-700"></span>
               <div class="flex min-w-0 flex-col gap-1">
                 <span class="text-sm font-medium break-words">{{ item.name }}</span>
-                <span class="text-xs text-surface-500 dark:text-surface-400">NTD ${{ formatNumber(item.unitPrice) }}</span>
+                <span class="text-xs text-surface-500 dark:text-surface-400">{{ money(item.unitPrice) }}</span>
               </div>
             </div>
             <div class="flex flex-col gap-1 rounded-md bg-surface-50 px-2 py-2 text-sm dark:bg-surface-800/40">
@@ -96,11 +102,11 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
               </div>
               <div class="flex gap-2">
                 <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.items_modal.col.cost') }}</span>
-                <span>{{ item.cost === null ? '-' : formatNumber(item.cost) }}</span>
+                <span>{{ item.cost === null ? '-' : money(item.cost) }}</span>
               </div>
               <div class="flex gap-2">
                 <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bonus_points.records.items_modal.col.price') }}</span>
-                <span>{{ formatNumber(item.price) }}</span>
+                <span>{{ money(item.price) }}</span>
               </div>
             </div>
           </div>
@@ -108,8 +114,8 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
 
         <!-- 購物車總金額 -->
         <p class="text-right text-sm">
-          {{ $t('bonus_points.records.items_modal.cart_total') }} NTD$
-          <span class="text-base font-semibold text-primary">{{ formatNumber(cart.subtotal) }}</span>
+          {{ $t('bonus_points.records.items_modal.cart_total') }}
+          <span class="text-base font-semibold text-primary">{{ money(cart.subtotal) }}</span>
         </p>
       </section>
       </div>
@@ -118,27 +124,27 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
       <div class="flex flex-col gap-2 border-t border-[var(--p-content-border-color)] pt-4">
         <div class="flex items-center justify-between text-sm">
           <span class="text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.product_total') }}</span>
-          <span>${{ formatNumber(detail.productTotal) }}</span>
+          <span>{{ money(detail.productTotal) }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.shipping_fee') }}</span>
-          <span>${{ formatNumber(detail.shippingFee) }}</span>
+          <span>{{ money(detail.shippingFee) }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.shipping_discount') }}</span>
-          <span>{{ detail.shippingDiscount > 0 ? '-$' + formatNumber(detail.shippingDiscount) : '$0' }}</span>
+          <span>{{ detail.shippingDiscount > 0 ? '-' + money(detail.shippingDiscount) : money(0) }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.coupon') }}</span>
-          <span>{{ detail.couponDiscount === null ? '—' : '-$' + formatNumber(detail.couponDiscount) }}</span>
+          <span>{{ detail.couponDiscount === null ? '—' : '-' + money(detail.couponDiscount) }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-surface-500 dark:text-surface-400">{{ $t('bonus_points.records.items_modal.points') }}</span>
-          <span class="text-[var(--p-red-500)]">-${{ formatNumber(detail.pointsDeduction) }}</span>
+          <span class="text-[var(--p-red-500)]">-{{ money(detail.pointsDeduction) }}</span>
         </div>
         <div class="flex items-center justify-between border-t border-[var(--p-content-border-color)] pt-3">
           <span class="text-base font-semibold">{{ $t('bonus_points.records.items_modal.order_total') }}</span>
-          <span class="text-lg font-semibold text-primary">NTD$ {{ formatNumber(detail.total) }}</span>
+          <span class="text-lg font-semibold text-primary">{{ money(detail.total) }}</span>
         </div>
       </div>
     </div>

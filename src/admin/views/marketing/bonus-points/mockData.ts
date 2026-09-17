@@ -35,7 +35,7 @@ export const mockBonusPointsList: BonusPointsRow[] = [
   {
     id: '2',
     name: '已結束的固定回饋活動',
-    source: BonusSource.Manual,
+    source: BonusSource.Consumption,
     sendLimit: 500,
     perMemberLimit: 1,
     minSpend: 0,
@@ -43,7 +43,7 @@ export const mockBonusPointsList: BonusPointsRow[] = [
     giftValue: 100,
     giftCap: null,
     sentCount: 500,
-    description: '活動期間由客服手動發放 100 點，名額已發放完畢。',
+    description: '活動期間單筆消費即贈 100 點，名額已發放完畢。',
     note: '名額已用罄。',
     startAt: '2026-01-01 08:00:00',
     endAt: '2026-04-01 07:59:59',

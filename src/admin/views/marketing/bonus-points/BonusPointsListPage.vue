@@ -10,9 +10,17 @@ import { PaginationTable } from '@/admin/components/portal-ui';
 import { useConfirm } from 'primevue/useconfirm';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 import { BonusGiftType, BonusLifecycle, type BonusPointsRow } from './types';
+import {
+  CURRENCY_OPTIONS,
+  DEFAULT_CURRENCY,
+  currencyMeta,
+  formatCurrency,
+  type StoreCurrency,
+} from './currency';
 import { mockBonusPointsList } from './mockData';
 import BonusPointsFormDialog from './components/BonusPointsFormDialog.vue';
 import BonusPointsRecordsDialog from './components/BonusPointsRecordsDialog.vue';
+import BonusManualGrantDialog from './components/BonusManualGrantDialog.vue';
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -31,6 +39,12 @@ const dateRange = ref<[Date, Date] | null>(null);
 const appliedDateRange = ref<[Date, Date] | null>(null);
 // 生命週期頁籤：切換即時套用
 const statusTab = ref<StatusFilter>('all');
+// 商店幣別：顯示層即時生效（切換後全頁金額符號 / 小數位跟著變），不參與資料查詢
+const storeCurrency = ref<StoreCurrency>(DEFAULT_CURRENCY);
+
+// 換算比例 Tag：依商店幣別顯示「1 點 = 符號1」
+const conversionBadge = computed(() =>
+  t('bonus_points.conversion_badge', { symbol: currencyMeta(storeCurrency.value).symbol.trim() }));
 
 // 資料來源：原型階段以本地 ref 存放，CRUD 直接改這份
 const rows = ref<BonusPointsRow[]>([...mockBonusPointsList]);
@@ -105,17 +119,17 @@ const lifecycleSeverity = (life: BonusLifecycle): 'success' | 'warn' | 'secondar
 
 const formatNumber = (value: number) => value.toLocaleString('en-US');
 
-/** 贈送主值：百分比 '5%'；現金 '100 點' */
+/** 贈送主值：百分比 '5%'；現金依商店幣別格式化（如 'NT$ 100' / 'RM 100.00'） */
 const giftValueText = (row: BonusPointsRow) =>
   row.giftType === BonusGiftType.Percentage
     ? t('bonus_points.value.percent', { value: row.giftValue })
-    : t('bonus_points.value.cash', { value: formatNumber(row.giftValue) });
+    : t('bonus_points.value.cash', { amount: formatCurrency(row.giftValue, storeCurrency.value) });
 
 /** 贈送細節：贈送值 + 門檻 + 上限（百分比才有上限） */
 const giftDetailText = (row: BonusPointsRow) => {
   const parts: string[] = [giftValueText(row)];
   if (row.minSpend > 0) {
-    parts.push(t('bonus_points.value.min_spend', { value: formatNumber(row.minSpend) }));
+    parts.push(t('bonus_points.value.min_spend', { amount: formatCurrency(row.minSpend, storeCurrency.value) }));
   } else {
     parts.push(t('bonus_points.value.no_threshold'));
   }
@@ -132,7 +146,7 @@ const sendLimitText = (row: BonusPointsRow) =>
 const isFull = (row: BonusPointsRow) =>
   row.sendLimit !== null && row.sentCount >= row.sendLimit;
 
-// §7.9：日期一律斜線 YYYY/MM/DD；區間用 ' - ' 分隔
+// 日期顯示 YYYY-MM-DD（破折號，依需求）
 const formatDate = (value: string) => value.slice(0, 10);
 
 // ---- 新增 / 編輯 / 檢視共用彈窗 ----
@@ -162,6 +176,13 @@ function handleCopy(row: BonusPointsRow) {
   formMode.value = 'copy';
   editingRow.value = row;
   isFormDialogVisible.value = true;
+}
+
+// ---- 手動贈點（針對篩選到的會員一次性補點；非規則式活動）----
+const isManualGrantVisible = ref(false);
+
+function handleManualGrant() {
+  isManualGrantVisible.value = true;
 }
 
 // ---- 領取明細清單 ----
@@ -334,10 +355,25 @@ function handleBatchDelete() {
             <p class="text-sm text-[var(--p-text-muted-color)]">
               {{ $t('bonus_points.subtitle') }}
             </p>
-            <Tag
-              severity="info"
-              :value="$t('bonus_points.conversion_badge')"
-            />
+            <!-- 幣別切換 + 換算 Tag 綁成一個換行單位（切幣別為顯示層即時生效） -->
+            <div class="flex items-center gap-2">
+              <label for="store-currency" class="text-sm text-[var(--p-text-muted-color)] whitespace-nowrap">
+                {{ $t('bonus_points.currency_label') }}
+              </label>
+              <Select
+                v-model="storeCurrency"
+                input-id="store-currency"
+                size="small"
+                :options="CURRENCY_OPTIONS"
+                option-label="label"
+                option-value="value"
+                class="w-44"
+              />
+              <Tag
+                severity="info"
+                :value="conversionBadge"
+              />
+            </div>
           </div>
           <!-- 桌機：操作鈕在副標右側（手機移到共 N 筆下方獨立一列） -->
           <div class="hidden items-center gap-2 md:flex">
@@ -351,6 +387,17 @@ function handleBatchDelete() {
             >
               <template #icon>
                 <FontAwesomeIcon :icon="['far', 'trash']" class="mr-2" />
+              </template>
+            </Button>
+            <Button
+              v-if="!batchMode"
+              variant="outlined"
+              size="small"
+              :label="$t('bonus_points.button.manual_grant')"
+              @click="handleManualGrant"
+            >
+              <template #icon>
+                <FontAwesomeIcon :icon="['far', 'gift']" class="mr-2" />
               </template>
             </Button>
             <Button
@@ -424,7 +471,7 @@ function handleBatchDelete() {
           </span>
         </div>
 
-        <!-- 手機：批次刪除 + 新增 獨立一列（放在共 N 筆下方） -->
+        <!-- 手機：批次刪除 + 手動贈點 + 新增 獨立一列（放在共 N 筆下方） -->
         <div class="mb-4 flex gap-2 md:hidden">
           <Button
             v-if="!batchMode"
@@ -437,6 +484,18 @@ function handleBatchDelete() {
           >
             <template #icon>
               <FontAwesomeIcon :icon="['far', 'trash']" class="mr-2" />
+            </template>
+          </Button>
+          <Button
+            v-if="!batchMode"
+            class="flex-1"
+            variant="outlined"
+            size="small"
+            :label="$t('bonus_points.button.manual_grant')"
+            @click="handleManualGrant"
+          >
+            <template #icon>
+              <FontAwesomeIcon :icon="['far', 'gift']" class="mr-2" />
             </template>
           </Button>
           <Button
@@ -703,12 +762,19 @@ function handleBatchDelete() {
       v-model:visible="isFormDialogVisible"
       :mode="formMode"
       :row="editingRow"
+      :currency="storeCurrency"
       @submit="handleFormSubmit"
     />
 
     <BonusPointsRecordsDialog
       v-model:visible="isRecordsDialogVisible"
       :row="recordsRow"
+      :currency="storeCurrency"
+    />
+
+    <BonusManualGrantDialog
+      v-model:visible="isManualGrantVisible"
+      :currency="storeCurrency"
     />
   </div>
 </template>
