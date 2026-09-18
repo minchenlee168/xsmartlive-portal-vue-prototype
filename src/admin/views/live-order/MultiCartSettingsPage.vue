@@ -176,57 +176,57 @@ const pageFirst = ref(0)
 const pageRows = ref(10)
 const pageRowsOptions = [10, 20, 30, 40, 50]
 
-// ── 設定摘要（金流 / 物流 / 行銷 三行） ────────
-interface SummaryPart {
-  text?: string
+// ── 設定摘要（金流 / 物流 / 行銷 三行：彩色標籤 chip + 純文字內容） ────────
+interface SummarySeg {
+  text: string
+  /** 停用 / 關閉的項目：以 muted 色呈現 */
   off?: boolean
-  /** 整顆 chip 的色調：primary=主色、green=綠、blue=藍、red=紅；未設 = 灰(secondary) */
-  tone?: 'primary' | 'green' | 'blue' | 'red'
-  /** 數量型 chip：主色數字 + 後綴 + 完整清單（hover tooltip 用），如「6 種支付方式」 */
-  count?: { n: number; post: string; list: string[] }
+  /** hover 顯示完整清單（如支付、物流方式全名）；有 tip 者加虛線底線示意可 hover */
+  tip?: string
 }
 interface SummaryLine {
   label: string
-  parts: SummaryPart[]
+  /** 標籤 chip 色調：金流=info(藍)、物流=success(綠)、行銷=warn(黃) */
+  tone: 'info' | 'success' | 'warn'
+  /** 該分類是否有啟用項目；false 時標籤 chip 改用灰色(secondary) */
+  active: boolean
+  segs: SummarySeg[]
 }
 function summaryOf(c: MultiCartRecord): SummaryLine[] {
   return [
     {
       label: '金流',
-      parts: [
-        { text: c.mode, tone: c.mode === '暫停結帳' ? 'red' : 'primary' } as SummaryPart,
-        { count: { n: c.payList.length, post: '種支付方式', list: c.payList } },
+      tone: 'info',
+      active: c.payList.length > 0,
+      segs: [
+        { text: c.mode },
+        { text: `支付 ${c.payList.length} 種`, tip: c.payList.join('、') },
       ],
     },
     {
       label: '物流',
-      parts: [
-        { text: c.temp, tone: c.temp === '冷凍' || c.temp === '冷藏' ? 'blue' : undefined },
-        { count: { n: c.logiList.length, post: '種物流方式', list: c.logiList } },
+      tone: 'success',
+      active: c.logiList.length > 0,
+      segs: [
+        { text: `${c.temp}溫層` },
+        { text: `物流 ${c.logiList.length} 種`, tip: c.logiList.join('、') },
       ],
     },
     {
       label: '行銷',
-      parts: [
-        c.coupon ? { text: '啟用優惠券', tone: 'green' } : { text: '關閉優惠券', off: true },
-        c.reward ? { text: '啟用紅利', tone: 'green' } : { text: '關閉紅利', off: true },
+      tone: 'warn',
+      active: c.coupon || c.reward,
+      segs: [
+        c.coupon ? { text: '啟用優惠券' } : { text: '關閉優惠券', off: true },
+        c.reward ? { text: '啟用紅利' } : { text: '關閉紅利', off: true },
       ],
     },
   ]
 }
-/** tone → PrimeVue Tag severity（primary 沒有對應 severity，用 secondary 打底再以 style 蓋色） */
-function toneSeverity(p: SummaryPart): 'success' | 'info' | 'danger' | 'secondary' {
-  if (p.tone === 'green') return 'success'
-  if (p.tone === 'blue') return 'info'
-  if (p.tone === 'red') return 'danger'
-  return 'secondary'
-}
-/** primary 色調的 chip：主色文字 + 主色淡底（用 token，深淺色自動適應） */
-function toneStyle(p: SummaryPart): string {
-  if (p.tone === 'primary') {
-    return 'background: color-mix(in srgb, var(--p-primary-color) 12%, transparent); color: var(--p-primary-color);'
-  }
-  return ''
+
+/** 停用（on=false）的購物車以淡化呈現（逐欄套用，操作欄除外）；用於各欄位內容容器的 class */
+function dimIfOff(c: MultiCartRecord): string {
+  return c.on ? '' : 'opacity-55'
 }
 
 // ── 新增 / 編輯 dialog ────────────────────────
@@ -402,13 +402,13 @@ function onTogglePin(c: MultiCartRecord): void {
         >
           <Column field="date" header="建立日期" sortable style="width: 170px">
             <template #body="{ data }">
-              <span class="text-[var(--p-text-muted-color)]">{{ data.date }}</span>
+              <span class="text-[var(--p-text-muted-color)]" :class="dimIfOff(data)">{{ data.date }}</span>
             </template>
           </Column>
 
           <Column field="name" header="多購物車名稱" sortable style="min-width: 200px">
             <template #body="{ data }">
-              <div class="flex flex-col gap-1">
+              <div class="flex flex-col gap-1" :class="dimIfOff(data)">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-bold text-[var(--p-text-color)]">{{ data.name }}</span>
                   <Tag v-if="data.locked" value="預設" severity="info" />
@@ -421,26 +421,27 @@ function onTogglePin(c: MultiCartRecord): void {
 
           <Column header="設定摘要" style="min-width: 320px">
             <template #body="{ data }">
-              <div class="flex flex-col gap-2">
+              <div class="flex flex-col gap-2" :class="dimIfOff(data)">
                 <div
                   v-for="line in summaryOf(data)"
                   :key="line.label"
-                  class="flex items-start gap-2"
+                  class="flex items-center gap-2"
+                  :class="line.active ? '' : 'opacity-50'"
                 >
-                  <span class="shrink-0 w-8 pt-1 text-xs text-[var(--p-text-muted-color)]">{{ line.label }}</span>
-                  <div class="flex flex-wrap items-center gap-1">
-                    <Tag
-                      v-for="(p, i) in line.parts"
-                      :key="i"
-                      v-tooltip.top="p.count?.list.join('、')"
-                      :severity="toneSeverity(p)"
-                      :style="toneStyle(p)"
-                      :class="[p.off ? 'opacity-45' : '', p.count ? 'cursor-help' : '']"
-                    >
-                      <template v-if="p.count"><span style="color: var(--p-primary-color)">{{ p.count.n }}</span> {{ p.count.post }}</template>
-                      <template v-else>{{ p.text }}</template>
-                    </Tag>
-                  </div>
+                  <Tag :value="line.label" :severity="line.active ? line.tone : 'secondary'" class="shrink-0" />
+                  <span class="text-sm text-[var(--p-text-color)]">
+                    <template v-for="(s, i) in line.segs" :key="i">
+                      <span v-if="i > 0" class="text-[var(--p-text-muted-color)]">、</span>
+                      <span
+                        v-tooltip.top="s.tip"
+                        :class="[
+                          s.off ? 'text-[var(--p-text-muted-color)]' : '',
+                          s.tip ? 'cursor-help underline decoration-dotted decoration-[var(--p-text-muted-color)] underline-offset-2' : '',
+                        ]"
+                        >{{ s.text }}</span
+                      >
+                    </template>
+                  </span>
                 </div>
               </div>
             </template>
@@ -451,6 +452,7 @@ function onTogglePin(c: MultiCartRecord): void {
               <div
                 v-tooltip.top="data.locked ? '預設購物車不可停用' : ''"
                 class="inline-flex items-center gap-2"
+                :class="dimIfOff(data)"
               >
                 <ToggleSwitch
                   v-model="data.on"
@@ -543,7 +545,7 @@ function onTogglePin(c: MultiCartRecord): void {
         <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
           <div v-for="c in visibleCarts" :key="c.id" class="py-3 flex flex-col gap-2">
             <!-- 頂部：icon + 名稱 + 預設 badge + 啟用開關 -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-3" :class="dimIfOff(c)">
               <div class="size-10 rounded-md bg-[var(--p-primary-50)] flex items-center justify-center shrink-0">
                 <i class="pi pi-shopping-cart" style="font-size: 16px; color: var(--p-primary-color)"></i>
               </div>
@@ -560,31 +562,28 @@ function onTogglePin(c: MultiCartRecord): void {
               </div>
             </div>
             <!-- 設定摘要 -->
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2" :class="dimIfOff(c)">
               <div
                 v-for="line in summaryOf(c)"
                 :key="line.label"
-                class="flex items-start gap-2"
+                class="flex items-center gap-2"
+                :class="line.active ? '' : 'opacity-50'"
               >
-                <span class="shrink-0 w-8 pt-1 text-xs text-[var(--p-text-muted-color)]">{{ line.label }}</span>
-                <div class="flex flex-wrap items-center gap-1">
-                  <Tag
-                    v-for="(p, i) in line.parts"
-                    :key="i"
-                    v-tooltip.top="p.count?.list.join('、')"
-                    :severity="toneSeverity(p)"
-                    :style="toneStyle(p)"
-                    :class="[p.off ? 'opacity-45' : '', p.count ? 'cursor-help' : '']"
-                  >
-                    <template v-if="p.count"><span style="color: var(--p-primary-color)">{{ p.count.n }}</span> {{ p.count.post }}</template>
-                    <template v-else>{{ p.text }}</template>
-                  </Tag>
-                </div>
+                <Tag :value="line.label" :severity="line.active ? line.tone : 'secondary'" class="shrink-0" />
+                <span class="text-sm text-[var(--p-text-color)]">
+                  <template v-for="(s, i) in line.segs" :key="i">
+                    <span v-if="i > 0" class="text-[var(--p-text-muted-color)]">、</span>
+                    <span
+                      :class="s.off ? 'text-[var(--p-text-muted-color)]' : ''"
+                      >{{ s.text }}</span
+                    >
+                  </template>
+                </span>
               </div>
             </div>
             <!-- 底部：建立日期（左下）+ 編輯／刪除（右下） -->
             <div class="flex items-center gap-2 pt-1">
-              <span class="text-xs text-[var(--p-text-muted-color)]">{{ c.date }}</span>
+              <span class="text-xs text-[var(--p-text-muted-color)]" :class="dimIfOff(c)">{{ c.date }}</span>
               <div class="flex items-center gap-1 ml-auto">
                 <Button
                   v-if="c.locked"
