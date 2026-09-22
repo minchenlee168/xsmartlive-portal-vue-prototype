@@ -51,7 +51,7 @@ const columns = computed(() => [
   { field: 'winnerCount', header: t('keyword_lottery.table.winner_count'), nowrap: true },
   { field: 'period', header: t('keyword_lottery.table.period'), slot: 'period', nowrap: true },
   { field: 'status', header: t('keyword_lottery.table.status'), slot: 'status', nowrap: true },
-  { field: 'createdAt', header: t('keyword_lottery.table.created_at'), slot: 'createdAt', nowrap: true },
+  { field: 'createdAt', header: t('keyword_lottery.table.created_at'), slot: 'createdAt', nowrap: true, sortable: true },
   { field: 'actions', header: t('keyword_lottery.table.actions'), slot: 'actions', nowrap: true, frozen: true, alignFrozen: 'right' as const },
 ]);
 
@@ -64,7 +64,7 @@ const filteredList = computed<KeywordLotteryRow[]>(() => {
         || row.sessionName.toLowerCase().includes(normalizedKeyword)
         || row.keyword.toLowerCase().includes(normalizedKeyword);
 
-    const matchStatus = statusTab.value === 'all' || row.status === statusTab.value;
+    const matchStatus = statusTab.value === 'all' || statusOf(row) === statusTab.value;
 
     return matchKeyword && matchStatus;
   });
@@ -83,6 +83,17 @@ const statusSeverity = (status: KeywordLotteryStatus): 'success' | 'warn' | 'inf
   if (status === KeywordLotteryStatus.Drawn) return 'info';
   return 'secondary';
 };
+
+/** 依 drawn + 活動日期推導狀態：已抽獎為明確狀態；否則未到 start=預約中、區間內=活動中、過 end=已結束 */
+function statusOf(row: KeywordLotteryRow): KeywordLotteryStatus {
+  if (row.drawn) return KeywordLotteryStatus.Drawn;
+  const now = Date.now();
+  const start = new Date(row.startAt.replace(' ', 'T')).getTime();
+  const end = new Date(row.endAt.replace(' ', 'T')).getTime();
+  if (now < start) return KeywordLotteryStatus.NotStarted;
+  if (now > end) return KeywordLotteryStatus.Ended;
+  return KeywordLotteryStatus.InProgress;
+}
 
 const prizeText = (row: KeywordLotteryRow) => t(`keyword_lottery.prize_format.${row.prizeType}`, { content: row.prizeContent });
 
@@ -383,8 +394,8 @@ watch(filteredList, () => nextTick().then(measureTable));
 
             <template #status="{ data }">
               <Tag
-                :value="statusLabel(data.status)"
-                :severity="statusSeverity(data.status)"
+                :value="statusLabel(statusOf(data))"
+                :severity="statusSeverity(statusOf(data))"
               />
             </template>
 
@@ -490,8 +501,8 @@ watch(filteredList, () => nextTick().then(measureTable));
                 />
               </div>
               <Tag
-                :value="statusLabel(row.status)"
-                :severity="statusSeverity(row.status)"
+                :value="statusLabel(statusOf(row))"
+                :severity="statusSeverity(statusOf(row))"
                 class="shrink-0"
               />
             </div>

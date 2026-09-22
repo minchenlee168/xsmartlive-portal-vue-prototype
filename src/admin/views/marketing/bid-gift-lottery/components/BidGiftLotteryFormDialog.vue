@@ -10,7 +10,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
-import { DrawSource, LotteryStatus, PrizeType, type BidGiftLotteryRow } from '../types';
+import { DrawSource, PrizeType, type BidGiftLotteryRow } from '../types';
 
 interface Props {
   visible: boolean;
@@ -184,13 +184,14 @@ function handleSave() {
     searchEndAt: end ? toStamp(end) : '',
     prizeType: prizeType.value,
     prizeContent,
-    cart: cart.value,
+    cart: isProduct.value ? cart.value : '',
     // 表單 0＝不限，對齊 row 的 null＝不限
     requiredAmount: requiredAmount.value === 0 ? null : requiredAmount.value,
     starFilter: starFilter.value === 'unlimited' ? null : starFilter.value,
     autoDraw: autoDraw.value,
     winnerCount: winnerCount.value,
-    status: props.row?.status ?? LotteryStatus.NotStarted,
+    // 狀態改由日期推導；新增預設未抽獎，編輯沿用既有
+    drawn: props.row?.drawn ?? false,
   };
 
   showSuccess({
@@ -330,12 +331,14 @@ function handleSave() {
             input-id="lottery-required-amount"
             mode="currency"
             currency="TWD"
+            locale="zh-TW"
             :max-fraction-digits="0"
             :min="0"
             :max="9999999"
             fluid
+            aria-describedby="lottery-required-amount-hint"
           />
-          <span class="text-xs text-[var(--p-text-muted-color)]">
+          <span id="lottery-required-amount-hint" class="text-xs text-[var(--p-text-muted-color)]">
             {{ t('bid_gift_lottery.form_dialog.hint.required_amount') }}
           </span>
         </div>

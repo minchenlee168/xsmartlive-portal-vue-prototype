@@ -58,7 +58,7 @@ const columns = computed(() => [
   { field: 'winnerCount', header: t('bid_gift_lottery.table.winner_count'), nowrap: true },
   { field: 'searchDate', header: t('bid_gift_lottery.table.search_date'), slot: 'searchDate', nowrap: true },
   { field: 'status', header: t('bid_gift_lottery.table.status'), slot: 'status', nowrap: true },
-  { field: 'createdAt', header: t('bid_gift_lottery.table.created_at'), slot: 'createdAt', nowrap: true },
+  { field: 'createdAt', header: t('bid_gift_lottery.table.created_at'), slot: 'createdAt', nowrap: true, sortable: true },
   { field: 'actions', header: t('bid_gift_lottery.table.actions'), slot: 'actions', nowrap: true, frozen: true, alignFrozen: 'right' as const },
 ]);
 
@@ -71,7 +71,7 @@ const filteredList = computed<BidGiftLotteryRow[]>(() => {
         || row.sessionName.toLowerCase().includes(normalizedKeyword)
         || row.prizeContent.toLowerCase().includes(normalizedKeyword);
 
-    const matchStatus = statusTab.value === 'all' || row.status === statusTab.value;
+    const matchStatus = statusTab.value === 'all' || statusOf(row) === statusTab.value;
 
     return matchKeyword && matchStatus;
   });
@@ -104,6 +104,17 @@ const statusSeverity = (status: LotteryStatus): 'success' | 'warn' | 'info' | 's
   if (status === LotteryStatus.Drawn) return 'info';
   return 'secondary';
 };
+
+/** 依 drawn + 活動日期推導狀態：已抽獎為明確狀態；否則未到 start=預約中、區間內=活動中、過 end=已結束 */
+function statusOf(row: BidGiftLotteryRow): LotteryStatus {
+  if (row.drawn) return LotteryStatus.Drawn;
+  const now = Date.now();
+  const start = new Date(row.searchStartAt.replace(' ', 'T')).getTime();
+  const end = new Date(row.searchEndAt.replace(' ', 'T')).getTime();
+  if (now < start) return LotteryStatus.NotStarted;
+  if (now > end) return LotteryStatus.Ended;
+  return LotteryStatus.InProgress;
+}
 
 // 新增 / 編輯共用同一彈窗；mode 決定 header 與帶入資料
 const isFormDialogVisible = ref(false);
@@ -381,8 +392,8 @@ watch(filteredList, () => nextTick().then(measureTable));
 
             <template #status="{ data }">
               <Tag
-                :value="statusLabel(data.status)"
-                :severity="statusSeverity(data.status)"
+                :value="statusLabel(statusOf(data))"
+                :severity="statusSeverity(statusOf(data))"
               />
             </template>
 
@@ -474,8 +485,8 @@ watch(filteredList, () => nextTick().then(measureTable));
             <div class="flex items-start justify-between gap-2">
               <span class="min-w-0 flex-1 text-sm font-semibold break-words">{{ row.sessionName }}</span>
               <Tag
-                :value="statusLabel(row.status)"
-                :severity="statusSeverity(row.status)"
+                :value="statusLabel(statusOf(row))"
+                :severity="statusSeverity(statusOf(row))"
                 class="shrink-0"
               />
             </div>

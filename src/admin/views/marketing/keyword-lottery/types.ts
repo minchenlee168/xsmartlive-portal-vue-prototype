@@ -46,6 +46,7 @@ export interface KeywordLotteryRow {
   /** 自動抽獎（活動結束時自動執行） */
   autoDraw: boolean;
   winnerCount: number;
-  status: KeywordLotteryStatus;
+  /** 是否已抽獎（已抽獎為明確狀態；預約中／活動中／已結束改由活動日期推導） */
+  drawn: boolean;
   createdAt: string;
 }

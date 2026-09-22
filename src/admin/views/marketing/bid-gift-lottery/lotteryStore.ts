@@ -10,8 +10,8 @@
 import { mockLotteryList } from './mockData';
 import type { BidGiftLotteryRow } from './types';
 
-// v4：彈窗對齊 UAT-11，row 再新增 liveSession/cart/autoDraw 欄位後升版，讓舊 localStorage 種子失效重新種子
-const STORAGE_KEY = 'prototype.bid_gift_lottery.rows.v4';
+// v5：狀態改為 drawn + 日期推導（移除 status 欄位）、mock 日期改版後升版，讓舊 localStorage 種子失效重新種子
+const STORAGE_KEY = 'prototype.bid_gift_lottery.rows.v5';
 
 /** 讀取全部場次；無儲存值時回種子 mock（深拷貝，避免誤改 mock 常數） */
 export function loadLotteryRows(): BidGiftLotteryRow[] {

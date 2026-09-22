@@ -12,7 +12,6 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 import {
   KeywordDrawSource,
-  KeywordLotteryStatus,
   KeywordPrizeType,
   type KeywordLotteryRow,
 } from '../types';
@@ -197,7 +196,8 @@ function handleSave() {
     cart: isProduct.value ? cart.value : '',
     autoDraw: autoDraw.value,
     winnerCount: winnerCount.value,
-    status: props.row?.status ?? KeywordLotteryStatus.NotStarted,
+    // 狀態改由日期推導；新增預設未抽獎，編輯沿用既有
+    drawn: props.row?.drawn ?? false,
   };
 
   showSuccess({

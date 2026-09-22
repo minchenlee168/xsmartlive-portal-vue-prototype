@@ -105,7 +105,7 @@
         "cart": "Select a cart"
       },
       "hint": {
-        "required_amount": "Only buyers whose bid reaches this threshold enter the draw pool",
+        "required_amount": "Only buyers whose bid reaches this threshold enter the draw pool; leave blank or 0 for unlimited",
         "auto_draw": "Runs automatically when the activity ends"
       },
       "unit": {

@@ -49,5 +49,6 @@ export interface BidGiftLotteryRow {
   autoDraw: boolean;
   /** 指定中獎人數；開獎頁用來預設「連抽數量」 */
   winnerCount: number;
-  status: LotteryStatus;
+  /** 是否已抽獎（已抽獎為明確狀態；預約中／活動中／已結束改由活動日期推導） */
+  drawn: boolean;
 }
