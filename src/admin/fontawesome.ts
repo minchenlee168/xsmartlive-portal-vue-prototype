@@ -71,6 +71,7 @@ import {
   faLink,
   faListRadio,
   faMedal,
+  faMinus,
   faMoon,
   faPen,
   faReceipt,
@@ -83,6 +84,7 @@ import {
   faTrash,
   faUser,
   faUsers,
+  faPlus as faPlusRegular,
   faVideo,
 } from '@awesome.me/kit-979923bcd0/icons/classic/regular'
 
@@ -167,6 +169,7 @@ library.add(
   faLink,
   faListRadio,
   faMedal,
+  faMinus,
   faMoon,
   faPen,
   faReceipt,
@@ -180,6 +183,7 @@ library.add(
   faUser,
   faUsers,
   faVideo,
+  faPlusRegular,
   // fab（Pro kit brands）— 平台識別圖示
   faFacebook,
   faInstagram,

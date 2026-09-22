@@ -1,21 +1,42 @@
 {
   "keyword_lottery": {
     "title": "Keyword Lottery",
+    "breadcrumb": {
+      "parent": "Marketing"
+    },
     "button": {
-      "create": "Add Lottery",
+      "create": "Add Keyword Lottery",
       "draw": "Start Draw",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "search": "Search",
+      "batch_delete": "Batch Delete",
+      "batch_cancel": "Cancel",
+      "batch_delete_confirm": "Delete"
+    },
+    "batch": {
+      "selected": "{count} selected",
+      "none_selected": "No items selected"
+    },
+    "confirm": {
+      "delete_title": "Confirm Delete",
+      "delete_message": "Delete \"{name}\"? This cannot be undone.",
+      "batch_delete_message": "Delete the {count} selected items? This cannot be undone.",
+      "accept": "Delete",
+      "reject": "Cancel"
+    },
+    "toast": {
+      "deleted": "Deleted",
+      "batch_deleted": "Deleted {count} items"
     },
     "form": {
       "placeholder": {
-        "search": "Search session name or keyword",
-        "status": "All statuses"
+        "search": "Search session name or keyword"
       }
     },
     "table": {
-      "index": "#",
-      "session_name": "Session Name",
+      "session_name": "Activity Name",
+      "draw_source": "Draw Source",
       "keyword": "Keyword",
       "period": "Period",
       "prize_content": "Prize",
@@ -29,14 +50,85 @@
       "points": "Points"
     },
     "status": {
-      "all": "All statuses",
-      "not_started": "Not started",
-      "in_progress": "In Progress",
-      "ended": "Ended"
+      "all": "All",
+      "not_started": "Scheduled",
+      "in_progress": "Active",
+      "ended": "Ended",
+      "drawn": "Drawn"
     },
     "prize_format": {
       "product": "Product: {content}",
       "points": "Points: {content}"
+    },
+    "value": {
+      "unnamed": "(Unnamed)",
+      "unlimited": "Unlimited"
+    },
+    "form_dialog": {
+      "header": {
+        "create": "Add Keyword Lottery",
+        "edit": "Edit Keyword Lottery"
+      },
+      "section": {
+        "basic": "Basic Settings",
+        "prize": "Prize Settings"
+      },
+      "field": {
+        "draw_source": "Draw Source",
+        "live_session": "Live Session",
+        "activity_name": "Activity Name",
+        "date_range": "Activity Date Range",
+        "keyword": "Keyword",
+        "star_filter": "Star Filter",
+        "auto_draw": "Auto Draw",
+        "winner_count": "Winner Count",
+        "prize_type": "Gift Type",
+        "product_name": "Product Name",
+        "cart": "Checkout Cart",
+        "points_amount": "Points Amount"
+      },
+      "draw_source": {
+        "live_session": "By Live Session",
+        "date_range": "By Date Range"
+      },
+      "star_filter": {
+        "unlimited": "Unlimited"
+      },
+      "placeholder": {
+        "live_session": "Search session name",
+        "cart": "Select a cart",
+        "activity_name": "Optional; auto-named \"Lottery-date time\" if left blank",
+        "date_range": "YYYY/MM/DD HH:mm - YYYY/MM/DD HH:mm",
+        "keyword": "Enter keyword",
+        "product_name": "Enter product name",
+        "points_amount": "Enter points amount"
+      },
+      "hint": {
+        "keyword": "Enter keyword left to right; symbols not allowed",
+        "auto_draw": "Runs automatically when the activity ends"
+      },
+      "optional_suffix": "(Optional)",
+      "unit": {
+        "winner": "people",
+        "points": "pts"
+      },
+      "auto_name_prefix": "Lottery",
+      "button": {
+        "cancel": "Cancel",
+        "create": "Add",
+        "save": "Save Changes"
+      },
+      "validation": {
+        "live_session": "Please select a live session",
+        "date_range": "Please select the activity date range",
+        "keyword": "Please enter a keyword",
+        "prize_content": "Please enter the gift content",
+        "winner_count": "Winner count must be at least 1"
+      },
+      "toast": {
+        "created": "Keyword lottery added",
+        "updated": "Keyword lottery updated"
+      }
     }
   }
 }

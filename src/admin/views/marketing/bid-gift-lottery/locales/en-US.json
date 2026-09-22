@@ -9,21 +9,40 @@
       "draw": "Start Draw",
       "edit": "Edit",
       "delete": "Delete",
-      "search": "Search"
+      "search": "Search",
+      "batch_delete": "Batch Delete",
+      "batch_cancel": "Cancel",
+      "batch_delete_confirm": "Delete"
+    },
+    "batch": {
+      "selected": "{count} selected",
+      "none_selected": "No items selected"
+    },
+    "confirm": {
+      "delete_title": "Confirm Delete",
+      "delete_message": "Delete \"{name}\"? This cannot be undone.",
+      "batch_delete_message": "Delete the {count} selected items? This cannot be undone.",
+      "accept": "Delete",
+      "reject": "Cancel"
+    },
+    "toast": {
+      "deleted": "Deleted",
+      "batch_deleted": "Deleted {count} items"
     },
     "form": {
       "placeholder": {
-        "search": "Search session name or prize content",
-        "status": "All statuses"
+        "search": "Search session name or prize content"
       }
     },
     "table": {
       "created_at": "Created At",
-      "session_name": "Session Name",
-      "search_date": "Search Date",
+      "session_name": "Activity Name",
+      "draw_source": "Draw Source",
+      "search_date": "Activity Period",
       "prize_type": "Prize Type",
-      "prize_content": "Prize Content",
-      "required_amount": "Min. Amount",
+      "prize_content": "Gift",
+      "required_amount": "Bid Threshold",
+      "winner_count": "Winners",
       "star_filter": "Star Filter",
       "status": "Status",
       "actions": "Actions"
@@ -32,15 +51,24 @@
       "product": "Product",
       "points": "Points"
     },
+    "prize_format": {
+      "product": "Product: {content}",
+      "points": "Points: {content}"
+    },
+    "draw_source": {
+      "live_session": "By Live Session",
+      "date_range": "By Date Range"
+    },
     "status": {
       "all": "All",
-      "in_progress": "In Progress",
-      "ended": "Ended"
+      "not_started": "Scheduled",
+      "in_progress": "Active",
+      "ended": "Ended",
+      "drawn": "Drawn"
     },
     "value": {
       "unlimited": "Unlimited",
-      "amount": "{value}",
-      "stars": "{value}"
+      "amount": "NT$ {value}"
     },
     "form_dialog": {
       "header": {
@@ -48,48 +76,54 @@
         "edit": "Edit Bid Gift Lottery"
       },
       "section": {
-        "basic": "Basic Info",
-        "prize": "Prize Settings",
-        "draw": "Draw Settings"
+        "basic": "Basic Settings",
+        "prize": "Prize Settings"
       },
       "field": {
-        "session_name": "Session Name",
-        "search_date": "Search Date",
+        "draw_source": "Draw Source",
+        "live_session": "Live Session",
+        "activity_name": "Activity Name",
+        "date_range": "Activity Date Range",
+        "required_amount": "Bid Threshold",
         "star_filter": "Star Filter",
-        "prize_type": "Prize Type",
-        "prize_content": "Prize Content",
-        "required_amount": "Min. Amount",
         "auto_draw": "Auto Draw",
-        "winner_count": "Number of Winners"
-      },
-      "placeholder": {
-        "session_name": "Enter session name",
-        "search_date": "YYYY/MM/DD - YYYY/MM/DD",
-        "prize_content_product": "Enter product name",
-        "prize_content_points": "Enter points to award"
-      },
-      "validation": {
-        "session_name": "Please enter a session name",
-        "search_date": "Please select a search date",
-        "prize_content": "Please enter the prize content",
-        "winner_count": "At least 1 winner is required"
-      },
-      "hint": {
-        "session_name": "Auto-generated as CODEX_LOTTERY_SESSION_YYYYMMDD_HHMMSS, editable",
-        "required_amount": "0 = Unlimited (only orders paying at least this amount qualify)",
-        "auto_draw": "(Draw automatically when the search end time is reached)"
+        "winner_count": "Number of Winners",
+        "prize_type": "Gift Type",
+        "product_name": "Product Name",
+        "cart": "Checkout Cart",
+        "points_amount": "Points Amount"
       },
       "star_filter": {
         "unlimited": "Unlimited"
       },
-      "unit": {
-        "yuan": "TWD"
+      "placeholder": {
+        "live_session": "Search session name",
+        "activity_name": "Optional; auto-named \"Bid Gift-date time\" if left blank",
+        "date_range": "YYYY/MM/DD HH:mm - YYYY/MM/DD HH:mm",
+        "product_name": "Enter product name",
+        "points_amount": "Enter points amount",
+        "cart": "Select a cart"
       },
+      "hint": {
+        "required_amount": "Only buyers whose bid reaches this threshold enter the draw pool",
+        "auto_draw": "Runs automatically when the activity ends"
+      },
+      "unit": {
+        "winner": "people",
+        "points": "pts"
+      },
+      "optional_suffix": "(Optional)",
+      "auto_name_prefix": "Bid Gift",
       "button": {
-        "regenerate": "Regenerate",
         "cancel": "Cancel",
         "create": "Add",
-        "save": "Save"
+        "save": "Save Changes"
+      },
+      "validation": {
+        "live_session": "Please select a live session",
+        "date_range": "Please select the activity date range",
+        "prize_content": "Please enter the gift content",
+        "winner_count": "At least 1 winner is required"
       },
       "toast": {
         "created": "Bid gift lottery added",

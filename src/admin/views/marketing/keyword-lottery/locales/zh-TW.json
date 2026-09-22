@@ -1,21 +1,42 @@
 {
   "keyword_lottery": {
     "title": "關鍵字抽獎",
+    "breadcrumb": {
+      "parent": "行銷活動"
+    },
     "button": {
-      "create": "新增抽獎活動",
+      "create": "新增關鍵字抽獎活動",
       "draw": "開始抽獎",
       "edit": "編輯",
-      "delete": "刪除"
+      "delete": "刪除",
+      "search": "搜尋",
+      "batch_delete": "批次刪除",
+      "batch_cancel": "取消",
+      "batch_delete_confirm": "刪除"
+    },
+    "batch": {
+      "selected": "已選擇 {count} 筆",
+      "none_selected": "尚未勾選任何項目"
+    },
+    "confirm": {
+      "delete_title": "確認刪除",
+      "delete_message": "確定要刪除「{name}」嗎？此操作無法復原。",
+      "batch_delete_message": "確定要刪除所選的 {count} 筆嗎？此操作無法復原。",
+      "accept": "確認刪除",
+      "reject": "取消"
+    },
+    "toast": {
+      "deleted": "已刪除",
+      "batch_deleted": "已刪除 {count} 筆"
     },
     "form": {
       "placeholder": {
-        "search": "搜尋場次名稱或關鍵字",
-        "status": "全部狀態"
+        "search": "搜尋場次名稱或關鍵字"
       }
     },
     "table": {
-      "index": "#",
-      "session_name": "場次名稱",
+      "session_name": "活動名稱",
+      "draw_source": "抽獎來源",
       "keyword": "關鍵字",
       "period": "活動期間",
       "prize_content": "贈送內容",
@@ -29,14 +50,85 @@
       "points": "點數"
     },
     "status": {
-      "all": "全部狀態",
-      "not_started": "尚未開始",
-      "in_progress": "進行中",
-      "ended": "已結束"
+      "all": "全部",
+      "not_started": "預約中",
+      "in_progress": "活動中",
+      "ended": "已結束",
+      "drawn": "已抽獎"
     },
     "prize_format": {
       "product": "商品：{content}",
       "points": "點數：{content}"
+    },
+    "value": {
+      "unnamed": "（未命名）",
+      "unlimited": "不限"
+    },
+    "form_dialog": {
+      "header": {
+        "create": "新增關鍵字抽獎",
+        "edit": "編輯關鍵字抽獎"
+      },
+      "section": {
+        "basic": "基本設定",
+        "prize": "獎品設定"
+      },
+      "field": {
+        "draw_source": "抽獎來源",
+        "live_session": "直播場次",
+        "activity_name": "活動名稱",
+        "date_range": "活動日期區間",
+        "keyword": "關鍵字",
+        "star_filter": "星等過濾",
+        "auto_draw": "自動抽獎",
+        "winner_count": "中獎人數",
+        "prize_type": "贈送類型",
+        "product_name": "商品名稱",
+        "cart": "結帳購物車",
+        "points_amount": "點數額度"
+      },
+      "draw_source": {
+        "live_session": "依直播場次",
+        "date_range": "活動區間"
+      },
+      "star_filter": {
+        "unlimited": "不限制"
+      },
+      "placeholder": {
+        "live_session": "輸入場次名稱搜尋",
+        "cart": "選擇多購物車",
+        "activity_name": "選填，留空自動命名為「抽獎活動-日期時間」",
+        "date_range": "YYYY/MM/DD HH:mm - YYYY/MM/DD HH:mm",
+        "keyword": "輸入關鍵字",
+        "product_name": "輸入商品名稱",
+        "points_amount": "輸入點數額度"
+      },
+      "hint": {
+        "keyword": "由左至右輸入關鍵字，不可使用符號",
+        "auto_draw": "活動結束時自動執行抽獎"
+      },
+      "optional_suffix": "（選填）",
+      "unit": {
+        "winner": "人",
+        "points": "點"
+      },
+      "auto_name_prefix": "抽獎活動",
+      "button": {
+        "cancel": "取消",
+        "create": "新增",
+        "save": "儲存變更"
+      },
+      "validation": {
+        "live_session": "請選擇直播場次",
+        "date_range": "請選擇活動日期區間",
+        "keyword": "請輸入關鍵字",
+        "prize_content": "請輸入贈送內容",
+        "winner_count": "中獎人數至少 1 位"
+      },
+      "toast": {
+        "created": "已新增關鍵字抽獎",
+        "updated": "已更新關鍵字抽獎"
+      }
     }
   }
 }

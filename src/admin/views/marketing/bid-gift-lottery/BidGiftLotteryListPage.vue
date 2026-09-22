@@ -1,18 +1,29 @@
 <script setup lang="ts">
+/**
+ * 得標禮抽獎列表頁（原型版）
+ * — 三段式版型（design.md §6.7）：頁首列（標題 + 麵包屑，卡片外）／搜尋 Card（Tabs + 搜尋 + 頁首操作）／資料 Card
+ * — 狀態 Tabs 即時篩選；關鍵字按「搜尋」才套用（pending → applied）
+ * — 桌機 DataTable 凍結「操作」欄 + 左右捲動提示；手機 <md 改卡片列表（§7.5）
+ * — 場次資料原型階段存 localStorage（lotteryStore），讓「開始抽獎」另開分頁也讀得到最新設定
+ */
 import { PaginationTable } from '@/admin/components/portal-ui';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { LotteryStatus, PrizeType, type BidGiftLotteryRow } from './types';
+import { LotteryStatus, type BidGiftLotteryRow } from './types';
 import { loadLotteryRows, saveLotteryRows } from './lotteryStore';
 import BidGiftLotteryFormDialog from './components/BidGiftLotteryFormDialog.vue';
 
 import { RouteName } from '@/admin/router';
+import { useConfirm } from 'primevue/useconfirm';
+import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 
-import { computed, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 const { t } = useI18n();
 const router = useRouter();
+const confirm = useConfirm();
+const { showSuccess } = useGlobalToast();
 
 type StatusFilter = 'all' | LotteryStatus;
 
@@ -24,8 +35,10 @@ const statusTab = ref<StatusFilter>('all');
 
 const statusTabs = computed<{ label: string; value: StatusFilter }[]>(() => [
   { label: t('bid_gift_lottery.status.all'), value: 'all' },
+  { label: t('bid_gift_lottery.status.not_started'), value: LotteryStatus.NotStarted },
   { label: t('bid_gift_lottery.status.in_progress'), value: LotteryStatus.InProgress },
   { label: t('bid_gift_lottery.status.ended'), value: LotteryStatus.Ended },
+  { label: t('bid_gift_lottery.status.drawn'), value: LotteryStatus.Drawn },
 ]);
 
 /** 按下「搜尋」（或輸入框 Enter）才把草稿關鍵字 commit 到 applied 觸發過濾 */
@@ -36,17 +49,17 @@ function onSearch() {
 // 場次資料：原型階段存 localStorage（lotteryStore），讓「開始抽獎」另開分頁也讀得到最新設定
 const rows = ref<BidGiftLotteryRow[]>(loadLotteryRows());
 
-// 全欄 nowrap：表頭與內容都撐到自然寬度、不逐字斷行；欄位總寬超過容器時由 DataTable 橫向捲動
+// 全欄 nowrap：表頭與內容都撐到自然寬度、不逐字斷行；欄位總寬超過容器時橫向捲動，操作欄凍結在右
 const columns = computed(() => [
-  { field: 'createdAt', header: t('bid_gift_lottery.table.created_at'), slot: 'createdAt', nowrap: true },
   { field: 'sessionName', header: t('bid_gift_lottery.table.session_name'), nowrap: true },
-  { field: 'searchDate', header: t('bid_gift_lottery.table.search_date'), slot: 'searchDate', nowrap: true },
-  { field: 'prizeType', header: t('bid_gift_lottery.table.prize_type'), slot: 'prizeType', nowrap: true },
-  { field: 'prizeContent', header: t('bid_gift_lottery.table.prize_content'), nowrap: true },
+  { field: 'drawSource', header: t('bid_gift_lottery.table.draw_source'), slot: 'drawSource', nowrap: true },
   { field: 'requiredAmount', header: t('bid_gift_lottery.table.required_amount'), slot: 'requiredAmount', nowrap: true },
-  { field: 'starFilter', header: t('bid_gift_lottery.table.star_filter'), slot: 'starFilter', nowrap: true },
+  { field: 'prizeContent', header: t('bid_gift_lottery.table.prize_content'), slot: 'prizeContent', nowrap: true },
+  { field: 'winnerCount', header: t('bid_gift_lottery.table.winner_count'), nowrap: true },
+  { field: 'searchDate', header: t('bid_gift_lottery.table.search_date'), slot: 'searchDate', nowrap: true },
   { field: 'status', header: t('bid_gift_lottery.table.status'), slot: 'status', nowrap: true },
-  { field: 'actions', header: t('bid_gift_lottery.table.actions'), slot: 'actions', nowrap: true },
+  { field: 'createdAt', header: t('bid_gift_lottery.table.created_at'), slot: 'createdAt', nowrap: true },
+  { field: 'actions', header: t('bid_gift_lottery.table.actions'), slot: 'actions', nowrap: true, frozen: true, alignFrozen: 'right' as const },
 ]);
 
 const filteredList = computed<BidGiftLotteryRow[]>(() => {
@@ -64,8 +77,12 @@ const filteredList = computed<BidGiftLotteryRow[]>(() => {
   });
 });
 
-const prizeTypeLabel = (prizeType: PrizeType) => t(`bid_gift_lottery.prize_type.${prizeType}`);
 const statusLabel = (status: LotteryStatus) => t(`bid_gift_lottery.status.${status}`);
+
+/** 贈送內容：獎項類型 + 內容合併（商品：xxx / 點數：xxx） */
+const prizeText = (row: BidGiftLotteryRow) => t(`bid_gift_lottery.prize_format.${row.prizeType}`, { content: row.prizeContent });
+/** 抽獎來源顯示（依直播場次 / 活動區間） */
+const drawSourceLabel = (row: BidGiftLotteryRow) => t(`bid_gift_lottery.draw_source.${row.drawSource}`);
 
 const formatAmount = (value: number | null) => (
   value === null
@@ -73,21 +90,20 @@ const formatAmount = (value: number | null) => (
     : t('bid_gift_lottery.value.amount', { value })
 );
 
-const formatStars = (value: number | null) => (
-  value === null ? t('bid_gift_lottery.value.unlimited') : String(value)
-);
-
-// §7.9 日期時間格式：日期一律斜線 YYYY/MM/DD；日期+時間到分不到秒；日期區間用 ' - ' 分隔
-/** 'YYYY-MM-DD ...' → 'YYYY/MM/DD' */
-const formatDate = (value: string) => value.slice(0, 10).replace(/-/g, '/');
-/** 'YYYY-MM-DD HH:mm:ss' → 'YYYY/MM/DD HH:mm'（不顯示秒） */
+// 日期格式：破折號 YYYY-MM-DD，比照 BonusPointsListPage（依需求覆蓋 design.md §7.9 斜線）；時間到分不到秒
+/** 'YYYY-MM-DD ...' → 'YYYY-MM-DD' */
+const formatDate = (value: string) => value.slice(0, 10);
+/** 'YYYY-MM-DD HH:mm:ss' → 'YYYY-MM-DD HH:mm'（不顯示秒） */
 const formatDateTime = (value: string) => `${formatDate(value)} ${value.slice(11, 16)}`;
-/** 搜尋日期區間（純日期）→ 'YYYY/MM/DD - YYYY/MM/DD' */
-const formatSearchRange = (start: string, end: string) => `${formatDate(start)} - ${formatDate(end)}`;
+/** 搜尋日期區間（純日期）→ 'YYYY-MM-DD ~ YYYY-MM-DD' */
+const formatSearchRange = (start: string, end: string) => `${formatDate(start)} ~ ${formatDate(end)}`;
 
-const statusSeverity = (status: LotteryStatus) => (
-  status === LotteryStatus.InProgress ? 'success' : 'secondary'
-);
+const statusSeverity = (status: LotteryStatus): 'success' | 'warn' | 'info' | 'secondary' => {
+  if (status === LotteryStatus.InProgress) return 'success';
+  if (status === LotteryStatus.NotStarted) return 'warn';
+  if (status === LotteryStatus.Drawn) return 'info';
+  return 'secondary';
+};
 
 // 新增 / 編輯共用同一彈窗；mode 決定 header 與帶入資料
 const isFormDialogVisible = ref(false);
@@ -111,8 +127,57 @@ function handleEdit(row: BidGiftLotteryRow) {
   isFormDialogVisible.value = true;
 }
 
-function handleDelete(_row: BidGiftLotteryRow) {
-  // 原型階段：尚未實作刪除流程
+function handleDelete(row: BidGiftLotteryRow) {
+  confirm.require({
+    header: t('bid_gift_lottery.confirm.delete_title'),
+    message: t('bid_gift_lottery.confirm.delete_message', { name: row.sessionName }),
+    defaultFocus: 'reject',
+    rejectProps: { label: t('bid_gift_lottery.confirm.reject'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('bid_gift_lottery.confirm.accept'), severity: 'danger' },
+    accept: () => {
+      rows.value = rows.value.filter((r) => r.id !== row.id);
+      saveLotteryRows(rows.value);
+      showSuccess({ detail: t('bid_gift_lottery.toast.deleted') });
+    },
+  });
+}
+
+// ---- 批次刪除 ----
+const batchMode = ref(false);
+const selected = ref<BidGiftLotteryRow[]>([]);
+
+function enterBatchMode() {
+  batchMode.value = true;
+  selected.value = [];
+}
+
+function exitBatchMode() {
+  batchMode.value = false;
+  selected.value = [];
+}
+
+// 切換頁籤 / 重新搜尋改變可見清單，清空勾選避免幽靈選取
+watch([statusTab, appliedKeyword], () => {
+  selected.value = [];
+});
+
+function handleBatchDelete() {
+  const count = selected.value.length;
+  if (count === 0) return;
+  confirm.require({
+    header: t('bid_gift_lottery.confirm.delete_title'),
+    message: t('bid_gift_lottery.confirm.batch_delete_message', { count }),
+    defaultFocus: 'reject',
+    rejectProps: { label: t('bid_gift_lottery.confirm.reject'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('bid_gift_lottery.confirm.accept'), severity: 'danger' },
+    accept: () => {
+      const ids = new Set(selected.value.map((r) => r.id));
+      rows.value = rows.value.filter((r) => !ids.has(r.id));
+      saveLotteryRows(rows.value);
+      showSuccess({ detail: t('bid_gift_lottery.toast.batch_deleted', { count }) });
+      exitBatchMode();
+    },
+  });
 }
 
 /** 產生新場次的建立時間字串 'YYYY-MM-DD HH:mm:ss' */
@@ -135,18 +200,62 @@ function handleFormSubmit(row: BidGiftLotteryRow) {
   }
   saveLotteryRows(rows.value);
 }
+
+// ── 桌機表格橫向捲動提示：資料還沒捲到底時，在凍結操作欄左側顯示漸層 + 可點 chevron（§7.5）──
+const tableScrollWrap = ref<HTMLElement | null>(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+const overlayTop = ref(0);
+const overlayHeight = ref(0);
+const frozenColWidth = ref(0);
+let scrollEl: HTMLElement | null = null;
+
+function updateScrollState(): void {
+  if (!scrollEl) return;
+  canScrollLeft.value = scrollEl.scrollLeft > 1;
+  // 扣掉常駐捲軸保留的 ~16px 殘差，避免捲到底仍顯示
+  canScrollRight.value = scrollEl.scrollWidth - (scrollEl.scrollLeft + scrollEl.clientWidth) > 16;
+}
+function measureTable(): void {
+  const wrap = tableScrollWrap.value;
+  if (!wrap) return;
+  scrollEl = wrap.querySelector('.p-datatable-table-container');
+  if (!scrollEl) return;
+  overlayTop.value = scrollEl.offsetTop;
+  overlayHeight.value = scrollEl.clientHeight;
+  const frozen = wrap.querySelector<HTMLElement>('.p-datatable-thead .p-datatable-frozen-column');
+  frozenColWidth.value = frozen ? frozen.offsetWidth : 0;
+  updateScrollState();
+}
+function scrollTableBy(dir: 1 | -1): void {
+  scrollEl?.scrollBy({ left: dir * Math.round((scrollEl.clientWidth || 400) * 0.6), behavior: 'smooth' });
+}
+
+let tableRO: ResizeObserver | null = null;
+onMounted(async () => {
+  await nextTick();
+  measureTable();
+  scrollEl?.addEventListener('scroll', updateScrollState, { passive: true });
+  tableRO = new ResizeObserver(() => measureTable());
+  if (tableScrollWrap.value) tableRO.observe(tableScrollWrap.value);
+});
+onBeforeUnmount(() => {
+  scrollEl?.removeEventListener('scroll', updateScrollState);
+  tableRO?.disconnect();
+});
+watch(filteredList, () => nextTick().then(measureTable));
 </script>
 
 <template>
   <div class="flex flex-1 flex-col gap-4 min-h-0">
-    <!-- 頁首：標題 + 麵包屑，獨立一行（卡片外） -->
+    <!-- 頁首：標題 + 麵包屑，獨立一行（卡片外，見 design.md §6.7） -->
     <div class="flex flex-wrap items-center gap-3">
       <h2 class="text-2xl font-bold text-neutral-700 dark:text-neutral-100">
         {{ $t('bid_gift_lottery.title') }}
       </h2>
       <div class="ml-auto flex items-center gap-2 text-sm">
-        <span class="text-color-secondary">{{ $t('bid_gift_lottery.breadcrumb.parent') }}</span>
-        <i class="pi pi-chevron-right text-color-secondary" style="font-size: 10px"></i>
+        <span class="text-muted-color">{{ $t('bid_gift_lottery.breadcrumb.parent') }}</span>
+        <FontAwesomeIcon :icon="['far', 'chevron-right']" class="text-muted-color text-xs" />
         <span class="text-primary cursor-default">{{ $t('bid_gift_lottery.title') }}</span>
       </div>
     </div>
@@ -177,7 +286,7 @@ function handleFormSubmit(row: BidGiftLotteryRow) {
             <InputText
               v-model="keyword"
               :placeholder="$t('bid_gift_lottery.form.placeholder.search')"
-              class="w-56 sm:w-80"
+              class="w-56 sm:w-72"
               @keyup.enter="onSearch"
             />
             <Button
@@ -186,81 +295,237 @@ function handleFormSubmit(row: BidGiftLotteryRow) {
               @click="onSearch"
             />
           </div>
-          <Button
-            :label="$t('bid_gift_lottery.button.create')"
-            @click="handleCreate"
-          >
-            <template #icon>
-              <FontAwesomeIcon :icon="['fas', 'plus']" class="mr-2" />
-            </template>
-          </Button>
+          <div v-if="!batchMode" class="flex items-center gap-2">
+            <Button
+              severity="danger"
+              variant="outlined"
+              :label="$t('bid_gift_lottery.button.batch_delete')"
+              @click="enterBatchMode"
+            >
+              <template #icon>
+                <FontAwesomeIcon :icon="['far', 'trash']" />
+              </template>
+            </Button>
+            <Button
+              :label="$t('bid_gift_lottery.button.create')"
+              @click="handleCreate"
+            >
+              <template #icon>
+                <FontAwesomeIcon :icon="['fas', 'plus']" />
+              </template>
+            </Button>
+          </div>
         </div>
 
-        <PaginationTable
-          :data="filteredList"
-          :columns="columns"
+        <!-- 批次模式 banner -->
+        <div
+          v-if="batchMode"
+          class="mb-4 flex flex-wrap items-center gap-3 rounded-md bg-[var(--p-primary-50)] px-4 py-2"
         >
-      <template #createdAt="{ data }">
-        {{ formatDateTime(data.createdAt) }}
-      </template>
-
-      <template #searchDate="{ data }">
-        {{ formatSearchRange(data.searchStartAt, data.searchEndAt) }}
-      </template>
-
-      <template #prizeType="{ data }">
-        {{ prizeTypeLabel(data.prizeType) }}
-      </template>
-
-      <template #requiredAmount="{ data }">
-        {{ formatAmount(data.requiredAmount) }}
-      </template>
-
-      <template #starFilter="{ data }">
-        {{ formatStars(data.starFilter) }}
-      </template>
-
-      <template #status="{ data }">
-        <Tag
-          :value="statusLabel(data.status)"
-          :severity="statusSeverity(data.status)"
-        />
-      </template>
-
-      <template #actions="{ data }">
-        <div class="flex items-center gap-1">
-          <Button
-            v-tooltip.top="$t('bid_gift_lottery.button.draw')"
-            :aria-label="$t('bid_gift_lottery.button.draw')"
-            icon="pi pi-play"
-            rounded
-            text
-            size="small"
-            severity="success"
-            @click="handleDraw(data)"
-          />
-          <Button
-            v-tooltip.top="$t('bid_gift_lottery.button.edit')"
-            :aria-label="$t('bid_gift_lottery.button.edit')"
-            icon="pi pi-pen-to-square"
-            rounded
-            text
-            size="small"
-            @click="handleEdit(data)"
-          />
-          <Button
-            v-tooltip.top="$t('bid_gift_lottery.button.delete')"
-            :aria-label="$t('bid_gift_lottery.button.delete')"
-            icon="pi pi-trash"
-            rounded
-            text
-            size="small"
-            severity="danger"
-            @click="handleDelete(data)"
-          />
+          <span class="text-sm font-medium text-[var(--p-primary-color)]">
+            {{ selected.length > 0
+              ? $t('bid_gift_lottery.batch.selected', { count: selected.length })
+              : $t('bid_gift_lottery.batch.none_selected') }}
+          </span>
+          <div class="ml-auto flex items-center gap-2">
+            <Button
+              severity="secondary"
+              outlined
+              :label="$t('bid_gift_lottery.button.batch_cancel')"
+              @click="exitBatchMode"
+            />
+            <Button
+              severity="danger"
+              :disabled="selected.length === 0"
+              :label="$t('bid_gift_lottery.button.batch_delete_confirm')"
+              @click="handleBatchDelete"
+            />
+          </div>
         </div>
-      </template>
-        </PaginationTable>
+
+        <!-- 共 N 筆（篩選列最右，§6.7） -->
+        <div class="mb-4 flex justify-end">
+          <span class="text-sm text-[var(--p-text-muted-color)] whitespace-nowrap">
+            {{ $t('common.pagination.total_records', { count: filteredList.length }) }}
+          </span>
+        </div>
+
+        <!-- 桌機表格：欄多會橫向捲動，凍結「操作」欄 + 左右捲動提示（§7.5） -->
+        <div ref="tableScrollWrap" class="relative hidden md:block">
+          <PaginationTable
+            v-model:selection="selected"
+            :data="filteredList"
+            :columns="columns"
+            :show-selection-column="batchMode"
+            class="bidgift-main-table"
+          >
+            <template #drawSource="{ data }">
+              {{ drawSourceLabel(data) }}
+            </template>
+
+            <template #requiredAmount="{ data }">
+              {{ formatAmount(data.requiredAmount) }}
+            </template>
+
+            <template #prizeContent="{ data }">
+              {{ prizeText(data) }}
+            </template>
+
+            <template #searchDate="{ data }">
+              {{ formatSearchRange(data.searchStartAt, data.searchEndAt) }}
+            </template>
+
+            <template #createdAt="{ data }">
+              {{ formatDateTime(data.createdAt) }}
+            </template>
+
+            <template #status="{ data }">
+              <Tag
+                :value="statusLabel(data.status)"
+                :severity="statusSeverity(data.status)"
+              />
+            </template>
+
+            <template #actions="{ data }">
+              <div class="flex items-center gap-1">
+                <Button
+                  v-tooltip.top="$t('bid_gift_lottery.button.draw')"
+                  :aria-label="$t('bid_gift_lottery.button.draw')"
+                  rounded
+                  text
+                  size="small"
+                  severity="secondary"
+                  @click="handleDraw(data)"
+                >
+                  <template #icon>
+                    <FontAwesomeIcon :icon="['far', 'circle-play']" />
+                  </template>
+                </Button>
+                <Button
+                  v-tooltip.top="$t('bid_gift_lottery.button.edit')"
+                  :aria-label="$t('bid_gift_lottery.button.edit')"
+                  rounded
+                  text
+                  size="small"
+                  @click="handleEdit(data)"
+                >
+                  <template #icon>
+                    <FontAwesomeIcon :icon="['far', 'edit']" />
+                  </template>
+                </Button>
+                <Button
+                  v-tooltip.top="$t('bid_gift_lottery.button.delete')"
+                  :aria-label="$t('bid_gift_lottery.button.delete')"
+                  rounded
+                  text
+                  size="small"
+                  severity="danger"
+                  @click="handleDelete(data)"
+                >
+                  <template #icon>
+                    <FontAwesomeIcon :icon="['far', 'trash']" />
+                  </template>
+                </Button>
+              </div>
+            </template>
+          </PaginationTable>
+
+          <!-- 左側捲動提示：已向右捲動時出現，點擊往回捲 -->
+          <div
+            v-show="canScrollLeft"
+            class="pointer-events-none absolute z-10 flex items-start justify-start pl-1"
+            :style="{ top: overlayTop + 'px', height: overlayHeight + 'px', left: '0px', width: '56px', background: 'linear-gradient(to left, transparent, var(--p-content-background))' }"
+          >
+            <button
+              type="button"
+              class="pointer-events-auto mt-3 size-7 rounded-full bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] shadow flex items-center justify-center text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+              aria-label="向左捲動"
+              @click="scrollTableBy(-1)"
+            >
+              <FontAwesomeIcon :icon="['far', 'chevron-left']" class="text-xs" />
+            </button>
+          </div>
+
+          <!-- 右側捲動提示：資料尚未捲到底時出現，貼在固定操作欄左側 -->
+          <div
+            v-show="canScrollRight"
+            class="pointer-events-none absolute z-10 flex items-start justify-end pr-1"
+            :style="{ top: overlayTop + 'px', height: overlayHeight + 'px', right: frozenColWidth + 'px', width: '56px', background: 'linear-gradient(to right, transparent, var(--p-content-background))' }"
+          >
+            <button
+              type="button"
+              class="pointer-events-auto mt-3 size-7 rounded-full bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] shadow flex items-center justify-center text-[var(--p-text-color)] hover:bg-[var(--p-content-hover-background)]"
+              aria-label="向右捲動查看更多欄位"
+              @click="scrollTableBy(1)"
+            >
+              <FontAwesomeIcon :icon="['far', 'chevron-right']" class="text-xs" />
+            </button>
+          </div>
+        </div>
+
+        <!-- 手機（<md）：卡片列表（§7.5：divide-y 分隔、分層資訊、操作鈕帶文字） -->
+        <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+          <div
+            v-for="row in filteredList"
+            :key="row.id"
+            class="flex flex-col gap-2 px-1 py-3"
+          >
+            <!-- 主要識別 + 狀態 -->
+            <div class="flex items-start justify-between gap-2">
+              <span class="min-w-0 flex-1 text-sm font-semibold break-words">{{ row.sessionName }}</span>
+              <Tag
+                :value="statusLabel(row.status)"
+                :severity="statusSeverity(row.status)"
+                class="shrink-0"
+              />
+            </div>
+
+            <!-- 次要資訊（收為一底色區塊，每筆加 label） -->
+            <div class="flex flex-col gap-1 rounded-md bg-surface-50 px-2 py-2 text-sm dark:bg-surface-800/40">
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bid_gift_lottery.table.draw_source') }}</span>
+                <span>{{ drawSourceLabel(row) }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bid_gift_lottery.table.required_amount') }}</span>
+                <span>{{ formatAmount(row.requiredAmount) }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bid_gift_lottery.table.prize_content') }}</span>
+                <span class="break-words">{{ prizeText(row) }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bid_gift_lottery.table.winner_count') }}</span>
+                <span>{{ row.winnerCount }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bid_gift_lottery.table.search_date') }}</span>
+                <span class="break-words">{{ formatSearchRange(row.searchStartAt, row.searchEndAt) }}</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="shrink-0 text-surface-400 dark:text-surface-500">{{ $t('bid_gift_lottery.table.created_at') }}</span>
+                <span>{{ formatDateTime(row.createdAt) }}</span>
+              </div>
+            </div>
+
+            <!-- 操作列（帶文字 label；開始抽獎排最左） -->
+            <div class="flex flex-wrap justify-end gap-2">
+              <Button :label="$t('bid_gift_lottery.button.draw')" text size="small" severity="secondary" @click="handleDraw(row)">
+                <template #icon><FontAwesomeIcon :icon="['far', 'circle-play']" /></template>
+              </Button>
+              <Button :label="$t('bid_gift_lottery.button.edit')" text size="small" @click="handleEdit(row)">
+                <template #icon><FontAwesomeIcon :icon="['far', 'edit']" /></template>
+              </Button>
+              <Button :label="$t('bid_gift_lottery.button.delete')" text size="small" severity="danger" @click="handleDelete(row)">
+                <template #icon><FontAwesomeIcon :icon="['far', 'trash']" /></template>
+              </Button>
+            </div>
+          </div>
+
+          <div v-if="!filteredList.length" class="py-12 text-center text-muted-color">
+            {{ $t('common.no_data') }}
+          </div>
+        </div>
       </template>
     </Card>
 
@@ -272,3 +537,35 @@ function handleFormSubmit(row: BidGiftLotteryRow) {
     />
   </div>
 </template>
+
+<style scoped>
+/* 橫向捲軸常駐可見，提示右側還有欄位可看（design.md §7.5） */
+:deep(.bidgift-main-table .p-datatable-table-container) {
+  overflow-x: scroll !important;
+  scrollbar-gutter: stable;
+}
+:deep(.bidgift-main-table .p-datatable-table-container::-webkit-scrollbar) {
+  height: 12px !important;
+}
+:deep(.bidgift-main-table .p-datatable-table-container::-webkit-scrollbar-track) {
+  background: var(--p-surface-100) !important;
+  border-radius: 6px !important;
+}
+:deep(.bidgift-main-table .p-datatable-table-container::-webkit-scrollbar-thumb) {
+  background: var(--p-surface-400) !important;
+  border-radius: 6px !important;
+  border: 2px solid var(--p-surface-100) !important;
+}
+/* 凍結「操作」欄補不透明底色，避免橫向捲動時內容透出 */
+:deep(.bidgift-main-table .p-datatable-tbody > tr > td.p-datatable-frozen-column),
+:deep(.bidgift-main-table .p-datatable-thead > tr > th.p-datatable-frozen-column) {
+  background: var(--p-content-background);
+  z-index: 3;
+}
+:deep(.bidgift-main-table .p-datatable-tbody > tr:nth-child(even) > td.p-datatable-frozen-column) {
+  background: var(--p-datatable-row-striped-background, var(--p-content-background));
+}
+:deep(.bidgift-main-table .p-datatable-tbody > tr:hover > td.p-datatable-frozen-column) {
+  background: var(--p-datatable-row-hover-background, var(--p-content-background));
+}
+</style>

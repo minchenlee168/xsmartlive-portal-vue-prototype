@@ -9,21 +9,40 @@
       "draw": "開始抽獎",
       "edit": "編輯",
       "delete": "刪除",
-      "search": "搜尋"
+      "search": "搜尋",
+      "batch_delete": "批次刪除",
+      "batch_cancel": "取消",
+      "batch_delete_confirm": "刪除"
+    },
+    "batch": {
+      "selected": "已選擇 {count} 筆",
+      "none_selected": "尚未勾選任何項目"
+    },
+    "confirm": {
+      "delete_title": "確認刪除",
+      "delete_message": "確定要刪除「{name}」嗎？此操作無法復原。",
+      "batch_delete_message": "確定要刪除所選的 {count} 筆嗎？此操作無法復原。",
+      "accept": "確認刪除",
+      "reject": "取消"
+    },
+    "toast": {
+      "deleted": "已刪除",
+      "batch_deleted": "已刪除 {count} 筆"
     },
     "form": {
       "placeholder": {
-        "search": "搜尋場次名稱或獎項內容",
-        "status": "全部狀態"
+        "search": "搜尋場次名稱或獎項內容"
       }
     },
     "table": {
       "created_at": "建立時間",
-      "session_name": "場次名稱",
-      "search_date": "搜尋日期",
+      "session_name": "活動名稱",
+      "draw_source": "抽獎來源",
+      "search_date": "活動期間",
       "prize_type": "獎項類型",
-      "prize_content": "獎項內容",
-      "required_amount": "金額須滿足",
+      "prize_content": "贈送內容",
+      "required_amount": "得標門檻",
+      "winner_count": "中獎人數",
       "star_filter": "星等過濾",
       "status": "狀態",
       "actions": "操作"
@@ -32,15 +51,24 @@
       "product": "商品",
       "points": "點數"
     },
+    "prize_format": {
+      "product": "商品：{content}",
+      "points": "點數：{content}"
+    },
+    "draw_source": {
+      "live_session": "依直播場次",
+      "date_range": "活動區間"
+    },
     "status": {
       "all": "全部",
-      "in_progress": "進行中",
-      "ended": "已結束"
+      "not_started": "預約中",
+      "in_progress": "活動中",
+      "ended": "已結束",
+      "drawn": "已抽獎"
     },
     "value": {
       "unlimited": "不限",
-      "amount": "{value} 元",
-      "stars": "{value}"
+      "amount": "{value} 元"
     },
     "form_dialog": {
       "header": {
@@ -48,48 +76,54 @@
         "edit": "編輯得標禮抽獎"
       },
       "section": {
-        "basic": "基本資料",
-        "prize": "獎項設定",
-        "draw": "抽獎設定"
+        "basic": "基本設定",
+        "prize": "獎品設定"
       },
       "field": {
-        "session_name": "場次名稱",
-        "search_date": "搜尋日期",
+        "draw_source": "抽獎來源",
+        "live_session": "直播場次",
+        "activity_name": "活動名稱",
+        "date_range": "活動日期區間",
+        "required_amount": "得標門檻金額",
         "star_filter": "星等過濾",
-        "prize_type": "獎項類型",
-        "prize_content": "獎項內容",
-        "required_amount": "金額須滿足",
         "auto_draw": "自動抽獎",
-        "winner_count": "指定中獎人數"
-      },
-      "placeholder": {
-        "session_name": "請輸入場次名稱",
-        "search_date": "YYYY/MM/DD - YYYY/MM/DD",
-        "prize_content_product": "輸入商品名稱",
-        "prize_content_points": "輸入贈送點數"
-      },
-      "validation": {
-        "session_name": "請輸入場次名稱",
-        "search_date": "請選擇搜尋日期",
-        "prize_content": "請輸入獎項內容",
-        "winner_count": "指定中獎人數至少 1 位"
-      },
-      "hint": {
-        "session_name": "系統自動產生格式 CODEX_LOTTERY_SESSION_YYYYMMDD_HHMMSS，可手動覆寫",
-        "required_amount": "0＝不限（單筆訂單實付金額至少達到此值才會納入抽獎）",
-        "auto_draw": "（達到搜尋結束時間自動執行抽獎）"
+        "winner_count": "指定中獎人數",
+        "prize_type": "贈送類型",
+        "product_name": "商品名稱",
+        "cart": "結帳購物車",
+        "points_amount": "點數額度"
       },
       "star_filter": {
-        "unlimited": "不限"
+        "unlimited": "不限制"
+      },
+      "placeholder": {
+        "live_session": "輸入場次名稱搜尋",
+        "activity_name": "選填，留空自動命名為「得標禮活動-日期時間」",
+        "date_range": "YYYY/MM/DD HH:mm - YYYY/MM/DD HH:mm",
+        "product_name": "輸入商品名稱",
+        "points_amount": "輸入點數額度",
+        "cart": "選擇多購物車"
+      },
+      "hint": {
+        "required_amount": "該場得標金額達到此門檻的買家才進入抽獎池",
+        "auto_draw": "活動結束時自動執行抽獎"
       },
       "unit": {
-        "yuan": "元"
+        "winner": "人",
+        "points": "點"
       },
+      "optional_suffix": "（選填）",
+      "auto_name_prefix": "得標禮活動",
       "button": {
-        "regenerate": "重新產生",
         "cancel": "取消",
         "create": "新增",
-        "save": "儲存"
+        "save": "儲存變更"
+      },
+      "validation": {
+        "live_session": "請選擇直播場次",
+        "date_range": "請選擇活動日期區間",
+        "prize_content": "請輸入贈送內容",
+        "winner_count": "指定中獎人數至少 1 位"
       },
       "toast": {
         "created": "已新增得標禮抽獎",
