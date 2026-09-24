@@ -178,6 +178,24 @@ const editBuyerName = ref<string>(props.order.buyerName)
 const editBuyerPhone = ref<string>(props.order.buyerPhone)
 /** 地址欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
 const shippingAddress = ref<string>('台北市中山區南京東路二段50號')
+/** 自取:商家自有取貨門市選項 */
+const pickupStoreOptions = [
+  { label: 'MIFFY 信義門市 — 台北市信義區忠孝東路四段45號', value: 'xinyi' },
+  { label: 'MIFFY 西門門市 — 台北市萬華區漢中街80號',       value: 'ximen' },
+  { label: 'MIFFY 板橋門市 — 新北市板橋區文化路一段25號',    value: 'banqiao' },
+]
+/** 自取:選定的取貨門市 */
+const pickupStore = ref<string | null>(null)
+/** 超商配送:取貨門市（門市名稱／地址,透過「選擇門市」電子地圖帶入） */
+const cvsStore = ref<string>('')
+/** 配送方式是否已被改動（相對原訂單）→ 需重新填寫取貨門市 */
+const shippingMethodChanged = computed(
+  () => editShippingMethod.value !== props.order.shippingMethod,
+)
+/** prototype:模擬超商電子地圖選店,帶入一筆門市 */
+function pickCvsStore(): void {
+  cvsStore.value = '7-ELEVEN 忠孝門市（台北市大安區忠孝東路四段181號）'
+}
 
 /** 付款方式卡編輯:僅「付款狀態」變 Select 可改,「付款方式」固定不可更改。付款狀態選項比照進階篩選的六種。 */
 const paymentStatusOptions: Array<{ label: string; value: OrderRow['paymentStatus'] }> = [
@@ -222,6 +240,8 @@ watch(() => props.order.id, () => {
   editBuyerName.value = props.order.buyerName
   editBuyerPhone.value = props.order.buyerPhone
   shippingAddress.value = '台北市中山區南京東路二段50號'
+  pickupStore.value = null
+  cvsStore.value = ''
   editingShipping.value = false
   editPaymentStatus.value = props.order.paymentStatus
   editPaymentMethod.value = props.order.paymentMethodLabel ?? '信用卡一次付清'
@@ -694,10 +714,56 @@ function commitInvoice(): void {
             <label class="text-xs text-[var(--p-text-muted-color)]">電話</label>
             <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
           </div>
-          <div class="flex flex-col gap-1">
+          <!-- 宅配：收件地址 -->
+          <div v-if="editShippingMethod === '常溫宅配'" class="flex flex-col gap-1">
             <label class="text-xs text-[var(--p-text-muted-color)]">收件地址</label>
             <InputText v-model="shippingAddress" placeholder="收件地址" class="w-full" size="small" />
           </div>
+          <!-- 自取 / 超商配送：改填取貨門市 -->
+          <template v-else>
+            <!-- 由宅配改為取貨方式時，提醒重新填寫門市 -->
+            <div
+              v-if="shippingMethodChanged"
+              class="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400"
+            >
+              <i class="pi pi-exclamation-triangle"></i>
+              <span>配送方式已變更,請重新填寫貨取門市</span>
+            </div>
+            <!-- 自取：從商家自有門市擇一 -->
+            <div v-if="editShippingMethod === '自取'" class="flex flex-col gap-1">
+              <label class="text-xs text-[var(--p-text-muted-color)]">取貨門市</label>
+              <Select
+                v-model="pickupStore"
+                :options="pickupStoreOptions"
+                option-label="label"
+                option-value="value"
+                placeholder="選擇取貨門市"
+                class="w-full"
+                size="small"
+              />
+            </div>
+            <!-- 超商配送：門市名稱／地址 + 電子地圖選店 -->
+            <div v-else class="flex flex-col gap-1">
+              <label class="text-xs text-[var(--p-text-muted-color)]">取貨門市</label>
+              <div class="flex items-center gap-2">
+                <InputText
+                  v-model="cvsStore"
+                  placeholder="門市名稱 / 地址"
+                  class="w-full"
+                  size="small"
+                  readonly
+                />
+                <Button
+                  label="選擇門市"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  class="shrink-0"
+                  @click="pickCvsStore"
+                />
+              </div>
+            </div>
+          </template>
         </template>
       </div>
 
