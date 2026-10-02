@@ -20,6 +20,24 @@ import { orderStatusOf, orderStatusMeta, orderAbnormalReason } from '../orderSta
  * 3. 商品明細 table + 訂單總計（運費 / 商品總額 / 總計）
  */
 
+/** 合併訂單「原始訂單」一列的精簡快照 */
+interface MergeSourceLite {
+  createdAt: string
+  orderNo: string
+  buyerName: string
+  amount: number
+  itemCount: number
+  shippingMethod: string
+  paymentMethodLabel?: string
+  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+}
+/** 合併紀錄:有值代表此單是 M 開頭合併訂單 */
+interface MergeRecord {
+  mergedAt: string
+  paymentMethodLabel: string
+  sources: MergeSourceLite[]
+}
+
 interface OrderRow {
   id: string
   createdAt: string
@@ -52,15 +70,21 @@ interface OrderRow {
   invoiceIssuedAt?: string
   /** 發票狀態(六值);未設時依 invoiceNumber 推 issued / not_issued */
   invoiceStatus?: 'not_issued' | 'issued' | 'not_required' | 'voided' | 'issue_failed' | 'void_failed'
+  /** 合併紀錄;有值代表此單為 M 開頭合併訂單 */
+  mergeRecord?: MergeRecord
 }
 
 interface Props {
   order: OrderRow
+  /** 以「原始訂單檢視」模式顯示:隱藏出貨管理區(合併紀錄面板點來源列另開時用) */
+  hideShipping?: boolean
 }
 const props = defineProps<Props>()
 const emit = defineEmits<{
   /** 觸發分批出貨作業（父層負責關閉詳情彈窗 + 開啟分批出貨彈窗） */
   'open-split-page': [orderId: string]
+  /** 點合併紀錄面板的原始訂單列 → 父層另開該原始訂單檢視彈窗 */
+  'open-source-order': [orderNo: string]
 }>()
 
 /** 出貨狀態 → 用 PrimeVue Tag severity（走 Design.md 定義的狀態語意色） */
@@ -79,15 +103,27 @@ const shippingBadge = computed<{ label: string; severity: TagSeverity }>(() => {
   return map[props.order.shippingStatus]
 })
 /** 付款狀態 badge（已退款＝取消已付款訂單、辦理退款後的付款終態） */
-const paymentBadge = computed<{ label: string; severity: TagSeverity }>(() => {
-  const s = props.order.paymentStatus
+const paymentBadge = computed<{ label: string; severity: TagSeverity }>(() => paymentBadgeOf(props.order.paymentStatus))
+/** 付款狀態 → badge(供合併紀錄面板逐列原始訂單用) */
+function paymentBadgeOf(s: OrderRow['paymentStatus']): { label: string; severity: TagSeverity } {
   if (s === 'paid') return { label: '已付款', severity: 'success' }
   if (s === 'paying') return { label: '付款中', severity: 'info' }
   if (s === 'payment_failed') return { label: '付款失敗', severity: 'danger' }
   if (s === 'pending_refund') return { label: '待退款', severity: 'warn' }
   if (s === 'refunded') return { label: '已退款', severity: 'secondary' }
   return { label: '待付款', severity: 'warn' }
-})
+}
+/** 合併紀錄面板「出貨方式」顯示:常溫宅配 → 宅配(與合併編輯頁一致) */
+function shortShipping(m: string): string {
+  return m === '常溫宅配' ? '宅配' : m
+}
+/** 點原始訂單列 → 通知父層另開該原始訂單檢視彈窗 */
+function openSourceOrder(orderNo: string): void {
+  emit('open-source-order', orderNo)
+}
+/** 合併紀錄面板:預設收合,點標題列展開 */
+const mergeExpanded = ref(false)
+
 /** 訂單狀態:依 orderStatus.ts 的貨態×付款矩陣推導(與列表頁一致) */
 const orderStatusBadge = computed<{ label: string; severity: TagSeverity }>(() => orderStatusMeta(orderStatusOf(props.order)))
 /** 異常處理時的原因說明(供 tooltip);非異常為 null */
@@ -297,7 +333,7 @@ const nextStatusInfo = computed(() => {
 function openStatusSwitchDialog(): void {
   if (!nextStatusInfo.value) return
   if (manualSwitchLocked.value) {
-    lockedSwitchDialogVisible.value = true
+    showLockedSwitch('訂單', props.order.carrierName ?? '', currentStatusLabel.value)
     return
   }
   statusSwitchTarget.value = nextStatusInfo.value.key
@@ -320,6 +356,14 @@ function isPostShipStage(s: OrderRow['shippingStatus']): boolean {
 }
 /** 無法手動切換狀態:系統管控物流 + 目前已進入出貨後階段 → 貨態全由系統驅動,不可手動切換(任一方向) */
 const lockedSwitchDialogVisible = ref(false)
+/** 鎖定提示彈窗的內容(整單 / 批次共用) */
+const lockedSwitchInfo = ref<{ unit: string; carrierName: string; statusLabel: string }>({
+  unit: '訂單', carrierName: '', statusLabel: '',
+})
+function showLockedSwitch(unit: string, carrierName: string, statusLabel: string): void {
+  lockedSwitchInfo.value = { unit, carrierName, statusLabel }
+  lockedSwitchDialogVisible.value = true
+}
 const manualSwitchLocked = computed<boolean>(() =>
   isSystemCarrier.value && isPostShipStage(props.order.shippingStatus),
 )
@@ -328,7 +372,7 @@ function onStepClick(key: OrderRow['shippingStatus']): void {
   const current = props.order.shippingStatus
   if (key === current) return
   if (manualSwitchLocked.value) {
-    lockedSwitchDialogVisible.value = true
+    showLockedSwitch('訂單', props.order.carrierName ?? '', currentStatusLabel.value)
     return
   }
   statusSwitchTarget.value = key
@@ -362,8 +406,8 @@ function onShippingConfigConfirm(payload: { carrierName: string; method: string;
 // ─────────────────────────────────────────────────────────────
 const { getBatches, setBatches } = useShippingBatches()
 const batches = computed<OrderBatch[]>(() => getBatches(props.order.orderNo))
-// 分批出貨功能先隱藏:一律走未分批版(改回 batches.value.length > 0 即恢復)
-const isBatched = computed<boolean>(() => false && batches.value.length > 0)
+// 已分批(共享批次狀態有資料)→ 改渲染分批版出貨管理
+const isBatched = computed<boolean>(() => batches.value.length > 0)
 
 // mock 資料中已標記分批（dispatchBatchCount）但 store 尚無批次明細者，
 // 補上示意批次，讓明細分批版與列表「已分批 N 批」一致。
@@ -411,10 +455,29 @@ function batchSteps(status: BatchShippingStatus): StepItem[] {
     isCurrent: i === idx, isPast: i < idx, time: '—',
   }))
 }
+/** 批次是否為系統管控物流(比照整單:非自取/商家自建/郵局,且已設定配送) */
+function batchIsSystemCarrier(batch: OrderBatch): boolean {
+  if (!batch.carrier) return false
+  const name = batch.carrier.name
+  if (name.includes('自取') || name.includes('商家自建') || name.includes('郵局')) return false
+  return true
+}
+function batchStageIndex(s: BatchShippingStatus): number {
+  return BATCH_FLOW.findIndex(x => x.key === s)
+}
+/** 批次無法手動切換:系統管控物流 + 已進入出貨後階段(已出貨之後) → 由系統驅動 */
+function batchManualSwitchLocked(batch: OrderBatch): boolean {
+  return batchIsSystemCarrier(batch) && batchStageIndex(batch.status) >= batchStageIndex('shipping')
+}
 /** 點某批次的貨態圓點 → 二次確認後切換該批狀態（與整單貨態切換一致） */
 const confirm = useConfirm()
 function setBatchStatus(batch: OrderBatch, status: BatchShippingStatus): void {
   if (batch.status === status) return
+  // 比照整單:系統管控物流且已進入出貨後階段 → 不可手動切換,跳提示
+  if (batchManualSwitchLocked(batch)) {
+    showLockedSwitch('批次', batch.carrier?.name ?? '', batchStatusBadge(batch.status).label)
+    return
+  }
   const from = batchStatusBadge(batch.status).label
   const to = batchStatusBadge(status).label
   confirm.require({
@@ -618,6 +681,123 @@ function commitInvoice(): void {
 
 <template>
   <div class="flex flex-col gap-4 p-4 bg-[var(--p-content-hover-background)]">
+    <!-- 合併紀錄 · 原始訂單：僅合併訂單(有 mergeRecord)顯示，置於最上方 -->
+    <div
+      v-if="order.mergeRecord"
+      class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4"
+    >
+      <!-- 標題列（可點收合/展開）：icon + 標題 + 由 N 筆合併 tag + 合併時間 + chevron。預設收合 -->
+      <div
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 cursor-pointer select-none"
+        role="button"
+        tabindex="0"
+        :aria-expanded="mergeExpanded"
+        @click="mergeExpanded = !mergeExpanded"
+        @keydown.enter.prevent="mergeExpanded = !mergeExpanded"
+        @keydown.space.prevent="mergeExpanded = !mergeExpanded"
+      >
+        <i class="pi pi-sitemap text-sm text-[var(--p-text-muted-color)] shrink-0"></i>
+        <span class="text-sm font-bold text-[var(--p-text-color)] shrink-0">合併紀錄 · 原始訂單</span>
+        <Tag :value="`由 ${order.mergeRecord.sources.length} 筆合併`" />
+        <span class="ml-auto text-xs text-[var(--p-text-muted-color)] shrink-0">
+          合併時間 {{ order.mergeRecord.mergedAt }}
+        </span>
+        <i
+          class="pi pi-chevron-down text-xs text-[var(--p-text-muted-color)] shrink-0 transition-transform"
+          :class="{ 'rotate-180': mergeExpanded }"
+        ></i>
+      </div>
+
+      <!-- 展開內容：摘要 + 原始訂單表 + footer（預設收合） -->
+      <template v-if="mergeExpanded">
+        <!-- 摘要：付款狀態 / 付款方式(label 左、值接續) -->
+        <div class="flex flex-col gap-2 text-sm">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款狀態</span>
+            <Tag :value="paymentBadge.label" :severity="paymentBadge.severity" />
+            <span class="text-[var(--p-text-muted-color)]">{{ order.mergeRecord.sources.length }} 筆來源</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款方式</span>
+            <span class="text-[var(--p-text-color)]">{{ order.mergeRecord.paymentMethodLabel }}</span>
+          </div>
+        </div>
+
+        <!-- 原始訂單：桌機 DataTable(整列可點) / 手機卡片列(design.md §7.5：多欄表格手機不橫向捲動) -->
+        <DataTable :value="order.mergeRecord.sources" data-key="orderNo" striped-rows class="hidden md:block w-full"
+          :pt="{ column: { headerCell: { style: 'white-space: nowrap;' } }, bodyRow: { style: 'cursor: pointer' } }"
+          @row-click="(e) => openSourceOrder(e.data.orderNo)">
+          <Column header="建立時間" field="createdAt" />
+          <Column header="訂單編號">
+            <template #body="{ data }">
+              <span class="font-bold text-[var(--p-text-color)]">{{ data.orderNo }}</span>
+            </template>
+          </Column>
+          <Column header="訂購人" field="buyerName" />
+          <Column header="金額">
+            <template #body="{ data }">
+              <span class="font-bold text-[var(--p-text-color)]">${{ data.amount.toLocaleString() }}</span>
+            </template>
+          </Column>
+          <Column header="件數" field="itemCount" />
+          <Column header="出貨方式">
+            <template #body="{ data }">{{ shortShipping(data.shippingMethod) }}</template>
+          </Column>
+          <Column header="付款方式">
+            <template #body="{ data }">
+              <span class="block max-w-[140px] truncate" :title="data.paymentMethodLabel">{{ data.paymentMethodLabel ?? '—' }}</span>
+            </template>
+          </Column>
+          <Column header="付款">
+            <template #body="{ data }">
+              <Tag :value="paymentBadgeOf(data.paymentStatus).label" :severity="paymentBadgeOf(data.paymentStatus).severity" />
+            </template>
+          </Column>
+          <Column header="操作" body-class="text-right">
+            <template #body="{ data }">
+              <Button
+                v-tooltip.top="'另開原始訂單檢視頁'"
+                aria-label="另開原始訂單檢視頁"
+                icon="pi pi-external-link"
+                severity="secondary"
+                variant="text"
+                size="small"
+                rounded
+                @click.stop="openSourceOrder(data.orderNo)"
+              />
+            </template>
+          </Column>
+        </DataTable>
+
+        <!-- 手機卡片列 -->
+        <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
+          <div v-for="src in order.mergeRecord.sources" :key="src.orderNo" class="flex flex-col gap-2 py-3 first:pt-0 text-sm">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-[var(--p-text-color)]">{{ src.orderNo }}</span>
+              <Tag :value="paymentBadgeOf(src.paymentStatus).label" :severity="paymentBadgeOf(src.paymentStatus).severity" class="shrink-0" />
+            </div>
+            <div class="rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 flex flex-col gap-1">
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">建立時間</span><span class="text-[var(--p-text-color)]">{{ src.createdAt }}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">訂購人</span><span class="text-[var(--p-text-color)]">{{ src.buyerName }}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">金額</span><span class="font-bold text-[var(--p-text-color)]">${{ src.amount.toLocaleString() }}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">件數</span><span class="text-[var(--p-text-color)]">{{ src.itemCount }}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">出貨方式</span><span class="text-[var(--p-text-color)]">{{ shortShipping(src.shippingMethod) }}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)] shrink-0">付款方式</span><span class="text-[var(--p-text-color)] truncate">{{ src.paymentMethodLabel ?? '—' }}</span></div>
+            </div>
+            <div class="flex justify-end">
+              <Button label="查看原始訂單" icon="pi pi-external-link" severity="secondary" variant="outlined" size="small" @click="openSourceOrder(src.orderNo)" />
+            </div>
+          </div>
+        </div>
+
+        <!-- footer 提示 -->
+        <div class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)]">
+          <i class="pi pi-info-circle text-xs"></i>
+          <span>點任一筆另開原始訂單檢視頁</span>
+        </div>
+      </template>
+    </div>
+
     <!-- 上方 4 卡 grid：配送資訊 / 訂單來源 / 付款方式 / 發票資訊 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <!-- 配送資訊：整卡編輯（點筆 icon 進入編輯，打勾 icon commit） -->
@@ -935,8 +1115,8 @@ function commitInvoice(): void {
       </div>
     </div>
 
-    <!-- 出貨管理（依規範：紫色外框） -->
-    <div class="rounded-lg border-2 border-[var(--p-primary-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
+    <!-- 出貨管理（依規範：紫色外框）；原始訂單檢視模式隱藏 -->
+    <div v-if="!hideShipping" class="rounded-lg border-2 border-[var(--p-primary-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
       <div class="flex items-center gap-2">
         <i class="pi pi-clipboard text-[var(--p-primary-color)]"></i>
         <span class="text-sm font-bold text-[var(--p-text-color)]">出貨管理</span>
@@ -957,8 +1137,8 @@ function commitInvoice(): void {
           :disabled="!nextStatusInfo || manualSwitchLocked"
           @click="openStatusSwitchDialog"
         />
-        <!-- 分批出貨:先隱藏(功能暫緩) -->
-        <Button v-if="false" label="分批出貨" icon="pi pi-th-large" severity="secondary" variant="outlined" size="small" @click="openSplitPage" />
+        <!-- 分批出貨 -->
+        <Button label="分批出貨" icon="pi pi-th-large" severity="secondary" variant="outlined" size="small" @click="openSplitPage" />
         <span class="w-px h-6 bg-[var(--p-content-border-color)] mx-1 shrink-0" aria-hidden="true"></span>
         <Button label="列印出貨單" icon="pi pi-print" severity="secondary" variant="outlined" size="small" @click="printDialogVisible = true" />
         <Button label="列印標籤" icon="pi pi-tag" severity="secondary" variant="outlined" size="small" @click="printLabelToast" />
@@ -1322,7 +1502,7 @@ function commitInvoice(): void {
       </template>
       <div class="flex flex-col gap-2">
         <p class="text-sm text-[var(--p-text-color)] leading-snug">
-          此訂單由 <span class="font-medium">{{ order.carrierName }}</span> 系統管控,目前狀態「<span class="font-medium text-yellow-600 dark:text-yellow-400">{{ currentStatusLabel }}</span>」屬出貨後階段,無法手動切換。
+          此{{ lockedSwitchInfo.unit }}由 <span class="font-medium">{{ lockedSwitchInfo.carrierName }}</span> 系統管控,目前狀態「<span class="font-medium text-yellow-600 dark:text-yellow-400">{{ lockedSwitchInfo.statusLabel }}</span>」屬出貨後階段,無法手動切換。
         </p>
         <p class="text-xs text-[var(--p-text-muted-color)] leading-snug">
           若需修改貨態,請聯絡物流商或等待系統更新。

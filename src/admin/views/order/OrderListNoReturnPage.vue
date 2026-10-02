@@ -6,6 +6,7 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import OrderRowDetail from './components/OrderRowDetailNoReturn.vue'
 import ShippingConfigDialog from './components/ShippingConfigDialog.vue'
+import ShippingDiffAdjustDialog from './components/ShippingDiffAdjustDialog.vue'
 import IssueInvoiceDialog from './components/IssueInvoiceDialog.vue'
 import SplitShippingDialog from './components/SplitShippingDialog.vue'
 import ShippingListPrintDialog from './components/ShippingListPrintDialog.vue'
@@ -22,6 +23,24 @@ import { orderStatusOf, orderStatusMeta, orderAbnormalReason, ORDER_STATUS_OPTIO
  * 欄位：建立時間 / 購物車 + 訂單編號 / 訂購人 / 訂單狀態 / 金額 / 商品數量 /
  * 配送方式 / 付款狀態 / 出貨狀態 / 物流商資訊 / 取號狀態 / 操作。
  */
+
+/** 合併訂單「原始訂單」一列的精簡快照（合併當下凍結，供詳情頁合併紀錄面板顯示） */
+export interface MergeSourceLite {
+  createdAt: string
+  orderNo: string
+  buyerName: string
+  amount: number
+  itemCount: number
+  shippingMethod: string
+  paymentMethodLabel?: string
+  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+}
+/** 合併紀錄：有值代表此單是 M 開頭合併訂單，由下列原始訂單合併而來 */
+export interface MergeRecord {
+  mergedAt: string
+  paymentMethodLabel: string
+  sources: MergeSourceLite[]
+}
 
 interface OrderRow {
   id: string
@@ -72,6 +91,8 @@ interface OrderRow {
   paymentMethodLabel?: string
   /** 溫層,合併判斷同溫層依據(常溫/冷藏/冷凍…);沒填則以 shippingMethod 當代表 */
   temperature?: string
+  /** 合併紀錄;有值代表此單為 M 開頭合併訂單 */
+  mergeRecord?: MergeRecord
 }
 
 /** 合併訂單彈窗使用的訂單分組:同一買家 + 同址 + 同配送 + 同溫層 + 未取號才可合併 */
@@ -637,6 +658,23 @@ function openDetailDialog(o: OrderRow): void {
   detailDialogVisible.value = true
 }
 /**
+ * 合併紀錄面板點原始訂單列 → 另開「原始訂單檢視」彈窗(唯讀副本,隱藏出貨管理)。
+ * 原始訂單合併後仍留在列表(已作廢),依訂單編號取回完整資料。
+ */
+const sourceDetailVisible = ref(false)
+const sourceDetailOrder = ref<OrderRow | null>(null)
+const sourceDetailKey = ref(0)
+function openSourceDetail(orderNo: string): void {
+  const src = orders.value.find((o) => o.orderNo === orderNo)
+  if (!src) {
+    toast.add({ severity: 'warn', summary: '找不到原始訂單', detail: orderNo, life: 2200 })
+    return
+  }
+  sourceDetailOrder.value = structuredClone(toRaw(src))
+  sourceDetailKey.value++
+  sourceDetailVisible.value = true
+}
+/**
  * 儲存:先收攏還在編輯中的卡片(避免使用者忘按卡片打勾導致編輯遺失),
  * 再把副本的所有欄位寫回原始訂單 → 列表即時更新。取消 / 關閉則整份副本捨棄。
  */
@@ -1049,11 +1087,19 @@ function shippingStatusTagMeta(s: OrderRow['shippingStatus']): { label: string; 
 }
 
 // ── 合併訂單 ─────────────────────────
-// 條件:同買家 + 同址 + 同配送方式 + 同溫層 + 尚未取號 → 可合併(至少 2 筆才算一組)
+// 可合併:狀態為「待出貨/備貨中」且尚未取號;已付款不限付款方式、未付款限貨到付款。
+// 併為同一張:同買家 + 同址 + 同配送方式 + 同溫層,且至少 2 筆。
 const mergeGroups = computed<MergeOrderGroup[]>(() => {
   const map = new Map<string, OrderRow[]>()
   orders.value.forEach((o) => {
-    if (o.trackingStatus) return
+    if (o.mergeRecord) return                     // 已是合併單,不可再被合併
+    // 狀態限「待出貨 / 備貨中」(含排除已取消 / 已出貨之後 / 配送異常)
+    if (o.shippingStatus !== 'pending' && o.shippingStatus !== 'preparing') return
+    if (o.trackingStatus) return                  // 尚未取號
+    // 付款規則:已付款不限付款方式;未付款僅限貨到付款
+    const paid = o.paymentStatus === 'paid'
+    const unpaidCod = o.paymentStatus === 'unpaid' && o.paymentMethodLabel === '貨到付款'
+    if (!paid && !unpaidCod) return
     if (!o.receiverAddress) return
     const temp = o.temperature ?? o.shippingMethod
     const key = `${o.buyerName}|${o.receiverAddress}|${o.shippingMethod}|${temp}`
@@ -1140,10 +1186,6 @@ function goToMergeEditor(): void {
     address: first.receiverAddress ?? '',
     shippingFee: 120,
   }
-  // 預設全部優惠券都套用
-  mergeCouponSelected.value = new Set(
-    mergeSelectedOrders.value.filter((o) => (o.couponDiscount ?? 0) > 0).map((o) => o.id),
-  )
   mergeStep.value = 'editor'
 }
 function backToMergeList(): void {
@@ -1156,22 +1198,13 @@ const mergeForm = ref({
   address: '',
   shippingFee: 120,
 })
-/** 已勾選要套用的優惠券 → 對應到訂單 id */
-const mergeCouponSelected = ref<Set<string>>(new Set())
-function toggleMergeCoupon(id: string): void {
-  const next = new Set(mergeCouponSelected.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  mergeCouponSelected.value = next
-}
 /** 合併後試算:商品 / 運費 / 點數折抵 / 優惠券折抵 / 總計 */
 const mergeSummary = computed(() => {
   const subtotal = mergeSelectedOrders.value.reduce((s, o) => s + o.amount, 0)
   const shippingFee = mergeForm.value.shippingFee
   const pointsDiscount = 0
-  const couponDiscount = mergeSelectedOrders.value
-    .filter((o) => mergeCouponSelected.value.has(o.id))
-    .reduce((s, o) => s + (o.couponDiscount ?? 0), 0)
+  // 優惠券合併後不可編輯:各原始訂單的券全額帶入
+  const couponDiscount = mergeSelectedOrders.value.reduce((s, o) => s + (o.couponDiscount ?? 0), 0)
   const total = subtotal + shippingFee - pointsDiscount - couponDiscount
   return { subtotal, shippingFee, pointsDiscount, couponDiscount, total }
 })
@@ -1179,23 +1212,106 @@ const mergeSummary = computed(() => {
 const mergePointsEarnedTotal = computed(() =>
   mergeSelectedOrders.value.reduce((s, o) => s + Math.floor(o.amount / 100), 0),
 )
+/** 每筆原始訂單運費(prototype 固定 $120) */
+const MERGE_PER_ORDER_SHIPPING = 120
+/** 合併前運費(各原始訂單運費加總) */
+const mergeShippingBefore = computed(() => mergeSelectedOrders.value.length * MERGE_PER_ORDER_SHIPPING)
+/** 運費差額 = 合併前 − 合併後;> 0 溢收(退還會員)、< 0 短收(向會員收) */
+const mergeShippingDiff = computed(() => mergeShippingBefore.value - mergeForm.value.shippingFee)
+/** 差額調整彈窗 */
+const diffAdjustVisible = ref(false)
+function onDiffAdjustApply(payload: { direction: 'refund' | 'charge'; points: number; reason: string }): void {
+  const verb = payload.direction === 'refund' ? '補點退還會員' : '向會員扣點'
+  toast.add({
+    severity: 'success',
+    summary: '運費差額已調整',
+    detail: `${verb} ${payload.points.toLocaleString()} 點${payload.reason ? `（${payload.reason}）` : ''}`,
+    life: 2600,
+  })
+}
+/** 現在時間 → 'YYYY-MM-DD HH:mm'(合併單建立時間 / 合併時間用) */
+function nowStamp(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+/** 產生 M 開頭合併訂單編號:M + yyyymmdd + 當日流水序(3 碼) */
+function nextMergeOrderNo(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  const ymd = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`
+  const seq = orders.value.filter((o) => o.orderNo.startsWith(`M${ymd}`)).length + 1
+  return `M${ymd}${String(seq).padStart(3, '0')}`
+}
 function confirmMerge(): void {
-  // 破壞性動作:原訂單會被作廢、未勾選的優惠券自動退回;需二次確認,預設焦點在「取消」
+  // 破壞性動作:原訂單會被作廢;需二次確認,預設焦點在「取消」
   confirm.require({
     header: '確認合併訂單?',
-    message: `即將把 ${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆,原訂單會作廢,未勾選的優惠券會退回客人帳號。此動作無法復原,確定執行?`,
+    message: `即將把 ${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆,原訂單會作廢。此動作無法復原,確定執行?`,
     icon: 'pi pi-exclamation-triangle',
     defaultFocus: 'reject',
     rejectProps: { label: '取消', severity: 'secondary', outlined: true },
     acceptProps: { label: '確認合併', severity: 'danger' },
     accept: () => {
+      const sources = mergeSelectedOrders.value
+      const first = sources[0]
+      if (!first) return
+      const mergedAt = nowStamp()
+      const orderNo = nextMergeOrderNo()
+      const sourceSnapshots: MergeSourceLite[] = sources.map((o) => ({
+        createdAt: o.createdAt,
+        orderNo: o.orderNo,
+        buyerName: o.buyerName,
+        amount: o.amount,
+        itemCount: o.itemCount,
+        shippingMethod: o.shippingMethod,
+        paymentMethodLabel: o.paymentMethodLabel,
+        paymentStatus: o.paymentStatus,
+      }))
+      const mergedOrder: OrderRow = {
+        id: `merged-${orderNo}`,
+        createdAt: mergedAt,
+        cartTag: { label: '合併訂單', bg: '#ede9fe', color: '#6d28d9' },
+        orderNo,
+        buyerName: first.buyerName,
+        buyerPhone: mergeForm.value.phone || first.buyerPhone,
+        amount: mergeSummary.value.total,
+        itemCount: sources.reduce((s, o) => s + o.itemCount, 0),
+        shippingMethod: first.shippingMethod,
+        paymentStatus: 'paid',
+        shippingStatus: 'pending',
+        carrierStatus: 'unconfigured',
+        trackingStatus: null,
+        orderSource: first.orderSource,
+        multiCart: first.multiCart,
+        channel: first.channel,
+        paymentMethodLabel: first.paymentMethodLabel,
+        receiverAddress: mergeForm.value.address || first.receiverAddress,
+        temperature: first.temperature,
+        mergeRecord: {
+          mergedAt,
+          paymentMethodLabel: `${first.paymentMethodLabel ?? '信用卡一次付清'}（藍新）`,
+          sources: sourceSnapshots,
+        },
+      }
+      // 原始訂單作廢(已取消 + 金流退回,狀態才不會落在「異常處理」),合併單置頂方便立即查看
+      const sourceIds = new Set(sources.map((o) => o.id))
+      orders.value.forEach((o) => {
+        if (sourceIds.has(o.id)) {
+          o.shippingStatus = 'cancelled'
+          o.paymentStatus = 'refunded'
+        }
+      })
+      orders.value.unshift(mergedOrder)
       toast.add({
         severity: 'success',
         summary: '合併訂單完成',
-        detail: `${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆,總計 $${mergeSummary.value.total.toLocaleString()}`,
-        life: 2500,
+        detail: `${sources.length} 筆訂單已合併為 ${orderNo},總計 $${mergedOrder.amount.toLocaleString()}`,
+        life: 2800,
       })
       mergeDialogVisible.value = false
+      mergeSelectedIds.value = new Set()
+      mergeStep.value = 'list'
     },
   })
 }
@@ -1301,8 +1417,6 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           <div class="flex items-center gap-2 flex-wrap">
             <Button
               label="批次作業"
-              icon="pi pi-chevron-down"
-              icon-pos="right"
               severity="secondary"
               variant="outlined"
               size="small"
@@ -1315,15 +1429,14 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <div class="px-3 py-2 text-xs text-[var(--p-text-muted-color)]">選擇批次動作</div>
               </template>
             </Menu>
-            <!-- 合併訂單:先隱藏(功能暫緩) -->
+            <!-- 合併訂單 -->
             <Button
-              v-if="false"
               severity="secondary"
               variant="outlined"
+              size="small"
               :disabled="mergeableOrderCount === 0"
               @click="openMergeDialog"
             >
-              <i class="pi pi-link mr-2" style="font-size: 13px"></i>
               <span>合併訂單</span>
               <Badge
                 v-if="mergeableOrderCount > 0"
@@ -1335,7 +1448,6 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <Button label="預設配送設定" severity="secondary" variant="outlined" size="small" @click="defaultShippingConfigDialogVisible = true" />
             <Button
               label="匯出 CSV"
-              icon="pi pi-file-export"
               severity="secondary"
               variant="outlined"
               size="small"
@@ -1640,9 +1752,9 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2 flex-wrap">
                   <Tag :value="data.cartTag.label" severity="secondary" />
-                  <!-- 已分批 N 批 tag:分批出貨功能先隱藏(移除 false 即恢復) -->
+                  <!-- 已分批 N 批 tag -->
                   <Tag
-                    v-if="false && (data.dispatchBatchCount ?? 0) > 0"
+                    v-if="(data.dispatchBatchCount ?? 0) > 0"
                     :value="`已分批 ${data.dispatchBatchCount} 批`"
                     severity="info"
                   />
@@ -2048,7 +2160,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
       :style="{ width: 'min(1200px, calc(100vw - 32px))' }"
       :pt="{ content: { style: 'padding: 0' } }"
     >
-      <OrderRowDetail v-if="detailDialogOrder" :key="detailInstanceKey" ref="detailRef" :order="detailDialogOrder" @open-split-page="openSplitPage" />
+      <OrderRowDetail v-if="detailDialogOrder" :key="detailInstanceKey" ref="detailRef" :order="detailDialogOrder" @open-split-page="openSplitPage" @open-source-order="openSourceDetail" />
       <!-- footer：取消訂單獨立靠左（destructive 動作分區）；右側維持取消/儲存 -->
       <template #footer>
         <div class="flex items-center justify-between gap-2 w-full">
@@ -2065,6 +2177,23 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <Button label="取消" severity="secondary" variant="outlined" @click="detailDialogVisible = false" />
             <Button label="儲存" @click="saveDetailDialog" />
           </div>
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- 原始訂單檢視彈窗：合併紀錄面板點來源列另開，內容同訂單詳情但隱藏出貨管理（唯讀） -->
+    <Dialog
+      v-model:visible="sourceDetailVisible"
+      modal
+      :draggable="false"
+      :header="sourceDetailOrder ? `原始訂單 ${sourceDetailOrder.orderNo}` : '原始訂單'"
+      :style="{ width: 'min(1200px, calc(100vw - 32px))' }"
+      :pt="{ content: { style: 'padding: 0' } }"
+    >
+      <OrderRowDetail v-if="sourceDetailOrder" :key="sourceDetailKey" :order="sourceDetailOrder" hide-shipping @open-source-order="openSourceDetail" />
+      <template #footer>
+        <div class="flex justify-end w-full">
+          <Button label="關閉" severity="secondary" variant="outlined" @click="sourceDetailVisible = false" />
         </div>
       </template>
     </Dialog>
@@ -2139,6 +2268,14 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
       @confirm="onShippingConfigConfirm"
     />
 
+    <!-- 合併編輯:運費差額調整彈窗 -->
+    <ShippingDiffAdjustDialog
+      v-model:visible="diffAdjustVisible"
+      :shipping-before="mergeShippingBefore"
+      :shipping-after="mergeForm.shippingFee"
+      @apply="onDiffAdjustApply"
+    />
+
     <!-- 表格「開立發票」共用彈窗 -->
     <IssueInvoiceDialog
       v-model:visible="issueInvoiceDialogVisible"
@@ -2157,7 +2294,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
       v-model:visible="mergeDialogVisible"
       modal
       :draggable="false"
-      :style="{ width: 'calc(100vw - 32px)' }"
+      :style="{ width: mergeStep === 'editor' ? 'min(1000px, calc(100vw - 32px))' : 'calc(100vw - 32px)' }"
       :pt="{ content: { style: 'padding: 0' } }"
     >
       <template #header>
@@ -2315,19 +2452,12 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <label class="text-sm text-[var(--p-text-muted-color)]">付款方式</label>
             <div class="text-sm text-[var(--p-text-color)]">{{ mergeSelectedOrders[0]?.paymentMethodLabel ?? '—' }}</div>
           </div>
-          <!-- 配送方式(唯讀) + 未指派物流商 warning tag + 指派連結 -->
+          <!-- 配送方式(唯讀) + 未指派物流商狀態；物流待合併成一張單後再於該單指派 -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">配送方式</label>
             <div class="flex items-center gap-2 flex-wrap text-sm text-[var(--p-text-color)]">
               <span>{{ mergeSelectedOrders[0]?.shippingMethod === '常溫宅配' ? '宅配' : mergeSelectedOrders[0]?.shippingMethod }}</span>
               <Tag value="未指派物流商" severity="warn" />
-              <Button
-                v-if="mergeSelectedOrders[0]"
-                label="指派物流商"
-                link
-                size="small"
-                @click="openShippingConfig(mergeSelectedOrders[0], $event)"
-              />
             </div>
           </div>
           <!-- 訂購人(鎖 + tooltip) -->
@@ -2368,17 +2498,38 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               </div>
             </div>
           </div>
-          <!-- 運費(各訂單列出 + 一個可編輯的合併後運費) -->
+          <!-- 運費(各原始訂單列出 + 可編輯的合併後運費 + 差額列) -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">運費</label>
             <div class="flex flex-col gap-1 text-sm">
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
-                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
-                <span>$120</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">&gt;</span>
+                <span>${{ MERGE_PER_ORDER_SHIPPING }}</span>
               </div>
-              <div class="pt-2">
-                <InputNumber v-model="mergeForm.shippingFee" :min="0" mode="decimal" show-buttons class="!w-[200px]" fluid />
+              <div class="pt-2 text-[var(--p-text-color)]">${{ mergeForm.shippingFee.toLocaleString() }}</div>
+              <!-- 合併前 → 合併後 差額列 + 差額調整 -->
+              <div class="flex items-center gap-3 flex-wrap pt-2">
+                <span class="text-[var(--p-text-color)]">
+                  合併前 <span class="text-[var(--p-text-muted-color)]">${{ mergeShippingBefore.toLocaleString() }}</span>
+                  <span class="mx-1 text-[var(--p-text-muted-color)]">→</span>
+                  合併後 <span class="text-[var(--p-text-color)]">${{ mergeForm.shippingFee.toLocaleString() }}</span>
+                </span>
+                <span
+                  v-if="mergeShippingDiff !== 0"
+                  class="font-medium"
+                  :class="mergeShippingDiff > 0 ? 'text-[var(--p-primary-color)]' : 'text-[#DC2626]'"
+                >
+                  {{ mergeShippingDiff > 0 ? '溢收' : '短收' }}
+                  {{ mergeShippingDiff > 0 ? '+' : '−' }}${{ Math.abs(mergeShippingDiff).toLocaleString() }}
+                </span>
+                <Button
+                  v-if="mergeShippingDiff !== 0"
+                  label="差額調整"
+                  variant="outlined"
+                  size="small"
+                  @click="diffAdjustVisible = true"
+                />
               </div>
             </div>
           </div>
@@ -2396,9 +2547,11 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div class="pt-1 text-[var(--p-text-color)]">0 點(折抵 $0)</div>
             </div>
           </div>
-          <!-- 優惠券(每張券可勾選是否套用) -->
+          <!-- 優惠券(鎖,合併後不可編輯;各原始訂單的券原樣帶入) -->
           <div class="flex flex-col gap-2 px-4 py-3">
-            <label class="text-sm text-[var(--p-text-muted-color)]">優惠券</label>
+            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
+              優惠券 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可編輯'" aria-label="合併後不可編輯"></i>
+            </label>
             <div class="flex flex-col gap-2 text-sm">
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
@@ -2410,20 +2563,9 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                   <span class="text-[var(--p-text-muted-color)]">無</span>
                 </template>
               </div>
-              <!-- 可套用的優惠券卡:主色 Soft 底(走 --p-primary-50 token,深色自動配對) -->
-              <div
-                v-for="o in mergeSelectedOrders.filter(o => (o.couponDiscount ?? 0) > 0)"
-                :key="`c-${o.id}`"
-                class="flex items-center gap-2 px-3 py-2 border border-[var(--p-primary-200)] rounded-md bg-[var(--p-primary-50)]"
-              >
-                <Checkbox :model-value="mergeCouponSelected.has(o.id)" binary @update:model-value="toggleMergeCoupon(o.id)" />
-                <span class="text-[var(--p-text-color)]">{{ o.couponActivity }}({{ o.orderNo }})</span>
-                <span class="ml-auto text-[var(--p-primary-color)] font-medium">−${{ o.couponDiscount }}</span>
+              <div class="pt-1 text-[var(--p-text-color)]">
+                共折抵 <span class="text-[var(--p-primary-color)] font-medium">−${{ mergeSummary.couponDiscount.toLocaleString() }}</span>
               </div>
-              <div class="text-[var(--p-text-color)]">
-                套用 <span class="font-medium">{{ mergeCouponSelected.size }}</span> 張,共折抵 <span class="text-[var(--p-primary-color)] font-medium">−${{ mergeSummary.couponDiscount.toLocaleString() }}</span>
-              </div>
-              <div class="text-xs text-[var(--p-text-muted-color)]">未勾選的券會隨原訂單作廢自動退回客人帳號</div>
             </div>
           </div>
           <!-- 可得紅利點數(鎖) -->
