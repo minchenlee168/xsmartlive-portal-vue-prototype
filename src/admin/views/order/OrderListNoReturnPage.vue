@@ -1128,10 +1128,16 @@ const mergeableOrderCount = computed(() => mergeGroups.value.length)
 const mergeDialogVisible = ref(false)
 /** 合併彈窗分兩步:'list' 選擇要合併的訂單、'editor' 進入合併編輯表單 */
 const mergeStep = ref<'list' | 'editor'>('list')
+/** 合併訂單規則說明 Popover(標題旁問號) */
+const rulesPopoverRef = ref<{ toggle: (e: Event) => void } | null>(null)
+function toggleRulesPopover(event: Event): void {
+  rulesPopoverRef.value?.toggle(event)
+}
 function openMergeDialog(): void {
   if (mergeGroups.value.length === 0) return
   mergeSelectedIds.value = new Set()
   mergeStep.value = 'list'
+  clearManualCheck()
   mergeDialogVisible.value = true
 }
 /** 合併訂單彈窗內已勾選的訂單 id 集合(限單一 group / 單一買家) */
@@ -1218,6 +1224,8 @@ const MERGE_PER_ORDER_SHIPPING = 120
 const mergeShippingBefore = computed(() => mergeSelectedOrders.value.length * MERGE_PER_ORDER_SHIPPING)
 /** 運費差額 = 合併前 − 合併後;> 0 溢收(退還會員)、< 0 短收(向會員收) */
 const mergeShippingDiff = computed(() => mergeShippingBefore.value - mergeForm.value.shippingFee)
+/** 合併群組是否皆已付款:已付款 → 運費純顯示 + 差額調整(走金流);未付款 → 運費可直接編輯 */
+const mergeAllPaid = computed(() => mergeSelectedOrders.value.every((o) => o.paymentStatus === 'paid'))
 /** 差額調整彈窗 */
 const diffAdjustVisible = ref(false)
 function onDiffAdjustApply(payload: { direction: 'refund' | 'charge'; points: number; reason: string }): void {
@@ -1320,19 +1328,81 @@ function buyerAvatarChar(name: string): string {
   return name.slice(0, 1)
 }
 
-/** 手動檢查合併條件:多行訂單號輸入 */
+/** 手動檢查合併條件:多行訂單號輸入 → 逐項判斷 */
 const manualCheckInput = ref('')
+interface ManualCheckItem { key: string; title: string; pass: boolean; detail: string }
+interface ManualCheckResult {
+  fetched: number
+  total: number
+  notFound: string[]
+  items: ManualCheckItem[]
+  canMerge: boolean
+}
+const manualCheckResult = ref<ManualCheckResult | null>(null)
+function clearManualCheck(): void {
+  manualCheckInput.value = ''
+  manualCheckResult.value = null
+}
 function manualCheck(): void {
   const nos = manualCheckInput.value
-    .split(/[\s,]+/)
+    .split(/[\s,，、]+/)
     .map((s) => s.trim())
     .filter(Boolean)
-  toast.add({
-    severity: 'info',
-    summary: '手動檢查',
-    detail: `已檢查 ${nos.length} 筆訂單號,結果請見下方分組`,
-    life: 2500,
+  if (nos.length === 0) {
+    manualCheckResult.value = null
+    return
+  }
+  const found: OrderRow[] = []
+  const notFound: string[] = []
+  nos.forEach((no) => {
+    const o = orders.value.find((x) => x.orderNo === no)
+    if (o) found.push(o)
+    else notFound.push(no)
   })
+  const items: ManualCheckItem[] = []
+  // 同一購買人
+  const buyers = [...new Set(found.map((o) => o.buyerName))]
+  items.push({
+    key: 'buyer', title: '同一購買人', pass: buyers.length <= 1,
+    detail: buyers.length <= 1 ? (buyers[0] ?? '—') : `購買人不一致：${buyers.join('、')}`,
+  })
+  // 同一收件地址
+  const addrs = [...new Set(found.map((o) => o.receiverAddress ?? '（未填）'))]
+  items.push({
+    key: 'address', title: '同一收件地址', pass: addrs.length <= 1,
+    detail: addrs.length <= 1 ? (addrs[0] ?? '—') : `收件地址不一致（${addrs.length} 種）：${addrs.join(' / ')}`,
+  })
+  // 同一出貨方式
+  const methods = [...new Set(found.map((o) => o.shippingMethod))]
+  items.push({
+    key: 'shipping', title: '同一出貨方式', pass: methods.length <= 1,
+    detail: methods.length <= 1 ? (methods[0] ?? '—') : `出貨方式不一致：${methods.join(' / ')}`,
+  })
+  // 物流未取號
+  const taken = found.filter((o) => !!o.trackingStatus)
+  items.push({
+    key: 'tracking', title: '物流未取號', pass: taken.length === 0,
+    detail: taken.length === 0
+      ? `${found.length} 筆皆尚未取得追蹤號`
+      : `已有 ${taken.length} 筆取號：${taken.map((o) => o.orderNo).join('、')}`,
+  })
+  // 付款條件:已付款不限付款方式;未付款限貨到付款
+  const qualifies = (o: OrderRow) => o.paymentStatus === 'paid'
+    || (o.paymentStatus === 'unpaid' && o.paymentMethodLabel === '貨到付款')
+  const allPaid = found.every((o) => o.paymentStatus === 'paid')
+  const allQualify = found.every(qualifies)
+  items.push({
+    key: 'payment',
+    title: allPaid ? '已付款' : allQualify ? '付款條件符合' : '付款條件',
+    pass: allQualify,
+    detail: allPaid
+      ? `${found.length} 筆皆為已付款（可跨金流合併）`
+      : allQualify
+        ? '皆為已付款或未付款貨到付款，符合合併條件'
+        : '付款不符：需為已付款，或未付款且付款方式為貨到付款',
+  })
+  const canMerge = found.length >= 2 && items.every((i) => i.pass)
+  manualCheckResult.value = { fetched: found.length, total: nos.length, notFound, items, canMerge }
 }
 
 /** 出貨狀態進度條 5 階段（待出貨 → 備貨中 → 已出貨 → 已送達 → 已完成）。 */
@@ -2304,10 +2374,25 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <div class="flex items-center gap-2">
               <span class="text-lg font-bold text-[var(--p-text-color)]">合併訂單</span>
               <i
-                class="pi pi-question-circle text-[var(--p-text-muted-color)] cursor-help"
+                class="pi pi-question-circle text-[var(--p-text-muted-color)] cursor-pointer"
                 style="font-size: 14px"
-                v-tooltip.top="'系統自動篩選出可合併的訂單(同買家、同址、同配送、同溫層、未取號)'"
+                aria-label="合併訂單規則"
+                @click="toggleRulesPopover"
               ></i>
+              <Popover ref="rulesPopoverRef">
+                <div class="flex flex-col gap-3 max-w-[340px] text-sm leading-relaxed">
+                  <span class="font-bold text-[var(--p-text-color)]">合併訂單規則</span>
+                  <p class="text-[var(--p-text-color)]">
+                    <span class="font-bold text-[var(--p-primary-color)]">可合併：</span>狀態為「待出貨 / 備貨中」且尚未取號；已付款不限付款方式，未付款僅限貨到付款。
+                  </p>
+                  <p class="text-[var(--p-text-color)]">
+                    <span class="font-bold text-[var(--p-primary-color)]">併為同一張：</span>同購買人、同地址、同配送方式、同溫層，且至少 2 筆。
+                  </p>
+                  <p class="text-[var(--p-text-color)]">
+                    <span class="font-bold text-[var(--p-primary-color)]">合併後可改：</span>未付款＝收件資料 / 運費；已付款＝收件資料。優惠券與點數皆不可編輯。
+                  </p>
+                </div>
+              </Popover>
             </div>
             <span class="text-xs text-[var(--p-text-muted-color)]">
               此頁面將自動篩選出同一購買人、同地址、同配送方式、同溫層,尚未取號之可合併訂單。
@@ -2337,25 +2422,73 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               </div>
             </AccordionHeader>
             <AccordionContent>
-              <div class="flex items-start gap-3">
-                <!-- 左側:Step 標籤 + label + textarea -->
-                <div class="flex-1 flex flex-col gap-2">
-                  <div class="flex items-center gap-2">
-                    <Tag value="Step 1" severity="secondary" />
-                    <span class="font-medium text-[var(--p-text-color)]">貼上訂單號</span>
-                    <span class="text-xs text-[var(--p-text-muted-color)]">一行一筆或用逗號分隔</span>
+              <div class="flex flex-col gap-4">
+                <!-- Step 1:貼上訂單號 -->
+                <div class="flex items-start gap-3">
+                  <div class="flex-1 flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <Tag value="Step 1" severity="secondary" />
+                      <span class="font-medium text-[var(--p-text-color)]">貼上訂單號</span>
+                      <span class="text-xs text-[var(--p-text-muted-color)]">一行一筆或用逗號分隔</span>
+                    </div>
+                    <Textarea
+                      v-model="manualCheckInput"
+                      :rows="4"
+                      class="w-full font-mono"
+                      placeholder="A20260628007&#10;A20260628012&#10;A20260628015"
+                    />
                   </div>
-                  <Textarea
-                    v-model="manualCheckInput"
-                    :rows="4"
-                    class="w-full font-mono"
-                    placeholder="020260628007&#10;020260628012&#10;020260628015"
-                  />
+                  <!-- 檢查(主色) + 清空(secondary outlined) 垂直排 -->
+                  <div class="flex flex-col gap-2 shrink-0">
+                    <Button label="檢查" icon="pi pi-search" @click="manualCheck" />
+                    <Button label="清空" severity="secondary" variant="outlined" @click="clearManualCheck" />
+                  </div>
                 </div>
-                <!-- 右側:檢查(主色) + 清除(secondary outlined) 垂直排 -->
-                <div class="flex flex-col gap-2 shrink-0">
-                  <Button label="檢查" @click="manualCheck" />
-                  <Button label="清除" severity="secondary" variant="outlined" @click="manualCheckInput = ''" />
+
+                <!-- Step 2:逐項檢查結果 -->
+                <div v-if="manualCheckResult" class="flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
+                    <Tag value="Step 2" severity="secondary" />
+                    <span class="font-medium text-[var(--p-text-color)]">逐項檢查結果</span>
+                  </div>
+                  <div class="rounded-md border border-[var(--p-content-border-color)] overflow-hidden">
+                    <!-- 抓取筆數 -->
+                    <div class="px-4 py-2 bg-[var(--p-content-hover-background)] text-sm text-[var(--p-text-muted-color)]">
+                      已抓取 <span class="font-bold text-[var(--p-text-color)]">{{ manualCheckResult.fetched }}</span> / {{ manualCheckResult.total }} 筆
+                      <span v-if="manualCheckResult.notFound.length" class="text-[#DC2626]">
+                        （{{ manualCheckResult.notFound.length }} 筆查無：{{ manualCheckResult.notFound.join('、') }}）
+                      </span>
+                    </div>
+                    <!-- 逐項 -->
+                    <div
+                      v-for="it in manualCheckResult.items"
+                      :key="it.key"
+                      class="flex items-start gap-3 px-4 py-3 border-t border-[var(--p-content-border-color)]"
+                    >
+                      <span
+                        class="size-6 shrink-0 rounded-full flex items-center justify-center"
+                        :class="it.pass
+                          ? 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400'
+                          : 'bg-red-100 dark:bg-red-950/40 text-[#DC2626] dark:text-red-400'"
+                      >
+                        <i :class="it.pass ? 'pi pi-check' : 'pi pi-times'" style="font-size: 12px"></i>
+                      </span>
+                      <div class="flex flex-col gap-1 min-w-0">
+                        <span class="font-bold" :class="it.pass ? 'text-[var(--p-text-color)]' : 'text-[#DC2626]'">{{ it.title }}</span>
+                        <span class="text-sm text-[var(--p-text-muted-color)] break-words">{{ it.detail }}</span>
+                      </div>
+                    </div>
+                    <!-- 結論 banner -->
+                    <div
+                      class="flex items-center gap-2 px-4 py-3 border-t border-[var(--p-content-border-color)] text-sm font-medium"
+                      :class="manualCheckResult.canMerge
+                        ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400'
+                        : 'bg-red-50 dark:bg-red-950/30 text-[#DC2626] dark:text-red-400'"
+                    >
+                      <i :class="manualCheckResult.canMerge ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>
+                      {{ manualCheckResult.canMerge ? '全部條件通過・可合併' : '有條件未通過・不可合併' }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </AccordionContent>
@@ -2498,7 +2631,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               </div>
             </div>
           </div>
-          <!-- 運費(各原始訂單列出 + 可編輯的合併後運費 + 差額列) -->
+          <!-- 運費:各原始運費列出 + 合併後運費。已付款 → 純顯示 + 差額調整;未付款 → 可直接編輯 -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">運費</label>
             <div class="flex flex-col gap-1 text-sm">
@@ -2507,29 +2640,35 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <span class="mx-1 text-[var(--p-text-muted-color)]">&gt;</span>
                 <span>${{ MERGE_PER_ORDER_SHIPPING }}</span>
               </div>
-              <div class="pt-2 text-[var(--p-text-color)]">${{ mergeForm.shippingFee.toLocaleString() }}</div>
-              <!-- 合併前 → 合併後 差額列 + 差額調整 -->
-              <div class="flex items-center gap-3 flex-wrap pt-2">
-                <span class="text-[var(--p-text-color)]">
-                  合併前 <span class="text-[var(--p-text-muted-color)]">${{ mergeShippingBefore.toLocaleString() }}</span>
-                  <span class="mx-1 text-[var(--p-text-muted-color)]">→</span>
-                  合併後 <span class="text-[var(--p-text-color)]">${{ mergeForm.shippingFee.toLocaleString() }}</span>
-                </span>
-                <span
-                  v-if="mergeShippingDiff !== 0"
-                  class="font-medium"
-                  :class="mergeShippingDiff > 0 ? 'text-[var(--p-primary-color)]' : 'text-[#DC2626]'"
-                >
-                  {{ mergeShippingDiff > 0 ? '溢收' : '短收' }}
-                  {{ mergeShippingDiff > 0 ? '+' : '−' }}${{ Math.abs(mergeShippingDiff).toLocaleString() }}
-                </span>
-                <Button
-                  v-if="mergeShippingDiff !== 0"
-                  label="差額調整"
-                  variant="outlined"
-                  size="small"
-                  @click="diffAdjustVisible = true"
-                />
+              <!-- 已付款:純顯示 + 差額列 + 差額調整(走金流) -->
+              <template v-if="mergeAllPaid">
+                <div class="pt-2 text-[var(--p-text-color)]">${{ mergeForm.shippingFee.toLocaleString() }}</div>
+                <div class="flex items-center gap-3 flex-wrap pt-2">
+                  <span class="text-[var(--p-text-color)]">
+                    合併前 <span class="text-[var(--p-text-muted-color)]">${{ mergeShippingBefore.toLocaleString() }}</span>
+                    <span class="mx-1 text-[var(--p-text-muted-color)]">→</span>
+                    合併後 <span class="text-[var(--p-text-color)]">${{ mergeForm.shippingFee.toLocaleString() }}</span>
+                  </span>
+                  <span
+                    v-if="mergeShippingDiff !== 0"
+                    class="font-medium"
+                    :class="mergeShippingDiff > 0 ? 'text-[var(--p-primary-color)]' : 'text-[#DC2626]'"
+                  >
+                    {{ mergeShippingDiff > 0 ? '溢收' : '短收' }}
+                    {{ mergeShippingDiff > 0 ? '+' : '−' }}${{ Math.abs(mergeShippingDiff).toLocaleString() }}
+                  </span>
+                  <Button
+                    v-if="mergeShippingDiff !== 0"
+                    label="差額調整"
+                    variant="outlined"
+                    size="small"
+                    @click="diffAdjustVisible = true"
+                  />
+                </div>
+              </template>
+              <!-- 未付款:運費可直接編輯(尚未收款,無需差額調整) -->
+              <div v-else class="pt-2">
+                <InputNumber v-model="mergeForm.shippingFee" :min="0" mode="decimal" show-buttons class="!w-[200px]" fluid />
               </div>
             </div>
           </div>
