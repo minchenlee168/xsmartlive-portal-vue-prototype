@@ -1499,7 +1499,7 @@ function commitInvoice(): void {
           </div>
           <div class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">運費</span>
-            <span class="text-[var(--p-text-color)]">+${{ shippingFee }}</span>
+            <span class="text-[var(--p-text-color)]">${{ shippingFee }}</span>
           </div>
           <div v-if="couponDiscount > 0" class="flex items-center justify-between">
             <span class="text-[var(--p-text-muted-color)]">優惠券折抵</span>

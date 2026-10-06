@@ -427,9 +427,9 @@ const seedOrders: OrderRow[] = [
   { id: 'h4', createdAt: '2026-06-23 16:28', cartTag: tagFor('服飾專區'), orderNo: 'A20260523204', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  700, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: '取貨現場付款', temperature: '常溫' },
   { id: 'h5', createdAt: '2026-06-24 11:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260524205', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1000, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款',     temperature: '常溫' },
   // 陳怡君 x 4 - 台北市信義區松仁路100號 · 常溫宅配 · 皆已付款、付款方式各異(已付款不限付款方式,四筆皆可合併)
-  { id: 'p1', createdAt: '2026-06-26 10:12', cartTag: tagFor('服飾專區'), orderNo: 'A20260601301', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601301', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'p1', createdAt: '2026-06-26 10:12', cartTag: tagFor('服飾專區'), orderNo: 'A20260601301', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601301', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫', couponActivity: '滿額折', couponDiscount: 100 },
   { id: 'p2', createdAt: '2026-06-26 15:48', cartTag: tagFor('生活雜貨'), orderNo: 'A20260601302', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  270, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601302', productSummary: '燕麥奶 × 2',              paymentMethodLabel: 'ATM 轉帳',      temperature: '常溫' },
-  { id: 'p3', createdAt: '2026-06-27 09:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260601303', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601303', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: 'LINE Pay',      temperature: '常溫' },
+  { id: 'p3', createdAt: '2026-06-27 09:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260601303', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601303', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: 'LINE Pay',      temperature: '常溫', couponActivity: '新會員 9 折', couponDiscount: 150 },
   { id: 'p4', createdAt: '2026-06-27 18:05', cartTag: tagFor('服飾專區'), orderNo: 'A20260601304', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  700, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601304', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: 'Apple Pay',     temperature: '常溫' },
 
   // ── 異常處理示範:各種「貨態 × 付款狀態」不該發生的組合(依 UAT 對照表判異常) ──
@@ -1191,6 +1191,10 @@ function goToMergeEditor(): void {
     address: first.receiverAddress ?? '',
     shippingFee: 120,
   }
+  // 優惠券預設全部保留
+  mergeCouponKept.value = Object.fromEntries(
+    mergeSelectedOrders.value.filter((o) => (o.couponDiscount ?? 0) > 0).map((o) => [o.id, true]),
+  )
   mergeStep.value = 'editor'
 }
 function backToMergeList(): void {
@@ -1203,6 +1207,8 @@ const mergeForm = ref({
   address: '',
   shippingFee: 120,
 })
+/** 優惠券是否保留(key = 原始訂單 id,預設全部保留);取消勾選 → 該券隨原單作廢退回,合計不計入 */
+const mergeCouponKept = ref<Record<string, boolean>>({})
 /** 合併後試算:商品 / 運費 / 點數折抵 / 優惠券折抵 / 總計 */
 /** 單筆原始訂單的商品淨額(不含運費):amount 為訂單總額(含運費、已扣折扣),反推回商品金額 */
 function mergeProductAmount(o: OrderRow): number {
@@ -1212,11 +1218,22 @@ const mergeSummary = computed(() => {
   const subtotal = mergeSelectedOrders.value.reduce((s, o) => s + mergeProductAmount(o), 0)
   const shippingFee = mergeForm.value.shippingFee
   const pointsDiscount = 0
-  // 優惠券合併後不可編輯:各原始訂單的券全額帶入
-  const couponDiscount = mergeSelectedOrders.value.reduce((s, o) => s + (o.couponDiscount ?? 0), 0)
+  // 優惠券:僅計入仍勾選保留的券(取消勾選 → 隨原單退回,不計入合併單)
+  const couponDiscount = mergeSelectedOrders.value.reduce(
+    (s, o) => s + ((o.couponDiscount ?? 0) > 0 && mergeCouponKept.value[o.id] ? (o.couponDiscount ?? 0) : 0),
+    0,
+  )
   const total = subtotal + shippingFee - pointsDiscount - couponDiscount
   return { subtotal, shippingFee, pointsDiscount, couponDiscount, total }
 })
+/** 有套用優惠券的原始訂單(供優惠券區塊列勾選框) */
+const mergeCouponOrders = computed(() => mergeSelectedOrders.value.filter((o) => (o.couponDiscount ?? 0) > 0))
+/** 目前勾選保留的券張數 */
+const mergeCouponKeptCount = computed(() => mergeCouponOrders.value.filter((o) => mergeCouponKept.value[o.id]).length)
+/** 目前勾選保留的券共折抵 */
+const mergeCouponKeptTotal = computed(() =>
+  mergeCouponOrders.value.reduce((s, o) => s + (mergeCouponKept.value[o.id] ? (o.couponDiscount ?? 0) : 0), 0),
+)
 /** 合併後可得紅利點數合計 */
 const mergePointsEarnedTotal = computed(() =>
   mergeSelectedOrders.value.reduce((s, o) => s + Math.floor(o.amount / 100), 0),
@@ -2693,24 +2710,54 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div class="pt-1 text-[var(--p-text-color)]">0 點(折抵 $0)</div>
             </div>
           </div>
-          <!-- 優惠券(鎖,合併後不可編輯;各原始訂單的券原樣帶入) -->
+          <!-- 優惠券:各原始訂單券況 + 可勾選保留(預設全勾,取消→隨原單作廢退回);共折抵依勾選加總 -->
           <div class="flex flex-col gap-2 px-4 py-3">
-            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
-              優惠券 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可編輯'" aria-label="合併後不可編輯"></i>
-            </label>
+            <label class="text-sm text-[var(--p-text-muted-color)]">優惠券</label>
             <div class="flex flex-col gap-2 text-sm">
+              <!-- 各原始訂單券況 -->
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
-                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">&gt;</span>
                 <template v-if="(o.couponDiscount ?? 0) > 0">
-                  <span>${{ o.couponDiscount }}({{ o.couponActivity }})</span>
+                  <span>${{ o.couponDiscount }}（{{ o.couponActivity }}）</span>
                 </template>
                 <template v-else>
                   <span class="text-[var(--p-text-muted-color)]">無</span>
                 </template>
               </div>
-              <div class="pt-1 text-[var(--p-text-color)]">
-                共折抵 <span class="text-[var(--p-primary-color)] font-medium">−${{ mergeSummary.couponDiscount.toLocaleString() }}</span>
+
+              <!-- 有券的原始訂單列為可勾選項,取消勾選該券隨原單退回 -->
+              <template v-if="mergeCouponOrders.length">
+                <label
+                  v-for="o in mergeCouponOrders"
+                  :key="`coupon-${o.id}`"
+                  class="flex items-center justify-between gap-3 rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-hover-background)] px-3 py-2 cursor-pointer"
+                >
+                  <span class="flex items-center gap-2 min-w-0">
+                    <Checkbox v-model="mergeCouponKept[o.id]" binary />
+                    <span class="truncate text-[var(--p-text-color)]">
+                      {{ o.couponActivity }}
+                      <span class="text-[var(--p-text-muted-color)]">（{{ o.orderNo }}）</span>
+                    </span>
+                  </span>
+                  <span
+                    class="shrink-0 font-medium"
+                    :class="mergeCouponKept[o.id] ? 'text-[#DC2626]' : 'text-[var(--p-text-muted-color)] line-through'"
+                  >
+                    −${{ (o.couponDiscount ?? 0).toLocaleString() }}
+                  </span>
+                </label>
+
+                <div class="pt-1 text-[var(--p-text-color)]">
+                  套用 <span class="font-medium">{{ mergeCouponKeptCount }}</span> 張 ·
+                  共折抵 <span class="text-[#DC2626] font-medium">−${{ mergeCouponKeptTotal.toLocaleString() }}</span>
+                </div>
+                <div class="text-xs text-[var(--p-text-muted-color)]">未勾選的券會隨原訂單作廢自動退回客人帳號</div>
+              </template>
+
+              <!-- 無任何券 -->
+              <div v-else class="pt-1 text-[var(--p-text-color)]">
+                共折抵 <span class="text-[var(--p-primary-color)] font-medium">−$0</span>
               </div>
             </div>
           </div>
@@ -2751,7 +2798,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </div>
             <div class="flex items-center gap-4 text-sm text-[var(--p-text-muted-color)]">
               <span>商品 <span class="text-[var(--p-text-color)]">${{ mergeSummary.subtotal.toLocaleString() }}</span></span>
-              <span>運費 <span class="text-[var(--p-text-color)]">+${{ mergeSummary.shippingFee.toLocaleString() }}</span></span>
+              <span>運費 <span class="text-[var(--p-text-color)]">${{ mergeSummary.shippingFee.toLocaleString() }}</span></span>
               <span>點數 <span class="text-[var(--p-primary-color)]">−${{ mergeSummary.pointsDiscount }}</span></span>
               <span>優惠券 <span class="text-[var(--p-primary-color)]">−${{ mergeSummary.couponDiscount.toLocaleString() }}</span></span>
             </div>
