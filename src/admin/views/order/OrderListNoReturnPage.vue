@@ -29,7 +29,10 @@ export interface MergeSourceLite {
   createdAt: string
   orderNo: string
   buyerName: string
+  /** 原始訂單總額(含運費);合併紀錄面板顯示用 */
   amount: number
+  /** 商品淨額(不含運費);合併單商品明細顯示用 */
+  productAmount: number
   itemCount: number
   shippingMethod: string
   paymentMethodLabel?: string
@@ -95,6 +98,8 @@ interface OrderRow {
   temperature?: string
   /** 合併紀錄;有值代表此單為 M 開頭合併訂單 */
   mergeRecord?: MergeRecord
+  /** 已併入的合併單編號;有值代表此原始訂單已被合併(不作廢,但不可再被合併) */
+  mergedIntoNo?: string
 }
 
 /** 合併訂單彈窗使用的訂單分組:同一買家 + 同址 + 同配送 + 同溫層 + 未取號才可合併 */
@@ -570,11 +575,17 @@ const SHIPPING_METHOD_MATCHERS: Record<string, (m: string) => boolean> = {
   mixed: m => m.includes('混合'),
 }
 const filtered = computed<OrderRow[]>(() => {
-  let list = orders.value
+  // 已併入合併單的原始訂單不顯示於列表(搜尋也找不到);只保留合併單 M
+  let list = orders.value.filter((o) => !o.mergedIntoNo)
   const a = applied.value
   if (a.keyword.trim()) {
     const k = a.keyword.trim().toLowerCase()
-    list = list.filter(o => o.orderNo.toLowerCase().includes(k) || o.buyerName.toLowerCase().includes(k))
+    // 搜原始訂單編號時,雖然原始訂單已隱藏,仍要能從合併單的合併紀錄命中,帶出該筆合併單
+    list = list.filter(o =>
+      o.orderNo.toLowerCase().includes(k) ||
+      o.buyerName.toLowerCase().includes(k) ||
+      (o.mergeRecord?.sources.some(s => s.orderNo.toLowerCase().includes(k)) ?? false),
+    )
   }
   // 日期區間:PrimeVue DatePicker range mode → [startDate, endDate?];只有起日視為單日區間
   if (a.dateRange && a.dateRange[0]) {
@@ -1107,6 +1118,7 @@ const mergeGroups = computed<MergeOrderGroup[]>(() => {
   const map = new Map<string, OrderRow[]>()
   orders.value.forEach((o) => {
     if (o.mergeRecord) return                     // 已是合併單,不可再被合併
+    if (o.mergedIntoNo) return                    // 已併入其他合併單,不可再被合併
     // 狀態限「待出貨 / 備貨中」(含排除已取消 / 已出貨之後 / 配送異常)
     if (o.shippingStatus !== 'pending' && o.shippingStatus !== 'preparing') return
     if (o.trackingStatus) return                  // 尚未取號
@@ -1223,8 +1235,12 @@ const mergeForm = ref({
   shippingFee: 120,
 })
 /** 合併後試算:商品 / 運費 / 點數折抵 / 優惠券折抵 / 總計 */
+/** 單筆原始訂單的商品淨額(不含運費):amount 為訂單總額(含運費、已扣折扣),反推回商品金額 */
+function mergeProductAmount(o: OrderRow): number {
+  return Math.max(0, o.amount - MERGE_PER_ORDER_SHIPPING + (o.couponDiscount ?? 0) + (o.pointsDiscount ?? 0))
+}
 const mergeSummary = computed(() => {
-  const subtotal = mergeSelectedOrders.value.reduce((s, o) => s + o.amount, 0)
+  const subtotal = mergeSelectedOrders.value.reduce((s, o) => s + mergeProductAmount(o), 0)
   const shippingFee = mergeForm.value.shippingFee
   const pointsDiscount = 0
   // 優惠券合併後不可編輯:各原始訂單的券全額帶入
@@ -1270,14 +1286,14 @@ function nextMergeOrderNo(): string {
   return `M${ymd}${String(seq).padStart(3, '0')}`
 }
 function confirmMerge(): void {
-  // 破壞性動作:原訂單會被作廢;需二次確認,預設焦點在「取消」
+  // 合併為一張新單(M 開頭);原訂單不作廢,僅標記「已併入」;需二次確認
   confirm.require({
     header: '確認合併訂單?',
-    message: `即將把 ${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆,原訂單會作廢。此動作無法復原,確定執行?`,
-    icon: 'pi pi-exclamation-triangle',
+    message: `即將把 ${mergeSelectedOrders.value.length} 筆訂單合併為 1 筆新訂單(M 開頭)。原訂單不會作廢,但會從訂單列表隱藏(可於合併單的合併紀錄查看)。確定執行?`,
+    icon: 'pi pi-info-circle',
     defaultFocus: 'reject',
     rejectProps: { label: '取消', severity: 'secondary', outlined: true },
-    acceptProps: { label: '確認合併', severity: 'danger' },
+    acceptProps: { label: '確認合併' },
     accept: () => {
       const sources = mergeSelectedOrders.value
       const first = sources[0]
@@ -1289,6 +1305,7 @@ function confirmMerge(): void {
         orderNo: o.orderNo,
         buyerName: o.buyerName,
         amount: o.amount,
+        productAmount: mergeProductAmount(o),
         itemCount: o.itemCount,
         shippingMethod: o.shippingMethod,
         paymentMethodLabel: o.paymentMethodLabel,
@@ -1321,13 +1338,10 @@ function confirmMerge(): void {
           sources: sourceSnapshots,
         },
       }
-      // 原始訂單作廢(已取消 + 金流退回,狀態才不會落在「異常處理」),合併單置頂方便立即查看
+      // 原訂單不作廢,僅標記「已併入 Mxxx」(不再出現於可合併清單);合併單置頂方便立即查看
       const sourceIds = new Set(sources.map((o) => o.id))
       orders.value.forEach((o) => {
-        if (sourceIds.has(o.id)) {
-          o.shippingStatus = 'cancelled'
-          o.paymentStatus = 'refunded'
-        }
+        if (sourceIds.has(o.id)) o.mergedIntoNo = orderNo
       })
       orders.value.unshift(mergedOrder)
       toast.add({
@@ -2645,7 +2659,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
                 <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
-                <span>${{ o.amount.toLocaleString() }}</span>
+                <span>${{ mergeProductAmount(o).toLocaleString() }}</span>
               </div>
               <div class="pt-1 text-[var(--p-text-color)]">
                 合計 <span class="text-[var(--p-primary-color)] font-medium">${{ mergeSummary.subtotal.toLocaleString() }}</span>

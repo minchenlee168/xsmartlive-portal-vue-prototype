@@ -25,7 +25,10 @@ interface MergeSourceLite {
   createdAt: string
   orderNo: string
   buyerName: string
+  /** 原始訂單總額(含運費) */
   amount: number
+  /** 商品淨額(不含運費) */
+  productAmount: number
   itemCount: number
   shippingMethod: string
   paymentMethodLabel?: string
@@ -123,6 +126,10 @@ function shortShipping(m: string): string {
 function openSourceOrder(orderNo: string): void {
   emit('open-source-order', orderNo)
 }
+/** 複製訂單編號 */
+function copyOrderNo(no: string): void {
+  navigator.clipboard?.writeText(no)
+}
 /** 合併紀錄面板:預設收合,點標題列展開 */
 const mergeExpanded = ref(false)
 
@@ -198,13 +205,14 @@ const productRows = computed<ProductRow[]>(() => {
     return props.order.mergeRecord.sources.map((s) => {
       const [namePart, qtyPart] = (s.productSummary ?? '').split(/\s*×\s*/)
       const qty = Number(qtyPart) || s.itemCount || 1
+      const lineTotal = s.productAmount ?? s.amount
       return {
         name: namePart?.trim() || '商品',
         spec: `原單 ${s.orderNo}`,
         source: sourceLabel.value,
-        price: qty > 0 ? Math.round(s.amount / qty) : s.amount,
+        price: qty > 0 ? Math.round(lineTotal / qty) : lineTotal,
         qty,
-        lineTotal: s.amount,
+        lineTotal,
       }
     })
   }
@@ -700,7 +708,7 @@ function commitInvoice(): void {
 
 <template>
   <div class="flex flex-col gap-4 p-4 bg-[var(--p-content-hover-background)]">
-    <!-- 合併紀錄 · 原始訂單：僅合併訂單(有 mergeRecord)顯示，置於最上方 -->
+    <!-- 原始訂單 · 合併紀錄：僅合併訂單(有 mergeRecord)顯示，置於最上方；白底細框(同其他卡片) -->
     <div
       v-if="order.mergeRecord"
       class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4"
@@ -715,9 +723,10 @@ function commitInvoice(): void {
         @keydown.enter.prevent="mergeExpanded = !mergeExpanded"
         @keydown.space.prevent="mergeExpanded = !mergeExpanded"
       >
-        <i class="pi pi-sitemap text-sm text-[var(--p-text-muted-color)] shrink-0"></i>
-        <span class="text-sm font-bold text-[var(--p-text-color)] shrink-0">合併紀錄 · 原始訂單</span>
-        <Tag :value="`由 ${order.mergeRecord.sources.length} 筆合併`" />
+        <i class="pi pi-sitemap text-[var(--p-primary-color)] shrink-0"></i>
+        <Tag value="原始訂單" />
+        <span class="text-sm font-bold text-[var(--p-text-color)] shrink-0">合併紀錄</span>
+        <span class="text-sm text-[var(--p-text-muted-color)] shrink-0">（由 {{ order.mergeRecord.sources.length }} 筆合併）</span>
         <span class="ml-auto text-xs text-[var(--p-text-muted-color)] shrink-0">
           合併時間 {{ order.mergeRecord.mergedAt }}
         </span>
@@ -749,7 +758,19 @@ function commitInvoice(): void {
           <Column header="建立時間" field="createdAt" />
           <Column header="訂單編號">
             <template #body="{ data }">
-              <span class="font-bold text-[var(--p-text-color)]">{{ data.orderNo }}</span>
+              <span class="inline-flex items-center gap-1">
+                <span class="font-bold text-[var(--p-text-color)]">{{ data.orderNo }}</span>
+                <Button
+                  v-tooltip.top="'複製'"
+                  :aria-label="`複製訂單編號 ${data.orderNo}`"
+                  icon="pi pi-copy"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  rounded
+                  @click.stop="copyOrderNo(data.orderNo)"
+                />
+              </span>
             </template>
           </Column>
           <Column header="訂購人" field="buyerName" />
@@ -792,7 +813,19 @@ function commitInvoice(): void {
         <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
           <div v-for="src in order.mergeRecord.sources" :key="src.orderNo" class="flex flex-col gap-2 py-3 first:pt-0 text-sm">
             <div class="flex items-center justify-between gap-2">
-              <span class="font-bold text-[var(--p-text-color)]">{{ src.orderNo }}</span>
+              <span class="inline-flex items-center gap-1 min-w-0">
+                <span class="font-bold text-[var(--p-text-color)]">{{ src.orderNo }}</span>
+                <Button
+                  v-tooltip.top="'複製'"
+                  :aria-label="`複製訂單編號 ${src.orderNo}`"
+                  icon="pi pi-copy"
+                  severity="secondary"
+                  variant="text"
+                  size="small"
+                  rounded
+                  @click.stop="copyOrderNo(src.orderNo)"
+                />
+              </span>
               <Tag :value="paymentBadgeOf(src.paymentStatus).label" :severity="paymentBadgeOf(src.paymentStatus).severity" class="shrink-0" />
             </div>
             <div class="rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 flex flex-col gap-1">
