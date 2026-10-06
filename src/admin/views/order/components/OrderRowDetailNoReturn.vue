@@ -1164,7 +1164,8 @@ function commitInvoice(): void {
             <span class="text-xs text-[var(--p-text-muted-color)]">{{ order.invoiceIssuedAt }}</span>
           </div>
         </div>
-        <div v-else class="pt-2 border-t border-[var(--p-content-border-color)]">
+        <!-- 尚未開立提示:原始訂單檢視不顯示(發票以合併單為準) -->
+        <div v-else-if="!hideShipping" class="pt-2 border-t border-[var(--p-content-border-color)]">
           <span class="inline-flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
             <i class="pi pi-exclamation-circle text-sm"></i>
             尚未開立
