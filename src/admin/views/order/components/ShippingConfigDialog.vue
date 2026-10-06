@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { carrierOptionGroups, CARRIER_LABEL, carrierValueOfLabel, carrierGroupOf, trackingPrefixOf, type CarrierOption } from '../orderCarriers'
 
 /**
  * 配送設定 Dialog：選物流商 → 自動帶物流方式 → 可選擇取號。
  * 訂單列表表格「物流商資訊」與 OrderRowDetail 的「設定配送」按鈕共用。
+ * 「已啟用物流商」選項與進階搜尋共用同一份(carrierOptionGroups),含宅配 / 超商配送等所有分組。
  */
 
 interface OrderLite {
@@ -29,59 +31,62 @@ const emit = defineEmits<{
 
 const toast = useToast()
 
-interface CarrierOption { label: string; value: string; method: string; trackingPrefix: string }
-const carrierOptions: CarrierOption[] = [
-  { label: '7-11 交貨便',   value: 'cvs711',  method: '超商取貨', trackingPrefix: 'CVS711' },
-  { label: '全家常溫',      value: 'fm',      method: '超商取貨', trackingPrefix: 'FM'     },
-  { label: '黑貓宅急便',    value: 'tcat',    method: '常溫宅配', trackingPrefix: 'TCAT'   },
-  { label: '新竹物流',      value: 'hct',     method: '常溫宅配', trackingPrefix: 'HCT'    },
-  { label: '嘉里大榮',      value: 'kerry',   method: '常溫宅配', trackingPrefix: 'KERRY'  },
-]
-
 const selectedCarrier = ref<string>('')
 const trackingNoInput = ref<string>('')
-const selectedCarrierOption = computed<CarrierOption | undefined>(() =>
-  carrierOptions.find(c => c.value === selectedCarrier.value),
-)
-const selectedCarrierMethod = computed<string>(() => selectedCarrierOption.value?.method ?? '')
+/** 採用的物流方式 = 所選物流商的配送分組(宅配 / 超商配送 / 跨境 …) */
+const selectedCarrierMethod = computed<string>(() => carrierGroupOf(selectedCarrier.value))
 
-/** 依訂單原配送方式,挑一個物流方式相符的物流商當預設(未指派時用) */
-function defaultCarrierFor(shippingMethod?: string): string {
+/** 由訂單原配送方式推出應顯示的物流商分組(宅配 / 超商配送);無法判斷回空字串 */
+function wantGroupFor(shippingMethod?: string): string {
   if (!shippingMethod) return ''
-  const wantMethod = /超商|店到店|交貨便|門市/.test(shippingMethod)
-    ? '超商取貨'
-    : shippingMethod.includes('宅配') ? '常溫宅配' : ''
-  if (!wantMethod) return ''
-  return carrierOptions.find(c => c.method === wantMethod)?.value ?? ''
+  if (/超商|店到店|交貨便|門市/.test(shippingMethod)) return '超商配送'
+  if (shippingMethod.includes('宅配')) return '宅配'
+  return ''
+}
+
+/**
+ * 已啟用物流商選項:依訂單原配送方式只列相符分組(宅配單→宅配組、超商單→超商配送組)的物流商,
+ * 各組內容與進階搜尋一致。已收斂到單一分組,攤平為純清單不再顯示分組標頭。
+ * 無法判斷配送方式時才列全部物流商,避免擋住操作。
+ */
+const availableCarrierOptions = computed<CarrierOption[]>(() => {
+  const want = wantGroupFor(props.order?.shippingMethod)
+  const groups = want ? carrierOptionGroups.filter(g => g.group === want) : carrierOptionGroups
+  return groups.flatMap(g => g.items)
+})
+
+/** 依訂單原配送方式,挑一個同分組的物流商當預設(未指派時用) */
+function defaultCarrierFor(shippingMethod?: string): string {
+  const wantGroup = wantGroupFor(shippingMethod)
+  if (!wantGroup) return ''
+  return carrierOptionGroups.find(g => g.group === wantGroup)?.items[0]?.value ?? ''
 }
 
 /** 開啟時帶入既有設定;未指派物流則依訂單原配送方式預設 */
 watch(() => [props.visible, props.order], () => {
   if (!props.visible || !props.order) return
-  const existing = carrierOptions.find(c => c.label === props.order?.carrierName)?.value
-  selectedCarrier.value = existing ?? defaultCarrierFor(props.order.shippingMethod)
+  const existing = carrierValueOfLabel(props.order.carrierName)
+  selectedCarrier.value = existing || defaultCarrierFor(props.order.shippingMethod)
   trackingNoInput.value = props.order.trackingStatus ?? ''
 })
 
 function generateTrackingNo(): void {
-  const opt = selectedCarrierOption.value
-  if (!opt) return
+  if (!selectedCarrier.value) return
   const d = new Date()
   const yy = String(d.getFullYear() % 100).padStart(2, '0')
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   const rand = String(Math.floor(Math.random() * 1000)).padStart(3, '0')
-  const no = `${opt.trackingPrefix}-${yy}${mm}${dd}-${rand}`
+  const no = `${trackingPrefixOf(selectedCarrier.value)}-${yy}${mm}${dd}-${rand}`
   trackingNoInput.value = no
   toast.add({ severity: 'info', summary: `已產生取號：${no}`, life: 2000, closable: true })
 }
 
 function confirm(): void {
-  const opt = selectedCarrierOption.value
-  if (!opt) return
+  if (!selectedCarrier.value) return
   emit('confirm', {
-    carrierName: opt.label,
-    method: opt.method,
+    carrierName: CARRIER_LABEL[selectedCarrier.value] ?? '',
+    method: carrierGroupOf(selectedCarrier.value),
     trackingNo: trackingNoInput.value || null,
   })
   emit('update:visible', false)
@@ -115,7 +120,7 @@ function confirm(): void {
         </label>
         <Select
           v-model="selectedCarrier"
-          :options="carrierOptions"
+          :options="availableCarrierOptions"
           option-label="label"
           option-value="value"
           placeholder="請選擇已啟用物流商..."

@@ -13,6 +13,7 @@ import ShippingListPrintDialog from './components/ShippingListPrintDialog.vue'
 import DefaultShippingConfigDialog from './components/DefaultShippingConfigDialog.vue'
 import CancelOrderDialog from './components/CancelOrderDialog.vue'
 import { orderStatusOf, orderStatusMeta, orderAbnormalReason, ORDER_STATUS_OPTIONS, type OrderStatusKey } from './orderStatus'
+import { carrierOptionGroups, CARRIER_LABEL } from './orderCarriers'
 
 /**
  * 訂單管理 → 訂單列表頁。
@@ -141,35 +142,6 @@ const shippingStatusOptions: FilterOption[] = [
   { label: '已完成',   value: 'completed' },
   { label: '已取消',   value: 'cancelled' },
   { label: '配送異常', value: 'delivery_abnormal' },
-]
-/** 物流商依配送類型分組(宅配 / 超商配送 / 跨境 / 自取·商家自建 / 其他),供 Select optionGroup 用 */
-const carrierOptionGroups: Array<{ group: string; items: FilterOption[] }> = [
-  { group: '宅配', items: [
-    { label: '新竹物流',       value: 'hct' },
-    { label: '嘉里大榮常溫',   value: 'kerry_normal' },
-    { label: '嘉里大榮低溫',   value: 'kerry_cold' },
-    { label: '嘉里快遞',       value: 'kerry_express' },
-    { label: '黑貓宅急便',     value: 'tcat' },
-  ] },
-  { group: '超商配送', items: [
-    { label: '黑貓宅急便（門市寄件）', value: 'tcat_handover' },
-    { label: '7-11 B2C 到府收件',      value: 'cvs711_b2c_normal' },
-    { label: '7-11 B2C 冷凍到府收件',  value: 'cvs711_b2c_cold' },
-    { label: '7-11 交貨便（門市寄件）', value: 'cvs711_handover' },
-    { label: '全家常溫',               value: 'fm_normal' },
-    { label: '全家冷凍到府收件',       value: 'fm_cold_home' },
-    { label: '全家 C2C 店到店',        value: 'fm_c2c' },
-  ] },
-  { group: '跨境', items: [
-    { label: 'Presco 跨境物流（宅配）',     value: 'presco_home' },
-    { label: 'Presco 跨境物流（超商取貨）', value: 'presco_cvs' },
-  ] },
-  { group: '自取 / 商家自建', items: [
-    { label: '郵局（商家自建）', value: 'post_self' },
-  ] },
-  { group: '其他', items: [
-    { label: '未分類', value: 'uncategorized' },
-  ] },
 ]
 const paymentMethodOptions: FilterOption[] = [
   { label: '信用卡一次付清', value: 'credit_once' },
@@ -484,8 +456,9 @@ const FILLER_BUYERS: Array<[string, string]> = [
   ['林巧薇', '0943-210-219'],
 ]
 const FILLER_CARTS = ['服飾專區', '生活雜貨', '美食專區']
+// 補充訂單皆為常溫宅配,物流商一律取「宅配」分組的物流商(對齊 carrierOptionGroups 的宅配 label)
 const FILLER_CARRIERS: Array<[string, string]> = [
-  ['黑貓宅急便', 'TCAT'], ['新竹物流', 'HCT'], ['全家常溫', 'FM'], ['嘉里大榮常溫', 'KERRY'],
+  ['黑貓宅急便', 'TCAT'], ['新竹物流', 'HCT'], ['嘉里快遞', 'KEXP'], ['嘉里大榮常溫', 'KERRY'],
 ]
 const FILLER_METHODS = ['信用卡一次付清', 'ATM 轉帳', 'LINE Pay', 'Apple Pay']
 const FILLER_SOURCES: OrderRow['orderSource'][] = ['post', 'live', 'group', 'shop']
@@ -562,10 +535,6 @@ function startOfDay(d: Date): number {
 /** 付款方式 value → 中文 label(訂單以 paymentMethodLabel 存中文) */
 const PAYMENT_METHOD_LABEL: Record<string, string> = Object.fromEntries(
   paymentMethodOptions.map(o => [o.value, o.label]),
-)
-/** 物流商 value → 中文 label(訂單以 carrierName 存中文) */
-const CARRIER_LABEL: Record<string, string> = Object.fromEntries(
-  carrierOptionGroups.flatMap(g => g.items).map(o => [o.value, o.label]),
 )
 /** 配送方式大類 → 判斷訂單具體配送方式字串是否屬於該類 */
 const SHIPPING_METHOD_MATCHERS: Record<string, (m: string) => boolean> = {
@@ -1312,6 +1281,9 @@ function confirmMerge(): void {
         paymentStatus: o.paymentStatus,
         productSummary: o.productSummary,
       }))
+      // 付款狀態依來源推導:全部已付款才算已付款,只要有一筆待付款,合併單仍為待付款
+      const mergedPaymentStatus: OrderRow['paymentStatus'] =
+        sources.every((o) => o.paymentStatus === 'paid') ? 'paid' : 'unpaid'
       const mergedOrder: OrderRow = {
         id: `merged-${orderNo}`,
         createdAt: mergedAt,
@@ -1322,7 +1294,7 @@ function confirmMerge(): void {
         amount: mergeSummary.value.total,
         itemCount: sources.reduce((s, o) => s + o.itemCount, 0),
         shippingMethod: first.shippingMethod,
-        paymentStatus: 'paid',
+        paymentStatus: mergedPaymentStatus,
         shippingStatus: 'pending',
         carrierStatus: 'unconfigured',
         trackingStatus: null,
