@@ -2589,7 +2589,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               </template>
             </Column>
             <Column header="收件地址">
-              <template #body="{ data }"><span class="block max-w-[305px] truncate text-[var(--p-text-color)]" v-tooltip.top="data.receiverAddress">{{ data.receiverAddress }}</span></template>
+              <template #body="{ data }"><span class="block max-w-[150px] truncate text-[var(--p-text-color)]" v-tooltip.top="data.receiverAddress">{{ data.receiverAddress }}</span></template>
             </Column>
             <Column header="金額">
               <template #body="{ data }"><span class="font-medium text-[var(--p-text-color)]" v-tooltip.top="`$${data.amount.toLocaleString()}`">${{ formatAmountK(data.amount) }}</span></template>
