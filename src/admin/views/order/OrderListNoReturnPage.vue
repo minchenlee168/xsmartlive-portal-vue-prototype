@@ -435,9 +435,9 @@ const seedOrders: OrderRow[] = [
   { id: 'm2', createdAt: '2026-06-26 09:41', cartTag: tagFor('服飾專區'), orderNo: 'A20260625302', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625302', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   { id: 'm3', createdAt: '2026-06-27 18:15', cartTag: tagFor('生活雜貨'), orderNo: 'A20260625303', buyerName: '周庭安', buyerPhone: '0910-246-810', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625303', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   // 楊雅雯 x 3 - 台北市中山區南京東路二段50號 · 常溫宅配 · 信用卡一次付清
-  { id: 'm4', createdAt: '2026-06-16 10:13', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510101', productSummary: '韓版寬鬆連帽外套(米白) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
-  { id: 'm5', createdAt: '2026-06-17 11:26', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510102', productSummary: '燕麥奶 × 3',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
-  { id: 'm6', createdAt: '2026-06-20 12:49', cartTag: tagFor('服飾專區'), orderNo: 'A20260415001',  buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  710, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-415001', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm4', createdAt: '2026-06-16 10:13', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '超商配送', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '7-ELEVEN 民生門市（台北市松山區民生東路三段99號）',  transactionId: 'TXN-510101', productSummary: '韓版寬鬆連帽外套(米白) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm5', createdAt: '2026-06-17 11:26', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '超商配送', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '7-ELEVEN 民生門市（台北市松山區民生東路三段99號）',  transactionId: 'TXN-510102', productSummary: '燕麥奶 × 3',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'm6', createdAt: '2026-06-20 12:49', cartTag: tagFor('服飾專區'), orderNo: 'A20260415001',  buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  710, itemCount: 1, shippingMethod: '超商配送', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '7-ELEVEN 民生門市（台北市松山區民生東路三段99號）',  transactionId: 'TXN-415001', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   // 林大華 x 4 - 高雄市三民區建工路300號 · 常溫宅配 · 貨到付款
   { id: 'm7',  createdAt: '2026-06-16 18:57', cartTag: tagFor('服飾專區'), orderNo: 'A20260512101', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1180, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款', temperature: '常溫', couponActivity: '貨到付款折抵', couponDiscount: 100, pointsDiscount: 0 },
   { id: 'm8',  createdAt: '2026-06-17 09:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260512102', buyerName: '林大華', buyerPhone: '0987-543-210', amount:  380, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '貨到付款', temperature: '常溫' },
@@ -448,7 +448,7 @@ const seedOrders: OrderRow[] = [
   { id: 'h2', createdAt: '2026-06-22 14:40', cartTag: tagFor('服飾專區'), orderNo: 'A20260522202', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   { id: 'h3', createdAt: '2026-06-23 10:05', cartTag: tagFor('生活雜貨'), orderNo: 'A20260523203', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '燕麥奶 × 3',              paymentMethodLabel: 'ATM 轉帳',      temperature: '常溫' },
   { id: 'h4', createdAt: '2026-06-23 16:28', cartTag: tagFor('服飾專區'), orderNo: 'A20260523204', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  700, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: 'LINE Pay',      temperature: '常溫' },
-  { id: 'h5', createdAt: '2026-06-24 11:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260524205', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1020, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款',     temperature: '常溫' },
+  { id: 'h5', createdAt: '2026-06-24 11:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260524205', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1000, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款',     temperature: '常溫' },
 
   // ── 異常處理示範:各種「貨態 × 付款狀態」不該發生的組合(依 UAT 對照表判異常) ──
   // e1 已於上方 id 6 示範「配送異常」旗標;以下為線上付款(表一)與貨到付款(表二)的不該發生組合。
@@ -1133,6 +1133,10 @@ const mergeGroups = computed<MergeOrderGroup[]>(() => {
 })
 /** header badge：有幾組需要合併的訂單（＝可合併群組數，非各群組訂單總數） */
 const mergeableOrderCount = computed(() => mergeGroups.value.length)
+/** 金額顯示:整千(出現三個 0)改以 k 表示(1000→1k、12000→12k);非整千維持千分位 */
+function formatAmountK(n: number): string {
+  return n !== 0 && n % 1000 === 0 ? `${n / 1000}k` : n.toLocaleString()
+}
 const mergeDialogVisible = ref(false)
 /** 合併彈窗分兩步:'list' 選擇要合併的訂單、'editor' 進入合併編輯表單 */
 const mergeStep = ref<'list' | 'editor'>('list')
@@ -2523,13 +2527,14 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </template>
           <template #icons>
             <span class="text-sm text-[var(--p-text-color)]">
-              合計 <span class="font-bold text-[var(--p-primary-color)]">${{ g.total.toLocaleString() }}</span>
+              合計 <span class="font-bold text-[var(--p-primary-color)]" v-tooltip.top="`$${g.total.toLocaleString()}`">${{ formatAmountK(g.total) }}</span>
             </span>
           </template>
 
-          <!-- Group table:走 PrimeVue Aura 預設樣式 -->
-          <DataTable :value="g.orders" data-key="id" :striped-rows="true">
-            <Column style="width: 40px">
+          <!-- Group table:固定欄寬(table-layout: fixed),內容超出以「…」截斷 -->
+          <DataTable :value="g.orders" data-key="id" :striped-rows="true"
+            :pt="{ table: { style: 'table-layout: fixed; width: 100%; min-width: 1120px' } }">
+            <Column style="width: 44px">
               <template #header>
                 <Checkbox
                   :model-value="isGroupAllSelected(g)"
@@ -2547,17 +2552,19 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 />
               </template>
             </Column>
-            <Column header="訂單編號" field="orderNo">
-              <template #body="{ data }"><span class="font-medium text-[var(--p-text-color)]">{{ data.orderNo }}</span></template>
+            <Column header="訂單編號" style="width: 140px">
+              <template #body="{ data }"><span class="block truncate font-medium text-[var(--p-text-color)]" v-tooltip.top="data.orderNo">{{ data.orderNo }}</span></template>
             </Column>
-            <Column header="建立時間" field="createdAt" />
-            <Column header="商品摘要">
-              <template #body="{ data }">{{ data.productSummary }}</template>
+            <Column header="建立時間" style="width: 150px">
+              <template #body="{ data }"><span class="block truncate text-[var(--p-text-color)]" v-tooltip.top="data.createdAt">{{ data.createdAt }}</span></template>
             </Column>
-            <Column header="付款方式">
-              <template #body="{ data }">{{ data.paymentMethodLabel ?? '—' }}</template>
+            <Column header="商品摘要" style="width: 180px">
+              <template #body="{ data }"><span class="block truncate text-[var(--p-text-color)]" v-tooltip.top="data.productSummary">{{ data.productSummary }}</span></template>
             </Column>
-            <Column header="付款狀態">
+            <Column header="付款方式" style="width: 130px">
+              <template #body="{ data }"><span class="block truncate text-[var(--p-text-color)]" v-tooltip.top="data.paymentMethodLabel ?? '—'">{{ data.paymentMethodLabel ?? '—' }}</span></template>
+            </Column>
+            <Column header="付款狀態" style="width: 100px">
               <template #body="{ data }">
                 <Tag
                   :value="paymentTagMeta(data.paymentStatus).label"
@@ -2565,22 +2572,22 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 />
               </template>
             </Column>
-            <Column header="交易 ID">
+            <Column header="交易 ID" style="width: 120px">
               <template #body="{ data }">
-                <span v-if="data.transactionId" class="text-[var(--p-text-color)]">{{ data.transactionId }}</span>
+                <span v-if="data.transactionId" class="block truncate text-[var(--p-text-color)]" v-tooltip.top="data.transactionId">{{ data.transactionId }}</span>
                 <span v-else class="text-[var(--p-text-muted-color)]">—</span>
               </template>
             </Column>
-            <Column header="配送方式">
+            <Column header="配送方式" style="width: 110px">
               <template #body="{ data }">
                 <Tag :value="data.shippingMethod" severity="secondary" />
               </template>
             </Column>
-            <Column header="收件地址">
-              <template #body="{ data }"><span class="text-[var(--p-text-color)]">{{ data.receiverAddress }}</span></template>
+            <Column header="收件地址" style="width: 305px">
+              <template #body="{ data }"><span class="block truncate text-[var(--p-text-color)]" v-tooltip.top="data.receiverAddress">{{ data.receiverAddress }}</span></template>
             </Column>
-            <Column header="金額" header-class="text-right" body-class="text-right">
-              <template #body="{ data }"><span class="font-medium text-[var(--p-text-color)]">${{ data.amount.toLocaleString() }}</span></template>
+            <Column header="金額" style="width: 100px">
+              <template #body="{ data }"><span class="font-medium text-[var(--p-text-color)]" v-tooltip.top="`$${data.amount.toLocaleString()}`">${{ formatAmountK(data.amount) }}</span></template>
             </Column>
           </DataTable>
         </Panel>
