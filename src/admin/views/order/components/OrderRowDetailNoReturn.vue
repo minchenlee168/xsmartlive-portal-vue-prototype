@@ -81,7 +81,10 @@ interface OrderRow {
 
 interface Props {
   order: OrderRow
-  /** 以「原始訂單檢視」模式顯示:隱藏出貨管理區(合併紀錄面板點來源列另開時用) */
+  /**
+   * 以「原始訂單檢視」模式顯示(合併紀錄面板點來源列另開時用):
+   * 隱藏出貨管理區,且配送資訊 / 付款方式 / 發票資訊三卡鎖為唯讀(已併入合併單,不可再單獨調整)。
+   */
   hideShipping?: boolean
 }
 const props = defineProps<Props>()
@@ -858,7 +861,7 @@ function commitInvoice(): void {
           <div class="flex items-center gap-2">
             <span class="text-sm font-bold text-[var(--p-text-color)]">配送資訊</span>
             <Button
-              v-if="!editingShipping"
+              v-if="!hideShipping && !editingShipping"
               v-tooltip.top="'編輯'"
               aria-label="編輯配送資訊"
               icon="pi pi-pencil"
@@ -869,7 +872,7 @@ function commitInvoice(): void {
               @click="editingShipping = true"
             />
             <Button
-              v-else
+              v-else-if="editingShipping"
               v-tooltip.top="'確認'"
               aria-label="確認配送資訊"
               icon="pi pi-check"
@@ -884,7 +887,8 @@ function commitInvoice(): void {
 
         <!-- 檢視模式 -->
         <template v-if="!editingShipping">
-          <div class="flex items-center justify-between text-sm">
+          <!-- 出貨狀態:原始訂單檢視隱藏(已併入合併單,狀態以合併單為準) -->
+          <div v-if="!hideShipping" class="flex items-center justify-between text-sm">
             <span class="text-[var(--p-text-muted-color)]">出貨狀態</span>
             <!-- 配送異常:tag 內文字後加驚嘆號,hover 顯示物流商回報的異常原因 -->
             <Tag
@@ -1002,7 +1006,8 @@ function commitInvoice(): void {
       <!-- 訂單來源：訂單狀態 / 訂單來源 / 社群平台 / 多購物車 / 場次名稱 -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
         <span class="text-sm font-bold text-[var(--p-text-color)]">訂單來源</span>
-        <div class="flex items-center justify-between text-sm">
+        <!-- 訂單狀態:原始訂單檢視隱藏(已併入合併單,狀態以合併單為準) -->
+        <div v-if="!hideShipping" class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">訂單狀態</span>
           <!-- 異常處理:tag 內文字後加驚嘆號,hover 顯示異常原因(配送異常 or 不該發生的組合) -->
           <Tag
@@ -1041,7 +1046,7 @@ function commitInvoice(): void {
         <div class="flex items-center gap-2">
           <span class="text-sm font-bold text-[var(--p-text-color)]">付款方式</span>
           <Button
-            v-if="!editingPayment"
+            v-if="!hideShipping && !editingPayment"
             v-tooltip.top="'編輯'"
             aria-label="編輯付款方式"
             icon="pi pi-pencil"
@@ -1052,7 +1057,7 @@ function commitInvoice(): void {
             @click="editingPayment = true"
           />
           <Button
-            v-else
+            v-else-if="editingPayment"
             v-tooltip.top="'確認'"
             aria-label="確認付款方式"
             icon="pi pi-check"
@@ -1115,10 +1120,11 @@ function commitInvoice(): void {
         <!-- 標題 + 編輯鉛筆(比照配送資訊 / 付款方式,編輯入口放標題旁) -->
         <div class="flex items-center gap-2">
           <span class="text-sm font-bold text-[var(--p-text-color)]">發票資訊</span>
-          <Button v-if="!editingInvoice" v-tooltip.top="'編輯'" aria-label="編輯發票資訊" icon="pi pi-pencil" severity="secondary" variant="text" size="small" rounded @click="startEditInvoice" />
-          <Button v-else v-tooltip.top="'確認'" aria-label="確認發票資訊" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitInvoice" />
+          <Button v-if="!hideShipping && !editingInvoice" v-tooltip.top="'編輯'" aria-label="編輯發票資訊" icon="pi pi-pencil" severity="secondary" variant="text" size="small" rounded @click="startEditInvoice" />
+          <Button v-else-if="editingInvoice" v-tooltip.top="'確認'" aria-label="確認發票資訊" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitInvoice" />
         </div>
-        <div class="flex items-center justify-between text-sm">
+        <!-- 發票狀態:原始訂單檢視隱藏(已併入合併單,狀態以合併單為準) -->
+        <div v-if="!hideShipping" class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">發票狀態</span>
           <Tag v-if="!editingInvoice" :value="invoiceStatusMeta(invoiceStatusValue).label" :severity="invoiceStatusMeta(invoiceStatusValue).severity" />
           <!-- 編輯模式：Select(走不通的值 disabled,標「(目前)」與原因) -->
