@@ -30,6 +30,8 @@ interface OrderLite {
   paymentMethodLabel?: string
   /** 分批數量（儲存時回寫，讓訂單列表「已分批 N 批」tag 同步） */
   dispatchBatchCount?: number
+  /** 訂單原配送方式；分批設定配送時用來預設方式相符的物流商 */
+  shippingMethod?: string
 }
 interface Props {
   visible: boolean
@@ -165,6 +167,8 @@ const configOrder = computed(() => {
     carrierStatus: (b?.carrier ? 'configured' : 'unconfigured') as 'configured' | 'unconfigured',
     carrierName: b?.carrier?.name,
     trackingStatus: b?.carrier?.tracking ?? null,
+    // 未指派物流時,依訂單原配送方式預設物流商/方式
+    shippingMethod: props.order.shippingMethod,
   }
 })
 function onConfigConfirm(payload: { carrierName: string; method: string; trackingNo: string | null }): void {

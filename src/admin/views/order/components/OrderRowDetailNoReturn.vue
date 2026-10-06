@@ -30,6 +30,8 @@ interface MergeSourceLite {
   shippingMethod: string
   paymentMethodLabel?: string
   paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+  /** 商品摘要(如「純棉素色短T(黑) × 2」);合併單商品明細用 */
+  productSummary?: string
 }
 /** 合併紀錄:有值代表此單是 M 開頭合併訂單 */
 interface MergeRecord {
@@ -191,6 +193,21 @@ const total = computed(() => props.order.amount)
 /** 商品明細：prototype mock 一筆,小計＝商品總額(subtotal),單價由小計 ÷ 數量反推 */
 interface ProductRow { name: string; spec: string; source: string; price: number; qty: number; lineTotal: number }
 const productRows = computed<ProductRow[]>(() => {
+  // 合併訂單:列出各原始訂單本來的商品(以商品摘要還原名稱／數量)
+  if (props.order.mergeRecord) {
+    return props.order.mergeRecord.sources.map((s) => {
+      const [namePart, qtyPart] = (s.productSummary ?? '').split(/\s*×\s*/)
+      const qty = Number(qtyPart) || s.itemCount || 1
+      return {
+        name: namePart?.trim() || '商品',
+        spec: `原單 ${s.orderNo}`,
+        source: sourceLabel.value,
+        price: qty > 0 ? Math.round(s.amount / qty) : s.amount,
+        qty,
+        lineTotal: s.amount,
+      }
+    })
+  }
   const qty = Math.max(1, props.order.itemCount)
   return [{
     name: props.order.cartTag.label === '服飾專區' ? '韓版寬鬆連帽外套（米白）' : '示意商品',
@@ -511,6 +528,8 @@ const batchConfigOrder = computed(() => {
     carrierStatus: (b?.carrier ? 'configured' : 'unconfigured') as 'configured' | 'unconfigured',
     carrierName: b?.carrier?.name,
     trackingStatus: b?.carrier?.tracking ?? null,
+    // 未指派物流時,依訂單原配送方式預設物流商/方式
+    shippingMethod: props.order.shippingMethod,
   }
 })
 function openBatchConfig(i: number): void {

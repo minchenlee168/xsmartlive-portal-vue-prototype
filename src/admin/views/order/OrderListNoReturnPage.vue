@@ -34,6 +34,8 @@ export interface MergeSourceLite {
   shippingMethod: string
   paymentMethodLabel?: string
   paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+  /** 商品摘要(如「純棉素色短T(黑) × 2」);合併單商品明細用 */
+  productSummary?: string
 }
 /** 合併紀錄：有值代表此單是 M 開頭合併訂單，由下列原始訂單合併而來 */
 export interface MergeRecord {
@@ -441,6 +443,12 @@ const seedOrders: OrderRow[] = [
   { id: 'm8',  createdAt: '2026-06-17 09:10', cartTag: tagFor('生活雜貨'), orderNo: 'A20260512102', buyerName: '林大華', buyerPhone: '0987-543-210', amount:  380, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '貨到付款', temperature: '常溫' },
   { id: 'm9',  createdAt: '2026-06-18 10:23', cartTag: tagFor('服飾專區'), orderNo: 'A20260512103', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1280, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '貨到付款', temperature: '常溫', couponActivity: '滿額折', couponDiscount: 150 },
   { id: 'm10', createdAt: '2026-06-19 11:36', cartTag: tagFor('服飾專區'), orderNo: 'A20260512104', buyerName: '林大華', buyerPhone: '0987-543-210', amount: 1770, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '高雄市三民區建工路300號', productSummary: '純棉素色短T(白) × 3',    paymentMethodLabel: '貨到付款', temperature: '常溫' },
+  // 何併併 x 4 - 台北市松山區民生東路三段80號 · 常溫宅配 · 皆未付款、付款方式各異(僅貨到付款符合未付款可合併條件)
+  { id: 'h1', createdAt: '2026-06-22 09:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260522201', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '貨到付款',     temperature: '常溫' },
+  { id: 'h2', createdAt: '2026-06-22 14:40', cartTag: tagFor('服飾專區'), orderNo: 'A20260522202', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  { id: 'h3', createdAt: '2026-06-23 10:05', cartTag: tagFor('生活雜貨'), orderNo: 'A20260523203', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '燕麥奶 × 3',              paymentMethodLabel: 'ATM 轉帳',      temperature: '常溫' },
+  { id: 'h4', createdAt: '2026-06-23 16:28', cartTag: tagFor('服飾專區'), orderNo: 'A20260523204', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  700, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: 'LINE Pay',      temperature: '常溫' },
+  { id: 'h5', createdAt: '2026-06-24 11:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260524205', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1020, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款',     temperature: '常溫' },
 
   // ── 異常處理示範:各種「貨態 × 付款狀態」不該發生的組合(依 UAT 對照表判異常) ──
   // e1 已於上方 id 6 示範「配送異常」旗標;以下為線上付款(表一)與貨到付款(表二)的不該發生組合。
@@ -526,7 +534,7 @@ function buildFillerOrders(count: number): OrderRow[] {
   }
   return out
 }
-/** 24 筆手寫種子 + 61 筆補充 = 85 筆 */
+/** 29 筆手寫種子 + 61 筆補充 = 90 筆 */
 const orders = ref<OrderRow[]>([...seedOrders, ...buildFillerOrders(61)])
 
 /** 把 createdAt 字串(YYYY-MM-DD HH:mm)取出當日 00:00 的 timestamp,用來與 dateRange 起訖比對。 */
@@ -1275,6 +1283,7 @@ function confirmMerge(): void {
         shippingMethod: o.shippingMethod,
         paymentMethodLabel: o.paymentMethodLabel,
         paymentStatus: o.paymentStatus,
+        productSummary: o.productSummary,
       }))
       const mergedOrder: OrderRow = {
         id: `merged-${orderNo}`,

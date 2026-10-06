@@ -13,6 +13,8 @@ interface OrderLite {
   carrierStatus?: 'unconfigured' | 'configured'
   carrierName?: string
   trackingStatus?: string | null
+  /** 訂單原配送方式(常溫宅配/超商配送…);未指派物流時用來預設方式相符的物流商 */
+  shippingMethod?: string
 }
 interface Props {
   visible: boolean
@@ -43,10 +45,21 @@ const selectedCarrierOption = computed<CarrierOption | undefined>(() =>
 )
 const selectedCarrierMethod = computed<string>(() => selectedCarrierOption.value?.method ?? '')
 
-/** 開啟時帶入既有設定 */
+/** 依訂單原配送方式,挑一個物流方式相符的物流商當預設(未指派時用) */
+function defaultCarrierFor(shippingMethod?: string): string {
+  if (!shippingMethod) return ''
+  const wantMethod = /超商|店到店|交貨便|門市/.test(shippingMethod)
+    ? '超商取貨'
+    : shippingMethod.includes('宅配') ? '常溫宅配' : ''
+  if (!wantMethod) return ''
+  return carrierOptions.find(c => c.method === wantMethod)?.value ?? ''
+}
+
+/** 開啟時帶入既有設定;未指派物流則依訂單原配送方式預設 */
 watch(() => [props.visible, props.order], () => {
   if (!props.visible || !props.order) return
-  selectedCarrier.value = carrierOptions.find(c => c.label === props.order?.carrierName)?.value ?? ''
+  const existing = carrierOptions.find(c => c.label === props.order?.carrierName)?.value
+  selectedCarrier.value = existing ?? defaultCarrierFor(props.order.shippingMethod)
   trackingNoInput.value = props.order.trackingStatus ?? ''
 })
 
