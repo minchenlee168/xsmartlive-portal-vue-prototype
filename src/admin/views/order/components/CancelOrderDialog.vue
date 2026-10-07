@@ -5,8 +5,8 @@ import { computed, ref, watch } from 'vue'
  * 取消訂單確認 Dialog。
  *
  * 破壞性操作:取消後訂單標記為「已取消」、停止後續出貨。
- * - 已付款:付款狀態轉「待退款」,需手動辦理退款;處理方式只能「作廢此訂單」(退回重新結帳不適用)。
- * - 未付款:可選退回重新結帳 or 作廢。
+ * - 已付款:付款狀態轉「待退款」,需手動辦理退款;處理方式只能「取消不退回購物車」(退回重新結帳不適用)。
+ * - 未付款:可選退回重新結帳 or 取消不退回購物車。
  * 需填「取消原因」後才能確認(confirm 按鈕在填原因前 disabled)。
  */
 interface Props {
@@ -102,7 +102,7 @@ function confirm(): void {
             <span class="text-sm font-medium text-[var(--p-text-color)]">退回重新結帳</span>
             <span class="text-xs text-[var(--p-text-muted-color)]">
               {{ isPaid
-                ? '此訂單已付款,退回購物車後客人需再付一次,不適用。請選擇作廢並辦理退款。'
+                ? '此訂單已付款,退回購物車後客人需再付一次,不適用。請選擇「取消不退回購物車」並辦理退款。'
                 : '退回購物車,客人可重新結帳。' }}
             </span>
           </span>
@@ -121,8 +121,8 @@ function confirm(): void {
             <span v-if="method === 'void'" class="size-2 rounded-full" style="background: var(--p-primary-color)"></span>
           </span>
           <span class="flex flex-col gap-1">
-            <span class="text-sm font-medium text-[var(--p-text-color)]">作廢此訂單</span>
-            <span class="text-xs text-[var(--p-text-muted-color)]">訂單與標單一起作廢,商品不退回購物車,客人無法重新結帳。</span>
+            <span class="text-sm font-medium text-[var(--p-text-color)]">取消不退回購物車</span>
+            <span class="text-xs text-[var(--p-text-muted-color)]">訂單取消,商品不退回購物車,客人無法重新結帳。</span>
           </span>
         </button>
       </div>

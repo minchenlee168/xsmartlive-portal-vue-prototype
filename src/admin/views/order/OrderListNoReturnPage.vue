@@ -101,6 +101,12 @@ interface OrderRow {
   mergeRecord?: MergeRecord
   /** 已併入的合併單編號;有值代表此原始訂單已被合併(不作廢,但不可再被合併) */
   mergedIntoNo?: string
+  /** 取消處理方式(退回重新結帳 / 取消不退回購物車);已取消訂單顯示用 */
+  cancelMethod?: 'return' | 'void'
+  /** 取消時間;已取消訂單顯示用 */
+  cancelTime?: string
+  /** 取消原因;已取消訂單顯示用 */
+  cancelReason?: string
 }
 
 /** 合併訂單彈窗使用的訂單分組:同一買家 + 同址 + 同配送 + 同溫層 + 未取號才可合併 */
@@ -705,14 +711,19 @@ function openCancelOrderDialog(): void {
     : 'shipped'
   cancelBlockedDialogVisible.value = true
 }
-function onCancelOrderConfirm(_payload: { reason: string; method: 'return' | 'void' }): void {
+function onCancelOrderConfirm(payload: { reason: string; method: 'return' | 'void' }): void {
   if (!detailDialogOrder.value) return
   const wasPaid = detailDialogOrder.value.paymentStatus === 'paid'
+  const cancelTime = nowStamp()
   const apply = (o: OrderRow | null): void => {
     if (!o) return
     o.shippingStatus = 'cancelled'
     // 已付款的訂單取消 → 付款狀態轉「待退款」,需手動辦理退款
     if (wasPaid) o.paymentStatus = 'pending_refund'
+    // 記錄取消資訊(出貨管理區「已取消」資訊框顯示用)
+    o.cancelMethod = payload.method
+    o.cancelTime = cancelTime
+    o.cancelReason = payload.reason
   }
   apply(detailDialogOrder.value)
   apply(detailDialogOriginal.value)

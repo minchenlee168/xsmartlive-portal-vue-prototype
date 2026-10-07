@@ -77,6 +77,12 @@ interface OrderRow {
   invoiceStatus?: 'not_issued' | 'issued' | 'not_required' | 'voided' | 'issue_failed' | 'void_failed'
   /** 合併紀錄;有值代表此單為 M 開頭合併訂單 */
   mergeRecord?: MergeRecord
+  /** 取消處理方式(退回重新結帳 / 取消不退回購物車);已取消訂單顯示用 */
+  cancelMethod?: 'return' | 'void'
+  /** 取消時間;已取消訂單顯示用 */
+  cancelTime?: string
+  /** 取消原因;已取消訂單顯示用 */
+  cancelReason?: string
 }
 
 interface Props {
@@ -394,6 +400,10 @@ function showLockedSwitch(unit: string, carrierName: string, statusLabel: string
 }
 const manualSwitchLocked = computed<boolean>(() =>
   isSystemCarrier.value && isPostShipStage(props.order.shippingStatus),
+)
+/** 取消處理方式 → 顯示文字(對齊取消訂單彈窗的選項文案) */
+const cancelMethodLabel = computed<string>(() =>
+  props.order.cancelMethod === 'return' ? '退回重新結帳' : '取消不退回購物車',
 )
 /** 點 stepper 任一階段：目標 = 該階段（同狀態則不動） */
 function onStepClick(key: OrderRow['shippingStatus']): void {
@@ -1183,8 +1193,8 @@ function commitInvoice(): void {
 
       <!-- ── 未分批：原本的整單出貨管理（動作列 + 配送/發票 + 出貨狀態 + 備註） ── -->
       <template v-if="!isBatched">
-      <!-- 動作按鈕列 -->
-      <div class="flex items-center gap-2 flex-wrap">
+      <!-- 動作按鈕列;已取消訂單隱藏(出貨/列印動作皆不適用) -->
+      <div v-if="order.shippingStatus !== 'cancelled'" class="flex items-center gap-2 flex-wrap">
         <Button label="設定配送" icon="pi pi-cog" size="small" @click="shippingConfigDialogVisible = true" />
         <Button
           label="狀態切換"
@@ -1213,8 +1223,8 @@ function commitInvoice(): void {
         <Button label="列印紀錄" icon="pi pi-history" severity="secondary" variant="outlined" size="small" @click="printHistoryDialogVisible = true" />
       </div>
 
-      <!-- 左：配送物流 / 發票 / 出貨狀態 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline） -->
-      <div class="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4">
+      <!-- 左：配送物流 / 發票 / 出貨狀態 Timeline（較寬）；右：出貨單備註（較窄，不擠壓 timeline）；已取消訂單隱藏備註、改單欄 -->
+      <div class="grid gap-4" :class="order.shippingStatus === 'cancelled' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-[3fr_2fr]'">
         <div class="flex flex-col gap-4 min-w-0">
           <div class="flex items-center gap-2 text-sm">
             <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">配送物流</span>
@@ -1232,8 +1242,37 @@ function commitInvoice(): void {
             </span>
           </div>
 
+          <!-- 已取消:隱藏出貨狀態 Timeline,改顯示物流貨態「已取消」+ 取消資訊 -->
+          <template v-if="order.shippingStatus === 'cancelled'">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-[var(--p-text-muted-color)] w-[80px] shrink-0">物流貨態</span>
+              <Tag value="已取消" severity="secondary" />
+              <span class="text-xs text-[var(--p-text-muted-color)]">（僅商家可見）</span>
+            </div>
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 flex flex-col gap-2 dark:border-red-900 dark:bg-red-950/40">
+              <span class="inline-flex items-center gap-2 text-sm font-bold text-red-600 dark:text-red-400">
+                <i class="pi pi-ban"></i>
+                此訂單已取消
+              </span>
+              <div class="flex flex-col gap-1 text-sm">
+                <div class="flex gap-2">
+                  <span class="w-16 shrink-0 text-red-400 dark:text-red-400/80">處理方式</span>
+                  <span class="font-medium text-red-600 dark:text-red-400">{{ cancelMethodLabel }}</span>
+                </div>
+                <div v-if="order.cancelTime" class="flex gap-2">
+                  <span class="w-16 shrink-0 text-red-400 dark:text-red-400/80">取消時間</span>
+                  <span class="text-[var(--p-text-color)]">{{ order.cancelTime }}</span>
+                </div>
+                <div class="flex gap-2">
+                  <span class="w-16 shrink-0 text-red-400 dark:text-red-400/80">取消原因</span>
+                  <span class="text-[var(--p-text-color)] break-words">{{ order.cancelReason || '—' }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <!-- 出貨狀態 Timeline（左欄內；發票已移到上方發票資訊卡,此處不再顯示） -->
-          <div class="flex flex-col gap-2">
+          <div v-else class="flex flex-col gap-2">
             <span class="text-sm text-[var(--p-text-muted-color)]">出貨狀態</span>
             <!-- Stepper marker 可點按 → 跳確認彈窗切換到該階段 -->
             <Timeline :value="progressSteps" layout="horizontal" align="top" class="w-full">
@@ -1267,7 +1306,8 @@ function commitInvoice(): void {
           </div>
         </div>
 
-        <div class="flex flex-col gap-2">
+        <!-- 出貨單備註;已取消訂單隱藏 -->
+        <div v-if="order.shippingStatus !== 'cancelled'" class="flex flex-col gap-2">
           <div class="flex items-center justify-between">
             <span class="text-sm text-[var(--p-text-color)]">出貨單備註</span>
             <label class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)] cursor-pointer">
