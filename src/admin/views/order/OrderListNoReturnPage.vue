@@ -2752,7 +2752,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                   套用 <span class="font-medium">{{ mergeCouponKeptCount }}</span> 張 ·
                   共折抵 <span class="text-[#DC2626] font-medium">−${{ mergeCouponKeptTotal.toLocaleString() }}</span>
                 </div>
-                <div class="text-xs text-[var(--p-text-muted-color)]">未勾選的券會隨原訂單作廢自動退回客人帳號</div>
+                <div class="text-xs text-[var(--p-text-muted-color)]">未勾選的券會退回至訂購人帳號</div>
               </template>
 
               <!-- 無任何券 -->
