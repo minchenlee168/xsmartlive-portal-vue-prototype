@@ -6,7 +6,7 @@ import { useShopStore } from '@/admin/stores/shop';
 import Logo from '@/admin/components/layout/Logo.vue';
 import LanguageSelector from '@/admin/components/layout/LanguageSelector.vue';
 import ThemeSwitcher from '@/admin/components/layout/ThemeSwitcher.vue';
-import { CHANGELOG } from '@/admin/constants/changelog';
+import { CHANGELOG, type ChangelogRelease } from '@/admin/constants/changelog';
 
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -81,6 +81,14 @@ function toggleVersionInfo(event: Event): void {
   versionInfoPopover.value?.toggle(event)
 }
 
+/** 標題旁下拉：依「功能畫面（模組）」篩選版本；預設「全部」 */
+const ALL_MODULES = '全部'
+const moduleOptions = computed<string[]>(() => [ALL_MODULES, ...Array.from(new Set(changelog.map((r) => r.module)))])
+const selectedModule = ref<string>(ALL_MODULES)
+const filteredChangelog = computed(() =>
+  selectedModule.value === ALL_MODULES ? changelog : changelog.filter((r) => r.module === selectedModule.value),
+)
+
 /** 各版本可收合，預設只展開最新（第一筆） */
 const expandedVersions = ref<Set<string>>(new Set(changelog.length ? [changelog[0].version] : []))
 function isVersionExpanded(version: string): boolean {
@@ -91,6 +99,18 @@ function toggleVersion(version: string): void {
   if (next.has(version)) next.delete(version)
   else next.add(version)
   expandedVersions.value = next
+}
+
+/** 複製該版更新內容（版次／模組／日期＋分組條列）為純文字 */
+function copyRelease(rel: ChangelogRelease): void {
+  const lines: string[] = [`${rel.version} · ${rel.module} · ${rel.date}`, '']
+  rel.groups.forEach((g) => {
+    lines.push(`【${g.title}】`)
+    g.items.forEach((it) => lines.push(`- ${it}`))
+    lines.push('')
+  })
+  navigator.clipboard?.writeText(lines.join('\n').trim())
+  showSuccess({ detail: '已複製更新內容' })
 }
 </script>
 
@@ -203,15 +223,26 @@ function toggleVersion(version: string): void {
       v-model:visible="changelogDialogVisible"
       modal
       :draggable="false"
-      header="更新內容"
       :style="{ width: 'min(600px, calc(100vw - 32px))' }"
     >
-      <div v-if="changelog.length === 0" class="text-sm text-[var(--p-text-muted-color)] py-4 text-center">
+      <template #header>
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-lg font-bold text-[var(--p-text-color)]">更新內容</span>
+          <!-- 依功能畫面（模組）篩選版本 -->
+          <Select
+            v-model="selectedModule"
+            :options="moduleOptions"
+            size="small"
+            class="!w-[150px]"
+          />
+        </div>
+      </template>
+      <div v-if="filteredChangelog.length === 0" class="text-sm text-[var(--p-text-muted-color)] py-4 text-center">
         尚無更新紀錄
       </div>
       <div v-else class="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
         <section
-          v-for="(rel, i) in changelog"
+          v-for="(rel, i) in filteredChangelog"
           :key="rel.version"
           class="flex flex-col gap-3"
           :class="i > 0 ? 'pt-6 border-t border-[var(--p-content-border-color)]' : ''"
@@ -239,6 +270,15 @@ function toggleVersion(version: string): void {
               @click.stop="toggleVersionInfo"
             >
               <i class="pi pi-info-circle" style="font-size: 13px"></i>
+            </button>
+            <button
+              type="button"
+              v-tooltip.top="'複製更新內容'"
+              class="inline-flex items-center justify-center text-[var(--p-text-muted-color)] hover:text-[var(--p-primary-color)] cursor-pointer bg-transparent border-0 p-0"
+              aria-label="複製更新內容"
+              @click.stop="copyRelease(rel)"
+            >
+              <i class="pi pi-copy" style="font-size: 13px"></i>
             </button>
             <Tag :value="rel.module" />
             <span class="text-xs text-[var(--p-text-muted-color)] ml-auto">{{ rel.date }}</span>
