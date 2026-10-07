@@ -6,6 +6,7 @@ import { useShopStore } from '@/admin/stores/shop';
 import Logo from '@/admin/components/layout/Logo.vue';
 import LanguageSelector from '@/admin/components/layout/LanguageSelector.vue';
 import ThemeSwitcher from '@/admin/components/layout/ThemeSwitcher.vue';
+import { CHANGELOG } from '@/admin/constants/changelog';
 
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -70,30 +71,27 @@ const prototypeUpdateTime = computed(() => {
   return formatCommitTime(iso)
 })
 
-/** info icon 開的 changelog Dialog 狀態與資料：解析 vite 注入的 commit 區塊（第一行 `ISO|subject`，後續為 body） */
+/** info icon 開的「更新內容」Dialog：讀人工維護的 CHANGELOG（版次 / 修改畫面 / 白話條列） */
 const changelogDialogVisible = ref(false)
-interface CommitEntry {
-  time: string
-  subject: string
-  /** body 拆成多行，過濾掉空行；若是 `- xxx` / `* xxx` 開頭就去掉符號當作子條列項 */
-  bullets: string[]
+const changelog = CHANGELOG
+
+/** 版次旁 info icon 點開的「版號說明」Popover（語意化版本 主版號.次版號.修訂號） */
+const versionInfoPopover = ref<{ toggle: (e: Event) => void } | null>(null)
+function toggleVersionInfo(event: Event): void {
+  versionInfoPopover.value?.toggle(event)
 }
-const recentCommits = computed<CommitEntry[]>(() => {
-  const list = Array.isArray(__RECENT_COMMITS__) ? __RECENT_COMMITS__ : []
-  return list.map((block) => {
-    const lines = block.split('\n')
-    const firstLine = lines[0] ?? ''
-    const idx = firstLine.indexOf('|')
-    const time = idx < 0 ? '' : formatCommitTime(firstLine.slice(0, idx))
-    const subject = idx < 0 ? firstLine : firstLine.slice(idx + 1)
-    const bullets = lines
-      .slice(1)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith('Co-Authored-By:'))
-      .map((l) => l.replace(/^[-*]\s*/, ''))
-    return { time, subject, bullets }
-  })
-})
+
+/** 各版本可收合，預設只展開最新（第一筆） */
+const expandedVersions = ref<Set<string>>(new Set(changelog.length ? [changelog[0].version] : []))
+function isVersionExpanded(version: string): boolean {
+  return expandedVersions.value.has(version)
+}
+function toggleVersion(version: string): void {
+  const next = new Set(expandedVersions.value)
+  if (next.has(version)) next.delete(version)
+  else next.add(version)
+  expandedVersions.value = next
+}
 </script>
 
 <template>
@@ -200,27 +198,82 @@ const recentCommits = computed<CommitEntry[]>(() => {
       </span>
     </div>
 
-    <!-- Changelog Dialog：顯示最近 10 筆 commit 的時間 + subject -->
+    <!-- 更新內容 Dialog：人工維護的更新日誌（版次 + 修改畫面 + 白話條列） -->
     <Dialog
       v-model:visible="changelogDialogVisible"
       modal
       :draggable="false"
       header="更新內容"
-      :style="{ width: 'min(560px, calc(100vw - 32px))' }"
+      :style="{ width: 'min(600px, calc(100vw - 32px))' }"
     >
-      <div v-if="recentCommits.length === 0" class="text-sm text-[var(--p-text-muted-color)] py-4 text-center">
-        尚無 commit 紀錄
+      <div v-if="changelog.length === 0" class="text-sm text-[var(--p-text-muted-color)] py-4 text-center">
+        尚無更新紀錄
       </div>
-      <ul v-else class="divide-y divide-[var(--p-content-border-color)]">
-        <li v-for="(c, i) in recentCommits" :key="i" class="py-3 flex flex-col gap-2">
-          <span class="text-xs text-[var(--p-text-muted-color)] font-mono">{{ c.time }}</span>
-          <span class="text-sm font-medium text-[var(--p-text-color)] leading-snug">{{ c.subject }}</span>
-          <!-- commit body 拆出來的條列子項；沒有 body 就不顯示 -->
-          <ul v-if="c.bullets.length" class="list-disc pl-5 flex flex-col gap-1">
-            <li v-for="(b, bi) in c.bullets" :key="bi" class="text-[13px] text-[var(--p-text-color)] leading-snug">{{ b }}</li>
+      <div v-else class="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
+        <section
+          v-for="(rel, i) in changelog"
+          :key="rel.version"
+          class="flex flex-col gap-3"
+          :class="i > 0 ? 'pt-6 border-t border-[var(--p-content-border-color)]' : ''"
+        >
+          <!-- 版次標頭（可點收合）：chevron + 版次 + 版號說明 info + 修改畫面 + 日期 -->
+          <div
+            class="flex items-center gap-2 flex-wrap cursor-pointer select-none"
+            role="button"
+            tabindex="0"
+            :aria-expanded="isVersionExpanded(rel.version)"
+            @click="toggleVersion(rel.version)"
+            @keydown.enter.prevent="toggleVersion(rel.version)"
+            @keydown.space.prevent="toggleVersion(rel.version)"
+          >
+            <i
+              class="pi text-[var(--p-text-muted-color)]"
+              :class="isVersionExpanded(rel.version) ? 'pi-chevron-down' : 'pi-chevron-right'"
+              style="font-size: 12px"
+            ></i>
+            <span class="text-base font-bold text-[var(--p-primary-color)]">{{ rel.version }}</span>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center text-[var(--p-text-muted-color)] hover:text-[var(--p-primary-color)] cursor-pointer bg-transparent border-0 p-0"
+              aria-label="版號說明"
+              @click.stop="toggleVersionInfo"
+            >
+              <i class="pi pi-info-circle" style="font-size: 13px"></i>
+            </button>
+            <Tag :value="rel.module" />
+            <span class="text-xs text-[var(--p-text-muted-color)] ml-auto">{{ rel.date }}</span>
+          </div>
+          <!-- 分組白話條列（收合時隱藏） -->
+          <template v-if="isVersionExpanded(rel.version)">
+            <div v-for="g in rel.groups" :key="g.title" class="flex flex-col gap-2">
+              <span class="text-sm font-bold text-[var(--p-text-color)]">{{ g.title }}</span>
+              <ul class="list-disc pl-5 flex flex-col gap-2">
+                <li
+                  v-for="(item, ii) in g.items"
+                  :key="ii"
+                  class="text-[13px] text-[var(--p-text-color)] leading-relaxed"
+                >{{ item }}</li>
+              </ul>
+            </div>
+          </template>
+        </section>
+      </div>
+
+      <!-- 版號說明 Popover（點版次旁 info 開啟）：語意化版本 主版號.次版號.修訂號 -->
+      <Popover ref="versionInfoPopover">
+        <div class="flex flex-col gap-2 max-w-[280px]">
+          <span class="text-sm font-bold text-[var(--p-text-color)]">版號說明</span>
+          <span class="text-xs text-[var(--p-text-muted-color)]">格式：主版號.次版號.修訂號</span>
+          <ul class="flex flex-col gap-1 text-[13px] text-[var(--p-text-color)] leading-relaxed">
+            <li><span class="font-bold">主版號</span>：重大／不相容的大改版</li>
+            <li><span class="font-bold">次版號</span>：新增功能（舊功能照常可用）</li>
+            <li><span class="font-bold">修訂號</span>：修 bug／小調整</li>
           </ul>
-        </li>
-      </ul>
+          <span class="text-xs text-[var(--p-text-muted-color)] leading-relaxed">
+            左邊數字進位時右邊歸零，例：1.4.3 →（新功能）→ 1.5.0
+          </span>
+        </div>
+      </Popover>
     </Dialog>
 
     <!-- 右區 3 顆 icon 永遠顯示，shrink-0 避免被左區擠掉 -->
