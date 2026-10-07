@@ -1237,13 +1237,11 @@ const mergeSummary = computed(() => {
   const total = subtotal + shippingFee - pointsDiscount - couponDiscount
   return { subtotal, shippingFee, pointsDiscount, couponDiscount, total }
 })
-/** 有套用優惠券的原始訂單(供優惠券區塊列勾選框) */
+/** 有套用優惠券的原始訂單(供優惠券區塊列出;全額帶入、不可更改) */
 const mergeCouponOrders = computed(() => mergeSelectedOrders.value.filter((o) => (o.couponDiscount ?? 0) > 0))
-/** 目前勾選保留的券張數 */
-const mergeCouponKeptCount = computed(() => mergeCouponOrders.value.filter((o) => mergeCouponKept.value[o.id]).length)
-/** 目前勾選保留的券共折抵 */
+/** 券共折抵(全部券加總) */
 const mergeCouponKeptTotal = computed(() =>
-  mergeCouponOrders.value.reduce((s, o) => s + (mergeCouponKept.value[o.id] ? (o.couponDiscount ?? 0) : 0), 0),
+  mergeCouponOrders.value.reduce((s, o) => s + (o.couponDiscount ?? 0), 0),
 )
 /** 合併後可得紅利點數合計 */
 const mergePointsEarnedTotal = computed(() =>
@@ -2721,9 +2719,11 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div class="pt-1 text-[var(--p-text-color)]">0 點(折抵 $0)</div>
             </div>
           </div>
-          <!-- 優惠券:各原始訂單券況 + 可勾選保留(預設全勾,取消→隨原單作廢退回);共折抵依勾選加總 -->
+          <!-- 優惠券(鎖,合併後不可調整):各原始訂單券況 + 全額帶入的券(勾選僅顯示、不可更改);共折抵為全部券加總 -->
           <div class="flex flex-col gap-2 px-4 py-3">
-            <label class="text-sm text-[var(--p-text-muted-color)]">優惠券</label>
+            <label class="text-sm text-[var(--p-text-muted-color)] flex items-center gap-1">
+              優惠券 <i class="pi pi-lock text-xs" v-tooltip.top="'合併後不可調整'" aria-label="合併後不可調整"></i>
+            </label>
             <div class="flex flex-col gap-2 text-sm">
               <!-- 各原始訂單券況 -->
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
@@ -2737,33 +2737,29 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 </template>
               </div>
 
-              <!-- 有券的原始訂單列為可勾選項,取消勾選該券隨原單退回 -->
+              <!-- 有券的原始訂單列出(全額帶入):勾選僅顯示,合併後不可更改 -->
               <template v-if="mergeCouponOrders.length">
-                <label
+                <div
                   v-for="o in mergeCouponOrders"
                   :key="`coupon-${o.id}`"
-                  class="flex items-center justify-between gap-3 rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-hover-background)] px-3 py-2 cursor-pointer"
+                  class="flex items-center justify-between gap-3 rounded-md border border-[var(--p-content-border-color)] bg-[var(--p-content-hover-background)] px-3 py-2"
                 >
                   <span class="flex items-center gap-2 min-w-0">
-                    <Checkbox v-model="mergeCouponKept[o.id]" binary />
+                    <Checkbox :model-value="true" binary disabled />
                     <span class="truncate text-[var(--p-text-color)]">
                       {{ o.couponActivity }}
                       <span class="text-[var(--p-text-muted-color)]">（{{ o.orderNo }}）</span>
                     </span>
                   </span>
-                  <span
-                    class="shrink-0 font-medium"
-                    :class="mergeCouponKept[o.id] ? 'text-[#DC2626]' : 'text-[var(--p-text-muted-color)] line-through'"
-                  >
+                  <span class="shrink-0 font-medium text-[#DC2626]">
                     −${{ (o.couponDiscount ?? 0).toLocaleString() }}
                   </span>
-                </label>
+                </div>
 
                 <div class="pt-1 text-[var(--p-text-color)]">
-                  套用 <span class="font-medium">{{ mergeCouponKeptCount }}</span> 張 ·
+                  套用 <span class="font-medium">{{ mergeCouponOrders.length }}</span> 張 ·
                   共折抵 <span class="text-[#DC2626] font-medium">−${{ mergeCouponKeptTotal.toLocaleString() }}</span>
                 </div>
-                <div class="text-xs text-[var(--p-text-muted-color)]">未勾選的券會退回至訂購人帳號</div>
               </template>
 
               <!-- 無任何券 -->

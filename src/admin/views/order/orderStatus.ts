@@ -58,7 +58,8 @@ const ONLINE: Record<string, Row> = {
   退貨中: { 待退款: 'pending' },
   已退貨: { 已退款: 'completed' },
   已換貨: { 已付款: 'completed' },
-  已取消: { 待付款: 'cancelled', 待退款: 'cancelled', 已退款: 'cancelled' },
+  // 已取消 + 待退款:取消後尚待辦理退款,視為「待處理」(有待辦事項);已退款 / 無金流待付款才算結案
+  已取消: { 待付款: 'cancelled', 待退款: 'pending', 已退款: 'cancelled' },
 }
 
 /** 表二 貨到付款(含自取現場付款);未列出的組合＝不該發生＝異常 */
@@ -71,7 +72,8 @@ const COD: Record<string, Row> = {
   退貨中: { 待付款: 'pending', 待退款: 'pending' },
   已退貨: { 待付款: 'completed', 已退款: 'completed' },
   已換貨: { 已付款: 'completed' },
-  已取消: { 待付款: 'cancelled', 待退款: 'cancelled', 已退款: 'cancelled' },
+  // 已取消 + 待退款:取消後尚待辦理退款,視為「待處理」(有待辦事項);已退款 / 無金流待付款才算結案
+  已取消: { 待付款: 'cancelled', 待退款: 'pending', 已退款: 'cancelled' },
 }
 
 /** 依貨態 × 付款狀態 × 付款方式,查出訂單狀態 key。 */

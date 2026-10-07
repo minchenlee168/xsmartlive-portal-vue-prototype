@@ -103,7 +103,7 @@ function confirm(): void {
             <span class="text-xs text-[var(--p-text-muted-color)]">
               {{ isPaid
                 ? '此訂單已付款,退回購物車後客人需再付一次,不適用。請選擇「取消不退回購物車」並辦理退款。'
-                : '退回購物車,客人可重新結帳。' }}
+                : '商品退回客人購物車,標單回到未結帳,客人可重新結帳。' }}
             </span>
           </span>
         </button>

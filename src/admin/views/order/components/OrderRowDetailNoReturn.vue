@@ -53,6 +53,8 @@ interface OrderRow {
   amount: number
   itemCount: number
   shippingMethod: string
+  /** 收件地址;超商配送時存「門市名（地址）」,宅配存一般地址;未帶時沿用 prototype 預設 */
+  receiverAddress?: string
   paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
   /** 付款方式標籤(如「貨到付款」「信用卡一次付清」「ATM 轉帳」);決定配送方式可否變更 */
   paymentMethodLabel?: string
@@ -248,6 +250,17 @@ const editBuyerName = ref<string>(props.order.buyerName)
 const editBuyerPhone = ref<string>(props.order.buyerPhone)
 /** 地址欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
 const shippingAddress = ref<string>('台北市中山區南京東路二段50號')
+/** 是否超商配送(取貨門市) */
+const isCvsShipping = computed(() => /超商|門市|交貨便|店到店/.test(props.order.shippingMethod ?? ''))
+/**
+ * 配送資訊檢視用地址:優先用訂單真實收件地址,未帶時沿用 prototype 預設。
+ * 超商配送的門市存為「門市名（地址）」,顯示時改為「門市名 / 地址」(對齊設計)。
+ */
+const shippingAddressDisplay = computed<string>(() => {
+  const addr = props.order.receiverAddress ?? shippingAddress.value
+  if (isCvsShipping.value) return addr.replace(/（(.+?)）\s*$/, ' / $1')
+  return addr
+})
 /** 自取:商家自有取貨門市選項 */
 const pickupStoreOptions = [
   { label: 'MIFFY 信義門市 — 台北市信義區忠孝東路四段45號', value: 'xinyi' },
@@ -295,14 +308,17 @@ const isAtmTransfer = computed(() => paymentMethodLabel.value === 'ATM 轉帳')
 /** 是否為貨到付款 */
 const isCodOrder = computed(() => paymentMethodLabel.value === '貨到付款')
 /**
- * 可否於配送資訊變更「配送方式」:
- * - 貨到付款:尚未依線上金流計價,可改
- * - 待出貨:貨還沒出,仍可調整配送方式
- * 其餘(已依原配送方式完成計價且已進入出貨流程)不可改,需取消訂單重新下單。
+ * 可否於配送資訊變更「配送方式」:僅貨到付款訂單可改(尚未依線上金流計價)。
+ * 其他付款方式已依原配送方式完成計價,需變更請取消訂單重新下單;地址仍可修改。
  */
-const canEditShippingMethod = computed(() => isCodOrder.value || props.order.shippingStatus === 'pending')
+const canEditShippingMethod = computed(() => isCodOrder.value)
 /** 結帳編號（mock：以訂單編號數字衍生） */
 const checkoutNo = computed(() => `CHK-${props.order.orderNo.replace(/\D/g, '')}`)
+/** 是否有結帳編號:貨到付款 / 取貨現場付款(自取)走線下收款,無線上結帳編號 */
+const hasCheckoutNo = computed(() => {
+  const m = paymentMethodLabel.value ?? ''
+  return !(m.includes('貨到付款') || m.includes('現場付款') || m.includes('自取'))
+})
 
 // 切換不同訂單時同步初始值
 watch(() => props.order.id, () => {
@@ -922,7 +938,7 @@ function commitInvoice(): void {
             <i class="pi pi-map-marker mt-1 text-sm text-[var(--p-text-muted-color)]"></i>
             <div class="flex flex-col gap-1">
               <span>{{ order.buyerName }} / {{ order.buyerPhone }}</span>
-              <span class="text-xs text-[var(--p-text-muted-color)]">{{ shippingAddress }}</span>
+              <span class="text-xs text-[var(--p-text-muted-color)]">{{ shippingAddressDisplay }}</span>
             </div>
           </div>
         </template>
@@ -1097,8 +1113,8 @@ function commitInvoice(): void {
             :pt="{ label: { class: '!whitespace-nowrap !overflow-visible' } }"
           />
         </div>
-        <!-- 結帳編號:顯示於付款狀態下方 -->
-        <div class="flex items-center justify-between text-sm">
+        <!-- 結帳編號:顯示於付款狀態下方;貨到付款 / 取貨現場付款(自取)無結帳編號,不顯示 -->
+        <div v-if="hasCheckoutNo" class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">結帳編號</span>
           <span class="text-[var(--p-text-color)]">{{ checkoutNo }}</span>
         </div>
