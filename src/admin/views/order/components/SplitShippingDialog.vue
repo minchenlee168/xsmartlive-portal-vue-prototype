@@ -181,6 +181,11 @@ const confirm = useConfirm()
 function setBatchStatus(status: BatchStatus): void {
   const b = currentBatch.value
   if (!b || b.status === status) return
+  // 比照整單:系統管控物流且已進入出貨後階段 → 不可手動切換(任一方向),跳提示
+  if (batchManualSwitchLocked(b)) {
+    showLockedSwitch(b.carrier?.name ?? '', statusMeta(b.status).label)
+    return
+  }
   const from = statusMeta(b.status).label
   const to = statusMeta(status).label
   confirm.require({
@@ -192,6 +197,28 @@ function setBatchStatus(status: BatchStatus): void {
     defaultFocus: 'reject',
     accept: () => { b.status = status },
   })
+}
+/** 批次是否為系統管控物流(比照整單:有配送物流且非自取/商家自建/郵局) */
+function batchIsSystemCarrier(b: Batch): boolean {
+  if (!b.carrier) return false
+  const name = b.carrier.name
+  if (name.includes('自取') || name.includes('商家自建') || name.includes('郵局')) return false
+  return true
+}
+/** 出貨後階段:已出貨(含)之後 */
+function isBatchPostShip(s: BatchStatus): boolean {
+  return BATCH_STATUS_FLOW.indexOf(s) >= BATCH_STATUS_FLOW.indexOf('shipping')
+}
+/** 批次無法手動切換:系統管控物流 + 已進入出貨後階段 → 貨態全由系統驅動 */
+function batchManualSwitchLocked(b: Batch): boolean {
+  return batchIsSystemCarrier(b) && isBatchPostShip(b.status)
+}
+/** 鎖定提示彈窗(系統管控物流出貨後不可手動切換) */
+const lockedSwitchDialogVisible = ref(false)
+const lockedSwitchInfo = ref<{ carrierName: string; statusLabel: string }>({ carrierName: '', statusLabel: '' })
+function showLockedSwitch(carrierName: string, statusLabel: string): void {
+  lockedSwitchInfo.value = { carrierName, statusLabel }
+  lockedSwitchDialogVisible.value = true
 }
 
 /** 「切換狀態」按鈕：推進到下一階段（沿用 setBatchStatus 的確認流程）；已完成則無下一階段 */
@@ -415,6 +442,22 @@ function cancel(): void { emit('update:visible', false) }
       <div class="flex-1 min-w-0 rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
         <!-- ── 主原始訂單視圖 ── -->
         <template v-if="currentBatchIdx === -1">
+          <!-- 分配狀態橫幅(常駐 toast 樣式):未分配完 → 琥珀;全部分配完 → 綠 -->
+          <div
+            v-if="unallocatedCount > 0"
+            class="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-700 dark:border-yellow-900 dark:bg-yellow-950/40 dark:text-yellow-400"
+          >
+            <i class="pi pi-info-circle"></i>
+            <span>尚有 <span class="font-bold">{{ unallocatedCount }}</span> 件商品未分配至任何批次</span>
+          </div>
+          <div
+            v-else
+            class="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400"
+          >
+            <i class="pi pi-check-circle"></i>
+            <span>所有商品皆已分配完成</span>
+          </div>
+
           <div class="flex items-center gap-2">
             <i class="pi pi-box text-[var(--p-primary-color)]"></i>
             <span class="text-base font-bold text-[var(--p-text-color)]">主原始訂單</span>
@@ -526,11 +569,11 @@ function cancel(): void { emit('update:visible', false) }
               </span>
               <div class="flex items-center gap-2 shrink-0">
                 <Button
-                  label="切換狀態" icon="pi pi-sync" severity="secondary" variant="outlined" size="small"
+                  label="狀態切換" icon="pi pi-sync" severity="secondary" variant="outlined" size="small"
                   :disabled="!nextBatchStatus" @click="advanceBatchStatus"
                 />
                 <Button
-                  label="配送設定" icon="pi pi-cog" severity="secondary" size="small"
+                  label="配送設定" icon="pi pi-cog" size="small"
                   @click="configDialogVisible = true"
                 />
               </div>
@@ -638,25 +681,9 @@ function cancel(): void { emit('update:visible', false) }
     </div>
 
     <template #footer>
-      <div class="flex items-center justify-between w-full gap-3">
-        <span
-          v-if="unallocatedCount > 0"
-          class="inline-flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400"
-        >
-          <i class="pi pi-info-circle text-sm"></i>
-          尚有 <span class="font-bold">{{ unallocatedCount }}</span> 件商品未分配至任何批次
-        </span>
-        <span
-          v-else
-          class="inline-flex items-center gap-2 text-sm text-green-600 dark:text-green-400"
-        >
-          <i class="pi pi-check-circle text-sm"></i>
-          所有商品皆已分配完成
-        </span>
-        <div class="flex items-center gap-2">
-          <Button label="取消" severity="secondary" variant="outlined" @click="cancel" />
-          <Button label="儲存並返回" @click="saveAndClose" />
-        </div>
+      <div class="flex items-center justify-end w-full gap-2">
+        <Button label="取消" severity="secondary" variant="outlined" @click="cancel" />
+        <Button label="儲存並返回" @click="saveAndClose" />
       </div>
     </template>
   </Dialog>
@@ -667,4 +694,32 @@ function cancel(): void { emit('update:visible', false) }
     :order="configOrder"
     @confirm="onConfigConfirm"
   />
+
+  <!-- 無法手動切換狀態:系統管控物流已進入出貨後階段,不可手動切換 -->
+  <Dialog
+    v-model:visible="lockedSwitchDialogVisible"
+    modal
+    :draggable="false"
+    :style="{ width: 'min(400px, calc(100vw - 32px))' }"
+  >
+    <template #header>
+      <div class="flex items-center gap-3">
+        <div class="size-10 shrink-0 rounded-full bg-yellow-100 dark:bg-yellow-950/40 flex items-center justify-center">
+          <i class="pi pi-lock text-yellow-600 dark:text-yellow-400 text-lg"></i>
+        </div>
+        <span class="text-base font-bold text-[var(--p-text-color)]">無法手動切換狀態</span>
+      </div>
+    </template>
+    <div class="flex flex-col gap-2">
+      <p class="text-sm text-[var(--p-text-color)] leading-snug">
+        此批由 <span class="font-medium">{{ lockedSwitchInfo.carrierName }}</span> 系統管控,目前狀態「<span class="font-medium text-yellow-600 dark:text-yellow-400">{{ lockedSwitchInfo.statusLabel }}</span>」屬出貨後階段,無法手動切換。
+      </p>
+      <p class="text-xs text-[var(--p-text-muted-color)] leading-snug">
+        若需修改貨態,請聯絡物流商或等待系統更新。
+      </p>
+    </div>
+    <template #footer>
+      <Button label="我知道了" @click="lockedSwitchDialogVisible = false" />
+    </template>
+  </Dialog>
 </template>
