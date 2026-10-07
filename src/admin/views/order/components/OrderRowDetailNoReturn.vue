@@ -250,15 +250,15 @@ const editBuyerName = ref<string>(props.order.buyerName)
 const editBuyerPhone = ref<string>(props.order.buyerPhone)
 /** 地址欄不在 OrderRow 上，用 local ref 保存 prototype 值 */
 const shippingAddress = ref<string>('台北市中山區南京東路二段50號')
-/** 是否超商配送(取貨門市) */
-const isCvsShipping = computed(() => /超商|門市|交貨便|店到店/.test(props.order.shippingMethod ?? ''))
+/** 是否取貨門市配送(超商配送 / 自取):地址存門市,顯示為「門市名 / 地址」 */
+const isStorePickup = computed(() => /超商|門市|交貨便|店到店|自取/.test(props.order.shippingMethod ?? ''))
 /**
  * 配送資訊檢視用地址:優先用訂單真實收件地址,未帶時沿用 prototype 預設。
- * 超商配送的門市存為「門市名（地址）」,顯示時改為「門市名 / 地址」(對齊設計)。
+ * 超商配送 / 自取的門市存為「門市名（地址）」,顯示時改為「門市名 / 地址」(對齊設計)。
  */
 const shippingAddressDisplay = computed<string>(() => {
   const addr = props.order.receiverAddress ?? shippingAddress.value
-  if (isCvsShipping.value) return addr.replace(/（(.+?)）\s*$/, ' / $1')
+  if (isStorePickup.value) return addr.replace(/（(.+?)）\s*$/, ' / $1')
   return addr
 })
 /** 自取:商家自有取貨門市選項 */
