@@ -13,7 +13,7 @@ import { execSync } from 'node:child_process'
 const cwd = fileURLToPath(new URL('.', import.meta.url))
 const lastCommitTime = (() => {
   try {
-    return execSync('git log -1 --format=%cI', { cwd }).toString().trim()
+    return execSync("git log -1 --format='%cI'", { cwd }).toString().trim()
   } catch {
     return new Date().toISOString()
   }
@@ -26,7 +26,7 @@ const lastCommitTime = (() => {
  */
 const recentCommits = (() => {
   try {
-    return execSync('git log -10 --format=%cI|%s%n%b%x00', { cwd })
+    return execSync("git log -10 --format='%cI|%s%n%b%x00'", { cwd })
       .toString()
       .split('\x00\n')
       .map((s) => s.trim())
