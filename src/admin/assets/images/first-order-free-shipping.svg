@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="160" viewBox="0 0 170 160" fill="none">
+  <g stroke="#363636" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- sparkles -->
+    <path d="M150 12 C151 18 153 20 159 21 C153 22 151 24 150 30 C149 24 147 22 141 21 C147 20 149 18 150 12 Z" fill="#fff"/>
+    <path d="M18 60 C18.5 63 19.5 64 22.5 64.5 C19.5 65 18.5 66 18 69 C17.5 66 16.5 65 13.5 64.5 C16.5 64 17.5 63 18 60 Z" fill="#fff"/>
+
+    <!-- new customer -->
+    <!-- body -->
+    <path d="M30 140 V124 C30 106 44 96 64 96 C84 96 98 106 98 124 V140 Z" fill="#363636" transform="translate(5 3)"/>
+    <path d="M30 140 V124 C30 106 44 96 64 96 C84 96 98 106 98 124 V140 Z" fill="#fff"/>
+    <path d="M42 106 C46 101 54 98 64 98 C74 98 82 101 86 106 V140 H42 Z" fill="#00C8FF" stroke="none" transform="translate(3 2)"/>
+    <path d="M54 98 L64 112 L74 98"/>
+    <path d="M64 112 V140"/>
+    <!-- head -->
+    <circle cx="64" cy="70" r="20" fill="#fff"/>
+    <path d="M45 66 C46 52 56 47 66 48 C76 49 83 56 83 66 C76 62 70 57 67 52 C62 60 54 64 45 66 Z" fill="#363636"/>
+    <circle cx="57" cy="74" r="1.6" fill="#363636"/>
+    <circle cx="71" cy="74" r="1.6" fill="#363636"/>
+    <path d="M59 81 C62 84 66 84 69 81"/>
+
+    <!-- shiny sparkles (new customer) -->
+    <path d="M96 34 C97.5 43 100 45.5 109 47 C100 48.5 97.5 51 96 60 C94.5 51 92 48.5 83 47 C92 45.5 94.5 43 96 34 Z" fill="#F032FF" stroke="none" transform="translate(3 2)"/>
+    <path d="M96 34 C97.5 43 100 45.5 109 47 C100 48.5 97.5 51 96 60 C94.5 51 92 48.5 83 47 C92 45.5 94.5 43 96 34 Z" fill="#fff"/>
+    <path d="M112 58 C112.7 62 113.8 63.2 118 64 C113.8 64.8 112.7 66 112 70 C111.3 66 110.2 64.8 106 64 C110.2 63.2 111.3 62 112 58 Z" fill="#00C8FF"/>
+    <path d="M86 26 V30 M84 28 H88"/>
+    <path d="M110 36 L113 33 M114 42 H118"/>
+    <!-- discount tag -->
+    <g transform="rotate(-14 130 100)">
+      <path d="M116 80 H148 a4 4 0 0 1 4 4 V116 a4 4 0 0 1 -4 4 H116 L105 100 Z" fill="#F032FF" stroke="none" transform="translate(4 3)"/>
+      <path d="M116 80 H148 a4 4 0 0 1 4 4 V116 a4 4 0 0 1 -4 4 H116 L105 100 Z" fill="#fff"/>
+      <circle cx="115" cy="100" r="2.6"/>
+      <circle cx="128" cy="91" r="4.2"/>
+      <circle cx="143" cy="110" r="4.2"/>
+      <path d="M143 88 L128 113" stroke-width="3"/>
+    </g>
+    <!-- ground -->
+    <path d="M108 142 H152" stroke-dasharray="1 5"/>
+  </g>
+</svg>

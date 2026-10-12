@@ -29,6 +29,7 @@
     "bid_gift_lottery": "Bid Gift Lottery",
     "keyword_lottery": "Keyword Lottery",
     "bonus_points": "Bonus Points",
+    "free_shipping": "Free Shipping",
     "notification_center": "Notification Center",
     "merchant_management": {
       "merchant_management": "Merchant Management",
@@ -53,6 +54,7 @@
     "bid_gift_lottery_draw": "Bid Gift Lottery Draw",
     "keyword_lottery_list": "Keyword Lottery",
     "bonus_points_list": "Bonus Points",
+    "free_shipping_list": "Free Shipping",
     "notification_center": "Notification Center",
     "merchant_management": {
       "store_management": "Store Management"

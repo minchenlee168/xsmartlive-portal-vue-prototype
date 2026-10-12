@@ -1,0 +1,224 @@
+{
+  "free_shipping": {
+    "title": "Free Shipping",
+    "breadcrumb": {
+      "parent": "Marketing"
+    },
+    "status_tab": {
+      "all": "All",
+      "ongoing": "Ongoing",
+      "upcoming": "Upcoming",
+      "ended": "Ended"
+    },
+    "table": {
+      "name": "Campaign Name",
+      "free_type": "Free Shipping Type",
+      "target": "Applies To",
+      "threshold": "Threshold",
+      "purchase_count": "Orders Used",
+      "start_at": "Start Time",
+      "end_at": "End Time",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "published": "Published",
+      "unpublished": "Unpublished"
+    },
+    "text": {
+      "threshold_quantity": "{count} items or more",
+      "no_threshold": "None",
+      "unlimited": "Unlimited",
+      "no_excluded_region": "None",
+      "target_with_name": "{type} ({name})",
+      "empty_placeholder": "—",
+      "total_records": "{count} records"
+    },
+    "option": {
+      "free_type": {
+        "first_purchase": "First Purchase",
+        "single_item": "Single Product",
+        "min_amount": "Minimum Amount",
+        "min_quantity": "Minimum Quantity",
+        "limited_time": "Limited Time",
+        "promo_first": "After First Purchase"
+      },
+      "target_type": {
+        "all": "Site-wide",
+        "checkout_setting": "Cart Profile"
+      },
+      "include_coupon_amount": {
+        "included": "Include the amount after coupon discounts",
+        "excluded": "Exclude the amount after coupon discounts"
+      }
+    },
+    "button": {
+      "create": "New Free Shipping Campaign",
+      "search": "Search",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "batch_delete": "Batch Delete",
+      "select_product": "Select Product",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "close": "Close"
+    },
+    "empty": {
+      "selected_products": "No products selected yet"
+    },
+    "form": {
+      "placeholder": {
+        "search": "Search campaign names",
+        "name": "Enter a campaign name",
+        "free_type": "Select a free shipping type",
+        "target_type": "Select what it applies to",
+        "checkout_setting": "Select a cart profile",
+        "product": "Select a product",
+        "excluded_regions": "Select regions to exclude",
+        "status_filter": "Select a publish status",
+        "status_tab_filter": "Select a campaign period",
+        "min_amount": "Enter the minimum amount",
+        "min_quantity": "Enter the minimum quantity",
+        "max_eligible_amount": "Enter the shipping fee cap",
+        "usage_limit": "Enter the usage limit",
+        "description": "Enter a description",
+        "remark": "Enter a note"
+      },
+      "section": {
+        "basic": "Basic Info",
+        "threshold": "Conditions",
+        "scope": "Scope",
+        "period": "Campaign Period"
+      },
+      "field": {
+        "name": "Campaign Name",
+        "free_type": "Free Shipping Type",
+        "target_type": "Applies To",
+        "target": "Cart Profile",
+        "min_amount": "Minimum Amount",
+        "min_quantity": "Minimum Quantity",
+        "max_eligible_amount": "Shipping Fee Cap",
+        "max_eligible_amount_unlimited": "No Cap",
+        "include_coupon_amount": "Amount Calculation",
+        "usage_limit": "Usage Limit",
+        "usage_limit_unlimited": "Unlimited",
+        "product": "Eligible Product",
+        "excluded_regions": "Excluded Regions",
+        "active_period": "Campaign Period",
+        "description": "Description",
+        "remark": "Note",
+        "publish": "Publish"
+      },
+      "description": {
+        "target_type": "Site-wide applies to every order; a cart profile applies only to orders placed through it.",
+        "product_required": "Single-product free shipping applies to exactly one product, and the cart must contain it.",
+        "product_single_item_only": "Only single-product free shipping can target a product.",
+        "excluded_regions": "Selected regions are not eligible for this campaign.",
+        "description": "Shown to shoppers.",
+        "remark": "Internal only; shoppers never see this."
+      },
+      "validation": {
+        "name": "Enter a campaign name",
+        "period": "Select a campaign period",
+        "target_id": "Select the cart profile to apply",
+        "min_amount": "Minimum amount is required for amount-based free shipping",
+        "min_quantity": "Minimum quantity is required for quantity-based free shipping",
+        "product": "Single-product free shipping requires one product"
+      }
+    },
+    "form_dialog": {
+      "header": {
+        "create": "New Free Shipping Campaign",
+        "edit": "Edit Free Shipping Campaign",
+        "view": "Free Shipping Campaign"
+      },
+      "button": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "close": "Close"
+      }
+    },
+    "confirm": {
+      "delete_title": "Delete Confirmation",
+      "delete_message": "Delete the free shipping campaign \"{name}\"? This cannot be undone.",
+      "batch_delete_message": "Delete the {count} selected free shipping campaigns? This cannot be undone.",
+      "reject": "Cancel",
+      "accept": "Delete"
+    },
+    "toast": {
+      "created": "Free shipping campaign created",
+      "updated": "Free shipping campaign updated",
+      "deleted": "Free shipping campaign deleted",
+      "batch_deleted": "{count} free shipping campaigns deleted",
+      "status_on": "Published \"{name}\"",
+      "status_off": "Unpublished \"{name}\""
+    },
+    "free_type_info": {
+      "title": "Free Shipping Types",
+      "description": {
+        "first_purchase": "Free shipping on the customer's first order at your store.",
+        "single_item": "Free shipping when the cart contains the designated product (only one product can be designated).",
+        "min_amount": "Free shipping once the order reaches the set amount threshold.",
+        "min_quantity": "Free shipping once the order reaches the set quantity threshold.",
+        "limited_time": "Free shipping on every order placed during the campaign.",
+        "promo_first": "The first order during the campaign is excluded; every order placed afterward qualifies for free shipping."
+      },
+      "promo_demo": {
+        "timeline": {
+          "band": "Campaign {range}",
+          "checkpoint": {
+            "first": "First Order",
+            "second": "Second Order",
+            "third": "Third Order",
+            "ship": "Merge Shipment"
+          }
+        },
+        "block": {
+          "orders": "Incoming Orders",
+          "packages": "Auto-grouped Package"
+        },
+        "orders": {
+          "empty": "No orders yet",
+          "list_item": "Order {order}: {item} ({fee})",
+          "fee": "Shipping {value}"
+        },
+        "package": {
+          "empty": "No package yet",
+          "label": "Package A",
+          "contents_title": "Package Contents",
+          "shipped_note": "Shipped together",
+          "status": {
+            "collecting": "Collecting",
+            "shipped": "Shipped",
+            "confirm_fee": "Fee to Confirm"
+          },
+          "alert": {
+            "message": "The paid first order in this package was cancelled, and the rest are free shipping. Choose how to handle the shipping fee:",
+            "refunded": "Fee collected",
+            "absorb": "Absorb it"
+          }
+        },
+        "item": {
+          "jacket": "Knit jacket",
+          "snack": "Snack box",
+          "scarf": "Wool scarf"
+        },
+        "stats": {
+          "orders": { "label": "Orders", "value": "{count}" },
+          "packages": { "label": "Packages to Ship", "value": "{count}", "sub": "{count} shipments if sent separately" },
+          "fee": { "label": "Shipping Charged" },
+          "cost": { "label": "Your Logistics Cost", "sub": "{value} per package (illustrative)" }
+        },
+        "caption": {
+          "s0": "The campaign starts; no orders have come in yet.",
+          "s1": "The customer places the first order, charged $60, and the system opens a package.",
+          "s2": "The second order ships free and drops into the same package.",
+          "s3": "Every later order is free, and the package keeps filling up.",
+          "s4": "Merge shipment: 3 orders ship as 1 package, and the $60 charged covers the logistics.",
+          "s5": "Exception: the paid first order is cancelled while the rest stay free. At merge shipment the system reminds you to decide how to handle that shipping fee."
+        }
+      }
+    }
+  }
+}

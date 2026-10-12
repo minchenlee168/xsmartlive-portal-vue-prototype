@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="170" height="160" viewBox="0 0 170 160" fill="none">
+  <defs>
+    <g id="box" stroke="#363636" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2">
+      <path d="M82 16 V66 L40 82" stroke-width="7"/>
+      <path d="M0 14 L42 0 L80 16 L38 32 Z" fill="#fff"/>
+      <path d="M0 14 L38 32 V80 L0 62 Z" fill="#fff"/>
+      <path d="M38 32 L80 16 V64 L38 80 Z" fill="#fff"/>
+      <path d="M23 7 L31 4 L69 21 V40 L61 43 V24 Z" fill="#00C8FF" stroke="none"/>
+      <path d="M19 8 L57 25 V44"/>
+      <path d="M8 48 L22 55 V61 L8 54 Z" fill="#F032FF" stroke="none"/>
+    </g>
+  </defs>
+  <g stroke="#363636" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- sparkles -->
+    <path d="M22 26 C23 32 25 34 31 35 C25 36 23 38 22 44 C21 38 19 36 13 35 C19 34 21 32 22 26 Z" fill="#fff"/>
+    <path d="M14 56 C14.5 59 15.5 60 18.5 60.5 C15.5 61 14.5 62 14 65 C13.5 62 12.5 61 9.5 60.5 C12.5 60 13.5 59 14 56 Z" fill="#fff"/>
+  </g>
+  <!-- stacked packages -->
+  <use xlink:href="#box" transform="translate(30 88) scale(0.6)"/>
+  <use xlink:href="#box" transform="translate(78 88) scale(0.6)"/>
+  <use xlink:href="#box" transform="translate(54 58) scale(0.6)"/>
+
+  <!-- discount tag on top -->
+  <g stroke="#363636" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(-12 12) rotate(12 128 50)">
+    <path d="M116 30 H148 a4 4 0 0 1 4 4 V66 a4 4 0 0 1 -4 4 H116 L105 50 Z" fill="#F032FF" stroke="none" transform="translate(4 3)"/>
+    <path d="M116 30 H148 a4 4 0 0 1 4 4 V66 a4 4 0 0 1 -4 4 H116 L105 50 Z" fill="#fff"/>
+    <circle cx="115" cy="50" r="2.6"/>
+    <circle cx="128" cy="41" r="4.2"/>
+    <circle cx="143" cy="60" r="4.2"/>
+    <path d="M143 38 L128 63" stroke-width="3"/>
+  </g>
+  <path d="M30 146 H140" stroke="#363636" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 5"/>
+</svg>

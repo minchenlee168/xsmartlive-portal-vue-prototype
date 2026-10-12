@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="160" viewBox="0 0 170 160" fill="none">
+  <g stroke="#363636" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- sparkles -->
+    <path d="M26 22 C27 28 29 30 35 31 C29 32 27 34 26 40 C25 34 23 32 17 31 C23 30 25 28 26 22 Z" fill="#fff"/>
+    <path d="M44 46 C44.5 49 45.5 50 48.5 50.5 C45.5 51 44.5 52 44 55 C43.5 52 42.5 51 39.5 50.5 C42.5 50 43.5 49 44 46 Z" fill="#fff"/>
+
+    <!-- truck -->
+    <rect x="60" y="48" width="70" height="52" rx="4" fill="#363636"/>
+    <rect x="55" y="44" width="70" height="52" rx="4" fill="#fff"/>
+    <path d="M125 62 H141 a4 4 0 0 1 3.4 1.9 L153 80 V96 H125 Z" fill="#fff"/>
+    <path d="M131 67 H140 L146 79 H131 Z" fill="#00C8FF" stroke="none"/>
+    <path d="M129 67 H138 L144 79 H129 Z"/>
+    <circle cx="76" cy="100" r="9" fill="#363636"/>
+    <circle cx="76" cy="100" r="2.8" fill="#fff" stroke="none"/>
+    <circle cx="137" cy="100" r="9" fill="#363636"/>
+    <circle cx="137" cy="100" r="2.8" fill="#fff" stroke="none"/>
+
+    <!-- discount tag on truck -->
+    <g transform="rotate(-12 90 70)">
+      <path d="M80 56 H104 a3 3 0 0 1 3 3 V81 a3 3 0 0 1 -3 3 H80 L72 70 Z" fill="#F032FF" stroke="none" transform="translate(3 2)"/>
+      <path d="M80 56 H104 a3 3 0 0 1 3 3 V81 a3 3 0 0 1 -3 3 H80 L72 70 Z"/>
+      <circle cx="80" cy="70" r="2.2" fill="#fff"/>
+      <!-- % -->
+      <circle cx="89" cy="63" r="3.2" fill="#fff"/>
+      <circle cx="100" cy="77" r="3.2" fill="#fff"/>
+      <path d="M100 61 L89 79" stroke-width="2.5"/>
+    </g>
+
+    <!-- money: coins -->
+    <g fill="#fff">
+      <path d="M14 126 V132 a17 5.5 0 0 0 34 0 V126"/>
+      <ellipse cx="31" cy="126" rx="17" ry="5.5"/>
+      <path d="M16 117 V123 a17 5.5 0 0 0 34 0 V117"/>
+      <ellipse cx="33" cy="117" rx="17" ry="5.5"/>
+      <path d="M14 108 V114 a17 5.5 0 0 0 34 0 V108"/>
+      <ellipse cx="31" cy="108" rx="17" ry="5.5"/>
+    </g>
+    <ellipse cx="31" cy="108" rx="7.5" ry="2.4" fill="#00C8FF" stroke="none"/>
+    <!-- money: banknote -->
+    <g transform="rotate(-8 74 128)">
+      <rect x="57" y="119" width="40" height="21" rx="2.5" fill="#00C8FF" stroke="none" transform="translate(3 2)"/>
+      <rect x="54" y="117" width="40" height="21" rx="2.5" fill="#fff"/>
+      <circle cx="74" cy="127.5" r="5"/>
+      <path d="M59 122 V124 M89 131 V133"/>
+    </g>
+
+    <!-- motion lines -->
+    <path d="M30 70 H46"/>
+    <path d="M36 82 H48"/>
+    <!-- ground -->
+    <path d="M108 124 H156" stroke-dasharray="1 5"/>
+  </g>
+</svg>

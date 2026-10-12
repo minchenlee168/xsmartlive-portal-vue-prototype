@@ -1,0 +1,224 @@
+{
+  "free_shipping": {
+    "title": "免運活動",
+    "breadcrumb": {
+      "parent": "行銷活動"
+    },
+    "status_tab": {
+      "all": "全部",
+      "ongoing": "進行中",
+      "upcoming": "即將開始",
+      "ended": "已結束"
+    },
+    "table": {
+      "name": "活動名稱",
+      "free_type": "免運方式",
+      "target": "免運來源",
+      "threshold": "門檻",
+      "purchase_count": "已免運訂單數",
+      "start_at": "開始時間",
+      "end_at": "結束時間",
+      "status": "狀態",
+      "actions": "操作"
+    },
+    "status": {
+      "published": "已上架",
+      "unpublished": "已下架"
+    },
+    "text": {
+      "threshold_quantity": "滿 {count} 件",
+      "no_threshold": "不限",
+      "unlimited": "不限",
+      "no_excluded_region": "無",
+      "target_with_name": "{type}（{name}）",
+      "empty_placeholder": "—",
+      "total_records": "共 {count} 筆"
+    },
+    "option": {
+      "free_type": {
+        "first_purchase": "首購免運",
+        "single_item": "單品免運",
+        "min_amount": "滿額免運",
+        "min_quantity": "滿件免運",
+        "limited_time": "期間免運",
+        "promo_first": "首購後免運"
+      },
+      "target_type": {
+        "all": "全站",
+        "checkout_setting": "指定多購物車"
+      },
+      "include_coupon_amount": {
+        "included": "包含優惠券折抵後的金額",
+        "excluded": "不含優惠券折抵後的金額"
+      }
+    },
+    "button": {
+      "create": "新增免運活動",
+      "search": "搜尋",
+      "edit": "編輯",
+      "delete": "刪除",
+      "view": "檢視",
+      "batch_delete": "批次刪除",
+      "select_product": "選擇商品",
+      "publish": "上架",
+      "unpublish": "下架",
+      "close": "關閉"
+    },
+    "empty": {
+      "selected_products": "尚未選擇商品"
+    },
+    "form": {
+      "placeholder": {
+        "search": "搜尋活動名稱",
+        "name": "請輸入活動名稱",
+        "free_type": "請選擇免運方式",
+        "target_type": "請選擇免運來源",
+        "checkout_setting": "請選擇多購物車",
+        "product": "請選擇商品",
+        "excluded_regions": "請選擇不可免運的地區",
+        "status_filter": "請選擇上架狀態",
+        "status_tab_filter": "請選擇活動期間",
+        "min_amount": "請輸入門檻金額",
+        "min_quantity": "請輸入門檻件數",
+        "max_eligible_amount": "請輸入免運上限金額",
+        "usage_limit": "請輸入免運次數上限",
+        "description": "請輸入活動描述",
+        "remark": "請輸入備註"
+      },
+      "section": {
+        "basic": "基本資訊",
+        "threshold": "免運條件",
+        "scope": "適用範圍",
+        "period": "活動時間"
+      },
+      "field": {
+        "name": "活動名稱",
+        "free_type": "免運方式",
+        "target_type": "免運來源",
+        "target": "指定多購物車",
+        "min_amount": "免運門檻金額",
+        "min_quantity": "免運門檻件數",
+        "max_eligible_amount": "免運上限金額",
+        "max_eligible_amount_unlimited": "不設上限",
+        "include_coupon_amount": "免運金額計算方式",
+        "usage_limit": "免運次數上限",
+        "usage_limit_unlimited": "不限次數",
+        "product": "適用商品",
+        "excluded_regions": "不可免運地區",
+        "active_period": "活動期間",
+        "description": "活動描述",
+        "remark": "備註",
+        "publish": "上架"
+      },
+      "description": {
+        "target_type": "全站適用於所有訂單；指定多購物車只適用於該台多購物車的訂單。",
+        "product_required": "單品免運只能指定一項商品，購物車包含該商品才免運。",
+        "product_single_item_only": "只有單品免運能指定商品。",
+        "excluded_regions": "選取的地區不適用本免運活動。",
+        "description": "顯示給消費者看的說明。",
+        "remark": "僅內部可見，不會顯示給消費者。"
+      },
+      "validation": {
+        "name": "請輸入活動名稱",
+        "period": "請選擇活動期間",
+        "target_id": "請選擇要套用的多購物車",
+        "min_amount": "滿額免運必須填寫門檻金額",
+        "min_quantity": "滿件免運必須填寫門檻件數",
+        "product": "單品免運必須選擇一項商品"
+      }
+    },
+    "form_dialog": {
+      "header": {
+        "create": "新增免運活動",
+        "edit": "編輯免運活動",
+        "view": "免運活動內容"
+      },
+      "button": {
+        "cancel": "取消",
+        "save": "儲存",
+        "close": "關閉"
+      }
+    },
+    "confirm": {
+      "delete_title": "刪除確認",
+      "delete_message": "確定要刪除免運活動「{name}」嗎？此操作無法復原。",
+      "batch_delete_message": "確定要刪除選取的 {count} 個免運活動嗎？此操作無法復原。",
+      "reject": "取消",
+      "accept": "刪除"
+    },
+    "toast": {
+      "created": "已新增免運活動",
+      "updated": "已更新免運活動",
+      "deleted": "已刪除免運活動",
+      "batch_deleted": "已刪除 {count} 個免運活動",
+      "status_on": "已上架「{name}」",
+      "status_off": "已下架「{name}」"
+    },
+    "free_type_info": {
+      "title": "免運方式說明",
+      "description": {
+        "first_purchase": "消費者在本商店的第一筆訂單即享免運。",
+        "single_item": "購物車含指定商品時，該筆訂單免運（僅能指定一項商品）。",
+        "min_amount": "訂單金額達設定門檻即享免運。",
+        "min_quantity": "訂單件數達設定門檻即享免運。",
+        "limited_time": "活動期間內的訂單皆享免運。",
+        "promo_first": "活動期間內的第一筆訂單不適用，之後成立的訂單皆享免運。"
+      },
+      "promo_demo": {
+        "timeline": {
+          "band": "檔期 {range}",
+          "checkpoint": {
+            "first": "第一筆訂單",
+            "second": "第二筆訂單",
+            "third": "第三筆訂單",
+            "ship": "合併出貨"
+          }
+        },
+        "block": {
+          "orders": "進來的訂單",
+          "packages": "系統分好的包裹"
+        },
+        "orders": {
+          "empty": "尚無訂單",
+          "list_item": "{order}訂單-{item}（{fee}）",
+          "fee": "運費 {value}"
+        },
+        "package": {
+          "empty": "還沒有包裹",
+          "label": "包裹 A",
+          "contents_title": "包裹內容物",
+          "shipped_note": "一次寄出",
+          "status": {
+            "collecting": "收集中",
+            "shipped": "已出貨",
+            "confirm_fee": "需確認運費"
+          },
+          "alert": {
+            "message": "這個包裹付過運費的第一筆已取消，裡面其他訂單都是免運。請選擇運費怎麼處理：",
+            "refunded": "已補收運費",
+            "absorb": "自行吸收"
+          }
+        },
+        "item": {
+          "jacket": "針織外套",
+          "snack": "零食禮盒",
+          "scarf": "羊毛圍巾"
+        },
+        "stats": {
+          "orders": { "label": "訂單", "value": "{count} 筆" },
+          "packages": { "label": "要寄的包裹", "value": "{count} 個", "sub": "本來分開寄要 {count} 次" },
+          "fee": { "label": "向顧客收的運費" },
+          "cost": { "label": "你付的物流費", "sub": "每包以 {value} 示意" }
+        },
+        "caption": {
+          "s0": "檔期開始，訂單還沒進來。",
+          "s1": "客人第一筆訂單進來，收運費 $60，系統開了一個包裹。",
+          "s2": "第二筆免運，自動併進同一個包裹。",
+          "s3": "之後每筆都免運，包裹越裝越多。",
+          "s4": "合併出貨：3 筆只寄 1 個包裹，收的 $60 剛好打平物流費。",
+          "s5": "例外：付過運費的第一筆被取消，裡面其他訂單仍免運。合併出貨時系統會提醒你選擇怎麼處理這筆運費。"
+        }
+      }
+    }
+  }
+}

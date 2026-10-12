@@ -125,6 +125,11 @@ export const sidebarMenu: MenuItem[] = [
         icon: ['far', 'coins'],
         to: RouteName.BonusPointsList,
       },
+      {
+        labelKey: 'nav.free_shipping',
+        icon: ['far', 'truck'],
+        to: RouteName.FreeShippingList,
+      },
     ],
   },
   // 會員管理：會員列表 + 會員等級設定
