@@ -276,7 +276,7 @@ function handleSave() {
           </label>
           <button
             type="button"
-            class="inline-flex items-center gap-1 text-sm text-primary-500 transition-colors hover:underline dark:text-primary-400"
+            class="inline-flex items-center gap-2 text-sm text-primary-500 transition-colors hover:underline dark:text-primary-400"
             @click="isInfoDialogVisible = true"
           >
             <FontAwesomeIcon :icon="['far', 'circle-info']" />
