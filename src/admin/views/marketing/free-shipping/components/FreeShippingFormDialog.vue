@@ -276,11 +276,11 @@ function handleSave() {
           </label>
           <button
             type="button"
-            class="text-muted-color transition-colors hover:text-color"
-            :aria-label="$t('free_shipping.free_type_info.title')"
+            class="inline-flex items-center gap-1 text-sm text-primary-500 transition-colors hover:underline dark:text-primary-400"
             @click="isInfoDialogVisible = true"
           >
             <FontAwesomeIcon :icon="['far', 'circle-info']" />
+            {{ $t('free_shipping.free_type_info.title') }}
           </button>
         </div>
         <Select
