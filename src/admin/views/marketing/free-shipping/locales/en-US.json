@@ -164,6 +164,42 @@
         "limited_time": "Free shipping on every order placed during the campaign.",
         "promo_first": "The first order during the campaign is excluded; every order placed afterward qualifies for free shipping."
       },
+      "scene": {
+        "eyebrow": {
+          "pass": "Qualifies",
+          "fail": "Doesn't qualify"
+        },
+        "first_purchase": {
+          "pass_fact": "1st order · Snack box $350",
+          "pass_result": "Free shipping",
+          "fail_fact": "2nd order · Wool scarf $500",
+          "fail_result": "Standard shipping"
+        },
+        "single_item": {
+          "pass_fact": "Cart includes \"Knit jacket\"",
+          "pass_result": "Free shipping",
+          "fail_fact": "No designated product in cart",
+          "fail_result": "Standard shipping"
+        },
+        "min_amount": {
+          "pass_fact": "Order total $1,200",
+          "pass_result": "Free shipping",
+          "fail_fact": "Order total $800",
+          "fail_result": "Below $1,000"
+        },
+        "min_quantity": {
+          "pass_fact": "Order of 3 items",
+          "pass_result": "Free shipping",
+          "fail_fact": "Order of 2 items",
+          "fail_result": "Below 3 items"
+        },
+        "limited_time": {
+          "pass_fact": "Ordered on 11/11",
+          "pass_result": "Free shipping",
+          "fail_fact": "Ordered on 11/13",
+          "fail_result": "Campaign ended"
+        }
+      },
       "promo_demo": {
         "timeline": {
           "band": "Campaign {range}",

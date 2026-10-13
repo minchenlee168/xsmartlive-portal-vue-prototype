@@ -41,7 +41,7 @@
         "min_amount": "滿額免運",
         "min_quantity": "滿件免運",
         "limited_time": "期間免運",
-        "promo_first": "首購後免運"
+        "promo_first": "期間首購後免運"
       },
       "target_type": {
         "all": "全站",
@@ -163,6 +163,42 @@
         "min_quantity": "訂單件數達設定門檻即享免運。",
         "limited_time": "活動期間內的訂單皆享免運。",
         "promo_first": "活動期間內的第一筆訂單不適用，之後成立的訂單皆享免運。"
+      },
+      "scene": {
+        "eyebrow": {
+          "pass": "達成",
+          "fail": "未達"
+        },
+        "first_purchase": {
+          "pass_fact": "第一筆訂單 · 零食禮盒 $350",
+          "pass_result": "免運",
+          "fail_fact": "第二筆訂單 · 羊毛圍巾 $500",
+          "fail_result": "一般運費"
+        },
+        "single_item": {
+          "pass_fact": "購物車含「針織外套」",
+          "pass_result": "免運",
+          "fail_fact": "購物車無指定商品",
+          "fail_result": "一般運費"
+        },
+        "min_amount": {
+          "pass_fact": "訂單金額 $1,200",
+          "pass_result": "免運",
+          "fail_fact": "訂單金額 $800",
+          "fail_result": "未達 $1,000"
+        },
+        "min_quantity": {
+          "pass_fact": "訂單 3 件",
+          "pass_result": "免運",
+          "fail_fact": "訂單 2 件",
+          "fail_result": "未達 3 件"
+        },
+        "limited_time": {
+          "pass_fact": "11/11 下單",
+          "pass_result": "免運",
+          "fail_fact": "11/13 下單",
+          "fail_result": "檔期已結束"
+        }
       },
       "promo_demo": {
         "timeline": {
