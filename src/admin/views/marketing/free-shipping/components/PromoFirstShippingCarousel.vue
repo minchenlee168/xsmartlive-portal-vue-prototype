@@ -99,7 +99,8 @@ const fillPercent = computed(
     >
       <template #item="{ data }">
         <div class="flex flex-col gap-4 px-2">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <!-- 卡片區保留一致高度：各 slide 卡片內容多寡不同，固定下限避免 Carousel 拉齊到最高張時，矮的 slide 底部留白、圓點離內容過遠 -->
+          <div class="grid grid-cols-1 gap-4 sm:min-h-[308px] sm:grid-cols-2">
             <!-- 進來的訂單 -->
             <div class="flex flex-col items-center gap-3 rounded-xl border border-[var(--p-content-border-color)] bg-surface-0 px-4 py-5 text-center dark:bg-surface-900">
               <div class="flex items-center justify-center gap-2">
