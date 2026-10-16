@@ -33,6 +33,8 @@ interface MergeSourceLite {
   shippingMethod: string
   paymentMethodLabel?: string
   paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+  /** 原始訂單來源;合併紀錄面板逐筆顯示 + 推導合併單「多種訂單來源」用 */
+  orderSource: 'post' | 'live' | 'group' | 'shop'
   /** 商品摘要(如「純棉素色短T(黑) × 2」);合併單商品明細用 */
   productSummary?: string
 }
@@ -156,6 +158,15 @@ const ORDER_SOURCE_LABEL: Record<OrderRow['orderSource'], { short: string; full:
   group: { short: '社團', full: '社團收單' },
   shop:  { short: '商城', full: '商城訂單' },
 }
+/** 合併訂單:子訂單付款方式 / 訂單來源是否分歧 → 摘要與卡片顯示「多種…」 */
+const isMixedMergePayment = computed(
+  () => !!props.order.mergeRecord && new Set(props.order.mergeRecord.sources.map((s) => s.paymentMethodLabel ?? '—')).size > 1,
+)
+const isMixedMergeSource = computed(
+  () => !!props.order.mergeRecord && new Set(props.order.mergeRecord.sources.map((s) => s.orderSource)).size > 1,
+)
+/** 合併來源列用：訂單來源 → 完整文字（DataTable slot 的 data 為 any，用具型別 helper 包住索引） */
+const sourceFullLabel = (s: OrderRow['orderSource']) => ORDER_SOURCE_LABEL[s]?.full ?? '—'
 const sourceLabel = computed(() => ORDER_SOURCE_LABEL[props.order.orderSource].short)
 const socialLabel = computed(() => {
   const map = { facebook: 'Facebook', line: 'LINE', instagram: 'Instagram', tiktok: 'TikTok', other: '其他' } as const
@@ -165,8 +176,10 @@ const sessionLabel = computed(() => {
   const map = { session_0620: '6-20 開箱直播', session_0622: '6-22 美妝直播', session_0624: '6-24 晚間生鮮直播', session_0625: '6-25 服飾團' } as const
   return props.order.sessionName ? map[props.order.sessionName] : '—'
 })
-/** 訂單來源卡：直播訂單 / 商城訂單 */
-const orderSourceCardLabel = computed(() => ORDER_SOURCE_LABEL[props.order.orderSource].full)
+/** 訂單來源卡：直播訂單 / 商城訂單；合併單若子訂單來源分歧顯示「多種訂單來源」 */
+const orderSourceCardLabel = computed(() =>
+  isMixedMergeSource.value ? '多種訂單來源' : ORDER_SOURCE_LABEL[props.order.orderSource].full,
+)
 /** 訂單狀態(整體生命週期)→ 依出貨狀態收斂,與列表頁「訂單狀態」欄一致 */
 
 /** 出貨狀態 5 階段（用 PrimeVue Timeline 水平顯示） */
@@ -778,7 +791,11 @@ function commitInvoice(): void {
           </div>
           <div class="flex items-center gap-3">
             <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款方式</span>
-            <span class="text-[var(--p-text-color)]">{{ order.mergeRecord.paymentMethodLabel }}</span>
+            <span class="text-[var(--p-text-color)]">{{ isMixedMergePayment ? '多種付款方式' : order.mergeRecord.paymentMethodLabel }}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">訂單來源</span>
+            <span class="text-[var(--p-text-color)]">{{ orderSourceCardLabel }}</span>
           </div>
         </div>
 
@@ -818,6 +835,9 @@ function commitInvoice(): void {
             <template #body="{ data }">
               <span class="block max-w-[140px] truncate" :title="data.paymentMethodLabel">{{ data.paymentMethodLabel ?? '—' }}</span>
             </template>
+          </Column>
+          <Column header="訂單來源">
+            <template #body="{ data }">{{ sourceFullLabel(data.orderSource) }}</template>
           </Column>
           <Column header="付款">
             <template #body="{ data }">
@@ -866,6 +886,7 @@ function commitInvoice(): void {
               <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">件數</span><span class="text-[var(--p-text-color)]">{{ src.itemCount }}</span></div>
               <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">出貨方式</span><span class="text-[var(--p-text-color)]">{{ shortShipping(src.shippingMethod) }}</span></div>
               <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)] shrink-0">付款方式</span><span class="text-[var(--p-text-color)] truncate">{{ src.paymentMethodLabel ?? '—' }}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">訂單來源</span><span class="text-[var(--p-text-color)]">{{ sourceFullLabel(src.orderSource) }}</span></div>
             </div>
             <div class="flex justify-end">
               <Button label="查看原始訂單" icon="pi pi-external-link" severity="secondary" variant="outlined" size="small" @click="openSourceOrder(src.orderNo)" />
@@ -1124,7 +1145,8 @@ function commitInvoice(): void {
         <div class="flex items-center justify-between text-sm">
           <span class="text-[var(--p-text-muted-color)]">付款方式</span>
           <span v-if="!(editingPayment && canEditPaymentMethod)" class="text-[var(--p-text-color)]">
-            {{ paymentMethodLabel }}<template v-if="isAtmTransfer">（末 5 碼：<span class="font-bold text-[var(--p-primary-color)]">{{ atmLast5 }}</span>）</template>
+            <template v-if="isMixedMergePayment">多種付款方式</template>
+            <template v-else>{{ paymentMethodLabel }}<template v-if="isAtmTransfer">（末 5 碼：<span class="font-bold text-[var(--p-primary-color)]">{{ atmLast5 }}</span>）</template></template>
           </span>
           <Select
             v-else

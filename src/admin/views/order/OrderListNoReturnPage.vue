@@ -38,6 +38,8 @@ export interface MergeSourceLite {
   shippingMethod: string
   paymentMethodLabel?: string
   paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
+  /** 原始訂單來源;合併紀錄面板逐筆顯示 + 推導合併單「多種訂單來源」用 */
+  orderSource: 'post' | 'live' | 'group' | 'shop'
   /** 商品摘要(如「純棉素色短T(黑) × 2」);合併單商品明細用 */
   productSummary?: string
 }
@@ -433,10 +435,10 @@ const seedOrders: OrderRow[] = [
   { id: 'h4', createdAt: '2026-06-23 16:28', cartTag: tagFor('服飾專區'), orderNo: 'A20260523204', buyerName: '何併併', buyerPhone: '0912-345-678', amount:  700, itemCount: 2, shippingMethod: '自取', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: 'MIFFY 信義門市（台北市信義區忠孝東路四段45號）', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: '取貨現場付款', temperature: '常溫' },
   { id: 'h5', createdAt: '2026-06-24 11:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260524205', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1000, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'unpaid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市松山區民生東路三段80號', productSummary: '純棉素色短T(黑) × 2',    paymentMethodLabel: '貨到付款',     temperature: '常溫' },
   // 陳怡君 x 4 - 台北市信義區松仁路100號 · 常溫宅配 · 皆已付款、付款方式各異(已付款不限付款方式,四筆皆可合併)
-  { id: 'p1', createdAt: '2026-06-26 10:12', cartTag: tagFor('服飾專區'), orderNo: 'A20260601301', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601301', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫', couponActivity: '滿額折', couponDiscount: 100 },
+  { id: 'p1', createdAt: '2026-06-26 10:12', cartTag: tagFor('服飾專區'), orderNo: 'A20260601301', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  510, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'live', socialPlatform: 'facebook', multiCart: 'default', channel: 'Facebook', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601301', productSummary: '純棉素色短T(黑) × 1',    paymentMethodLabel: '信用卡一次付清', temperature: '常溫', couponActivity: '滿額折', couponDiscount: 100 },
   { id: 'p2', createdAt: '2026-06-26 15:48', cartTag: tagFor('生活雜貨'), orderNo: 'A20260601302', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  270, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601302', productSummary: '燕麥奶 × 2',              paymentMethodLabel: 'ATM 轉帳',      temperature: '常溫' },
-  { id: 'p3', createdAt: '2026-06-27 09:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260601303', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601303', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: 'LINE Pay',      temperature: '常溫', couponActivity: '新會員 9 折', couponDiscount: 150 },
-  { id: 'p4', createdAt: '2026-06-27 18:05', cartTag: tagFor('服飾專區'), orderNo: 'A20260601304', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  700, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601304', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: 'Apple Pay',     temperature: '常溫' },
+  { id: 'p3', createdAt: '2026-06-27 09:30', cartTag: tagFor('服飾專區'), orderNo: 'A20260601303', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount: 1250, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'group', multiCart: 'default', channel: '社團', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601303', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: 'LINE Pay',      temperature: '常溫', couponActivity: '新會員 9 折', couponDiscount: 150 },
+  { id: 'p4', createdAt: '2026-06-27 18:05', cartTag: tagFor('服飾專區'), orderNo: 'A20260601304', buyerName: '陳怡君', buyerPhone: '0922-333-444', amount:  700, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid', shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'post', socialPlatform: 'instagram', multiCart: 'default', channel: 'Instagram', receiverAddress: '台北市信義區松仁路100號', transactionId: 'TXN-601304', productSummary: '純棉素色短T(白) × 2',    paymentMethodLabel: 'Apple Pay',     temperature: '常溫' },
 
   // ── 異常處理示範:各種「貨態 × 付款狀態」不該發生的組合(依 UAT 對照表判異常) ──
   // e1 已於上方 id 6 示範「配送異常」旗標;以下為線上付款(表一)與貨到付款(表二)的不該發生組合。
@@ -1158,6 +1160,10 @@ const mergeSelectedOrders = computed<OrderRow[]>(() =>
 const mergeSelectedTotal = computed(() =>
   mergeSelectedOrders.value.reduce((s, o) => s + o.amount, 0),
 )
+/** 勾選的待合併訂單付款方式是否分歧 → 合併彈窗唯讀欄顯示「多種付款方式」 */
+const mergeHasMixedPayment = computed(
+  () => new Set(mergeSelectedOrders.value.map((o) => o.paymentMethodLabel ?? '—')).size > 1,
+)
 /** 當下已勾選訂單所屬的 group;第一筆勾選後鎖定,其他 group 不能再勾 */
 const mergeLockedGroupKey = computed<string | null>(() => {
   if (mergeSelectedIds.value.size === 0) return null
@@ -1305,6 +1311,7 @@ function confirmMerge(): void {
         shippingMethod: o.shippingMethod,
         paymentMethodLabel: o.paymentMethodLabel,
         paymentStatus: o.paymentStatus,
+        orderSource: o.orderSource,
         productSummary: o.productSummary,
       }))
       // 付款狀態依來源推導:全部已付款才算已付款,只要有一筆待付款,合併單仍為待付款
@@ -2616,7 +2623,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           <!-- 付款方式(唯讀) -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">付款方式</label>
-            <div class="text-sm text-[var(--p-text-color)]">{{ mergeSelectedOrders[0]?.paymentMethodLabel ?? '—' }}</div>
+            <div class="text-sm text-[var(--p-text-color)]">{{ mergeHasMixedPayment ? '多種付款方式' : (mergeSelectedOrders[0]?.paymentMethodLabel ?? '—') }}</div>
           </div>
           <!-- 配送方式(唯讀) + 未指派物流商狀態；物流待合併成一張單後再於該單指派 -->
           <div class="flex flex-col gap-2 px-4 py-3">
