@@ -89,8 +89,10 @@ const filteredChangelog = computed(() =>
   selectedModule.value === ALL_MODULES ? changelog : changelog.filter((r) => r.module === selectedModule.value),
 )
 
+/** 收合狀態的唯一 key：各模組版次獨立編號（如不同模組都有 v1.0.0），單用版次字串會撞 key、一起收合，故以「模組＋版次」組成 */
+const releaseKey = (rel: ChangelogRelease): string => `${rel.module}__${rel.version}`
 /** 各版本可收合，預設只展開最新（第一筆） */
-const expandedVersions = ref<Set<string>>(new Set(changelog.length ? [changelog[0].version] : []))
+const expandedVersions = ref<Set<string>>(new Set(changelog.length ? [releaseKey(changelog[0])] : []))
 function isVersionExpanded(version: string): boolean {
   return expandedVersions.value.has(version)
 }
@@ -243,7 +245,7 @@ function copyRelease(rel: ChangelogRelease): void {
       <div v-else class="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
         <section
           v-for="(rel, i) in filteredChangelog"
-          :key="rel.version"
+          :key="releaseKey(rel)"
           class="flex flex-col gap-3"
           :class="i > 0 ? 'pt-6 border-t border-[var(--p-content-border-color)]' : ''"
         >
@@ -252,14 +254,14 @@ function copyRelease(rel: ChangelogRelease): void {
             class="flex items-center gap-2 flex-wrap cursor-pointer select-none"
             role="button"
             tabindex="0"
-            :aria-expanded="isVersionExpanded(rel.version)"
-            @click="toggleVersion(rel.version)"
-            @keydown.enter.prevent="toggleVersion(rel.version)"
-            @keydown.space.prevent="toggleVersion(rel.version)"
+            :aria-expanded="isVersionExpanded(releaseKey(rel))"
+            @click="toggleVersion(releaseKey(rel))"
+            @keydown.enter.prevent="toggleVersion(releaseKey(rel))"
+            @keydown.space.prevent="toggleVersion(releaseKey(rel))"
           >
             <i
               class="pi text-[var(--p-text-muted-color)]"
-              :class="isVersionExpanded(rel.version) ? 'pi-chevron-down' : 'pi-chevron-right'"
+              :class="isVersionExpanded(releaseKey(rel)) ? 'pi-chevron-down' : 'pi-chevron-right'"
               style="font-size: 12px"
             ></i>
             <span class="text-base font-bold text-[var(--p-primary-color)]">{{ rel.version }}</span>
@@ -284,7 +286,7 @@ function copyRelease(rel: ChangelogRelease): void {
             <span class="text-xs text-[var(--p-text-muted-color)] ml-auto">{{ rel.date }}</span>
           </div>
           <!-- 分組白話條列（收合時隱藏） -->
-          <template v-if="isVersionExpanded(rel.version)">
+          <template v-if="isVersionExpanded(releaseKey(rel))">
             <div v-for="g in rel.groups" :key="g.title" class="flex flex-col gap-2">
               <span class="text-sm font-bold text-[var(--p-text-color)]">{{ g.title }}</span>
               <ul class="list-disc pl-5 flex flex-col gap-2">
