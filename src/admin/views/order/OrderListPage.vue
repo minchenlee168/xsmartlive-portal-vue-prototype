@@ -5,6 +5,7 @@ import { useLayoutStore } from '@/admin/stores/layout'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import OrderRowDetail from './components/OrderRowDetail.vue'
+import ShippingAddressFields from './components/ShippingAddressFields.vue'
 import ShippingConfigDialog from './components/ShippingConfigDialog.vue'
 import IssueInvoiceDialog from './components/IssueInvoiceDialog.vue'
 import SplitShippingDialog from './components/SplitShippingDialog.vue'
@@ -72,6 +73,8 @@ interface OrderRow {
   paymentMethodLabel?: string
   /** 溫層,合併判斷同溫層依據(常溫/冷藏/冷凍…);沒填則以 shippingMethod 當代表 */
   temperature?: string
+  /** 是否適用「期間首購後免運」活動;合併彈窗可依此篩選 */
+  promoFirstFreeShipping?: boolean
 }
 
 /** 合併訂單彈窗使用的訂單分組:同一買家 + 同址 + 同配送 + 同溫層 + 未取號才可合併 */
@@ -410,10 +413,10 @@ const seedOrders: OrderRow[] = [
   { id: '6', createdAt: '2026-05-11 13:15', cartTag: tagFor('服飾專區'), orderNo: 'A20260511103', buyerName: '何併併', buyerPhone: '0912-345-678', amount: 1250, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'delivery_abnormal', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: null, orderSource: 'live', socialPlatform: 'tiktok',    multiCart: 'ice',         sessionName: 'session_0625', channel: 'TikTok',                                                             dispatchBatchCount: 1, abnormalReason: '物流商回報:收件地址不完整,司機無法投遞,包裹已退回物流站待處理。' },
 
   // 合併訂單 demo:三組同買家 + 同址 + 同溫層 + 未取號 → 可合併
-  // 周庭安 x 3 - 台北市大安區敦化南路二段100號 · 常溫宅配 · 信用卡一次付清
-  { id: 'm1', createdAt: '2026-06-25 14:02', cartTag: tagFor('服飾專區'), orderNo: 'A20260625301', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625301', productSummary: '純棉素色短T(黑) × 2', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
-  { id: 'm2', createdAt: '2026-06-26 09:41', cartTag: tagFor('服飾專區'), orderNo: 'A20260625302', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625302', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
-  { id: 'm3', createdAt: '2026-06-27 18:15', cartTag: tagFor('生活雜貨'), orderNo: 'A20260625303', buyerName: '周庭安', buyerPhone: '0910-246-810', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625303', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
+  // 周庭安 x 3 - 台北市大安區敦化南路二段100號 · 常溫宅配 · 信用卡一次付清 · 適用期間首購後免運(demo 篩選用)
+  { id: 'm1', createdAt: '2026-06-25 14:02', cartTag: tagFor('服飾專區'), orderNo: 'A20260625301', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625301', productSummary: '純棉素色短T(黑) × 2', paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true },
+  { id: 'm2', createdAt: '2026-06-26 09:41', cartTag: tagFor('服飾專區'), orderNo: 'A20260625302', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625302', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true },
+  { id: 'm3', createdAt: '2026-06-27 18:15', cartTag: tagFor('生活雜貨'), orderNo: 'A20260625303', buyerName: '周庭安', buyerPhone: '0910-246-810', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625303', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true },
   // 楊雅雯 x 3 - 台北市中山區南京東路二段50號 · 常溫宅配 · 信用卡一次付清
   { id: 'm4', createdAt: '2026-06-16 10:13', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510101', productSummary: '韓版寬鬆連帽外套(米白) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
   { id: 'm5', createdAt: '2026-06-17 11:26', cartTag: tagFor('生活雜貨'), orderNo: 'A20260510102B', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount:  405, itemCount: 3, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市中山區南京東路二段50號',  transactionId: 'TXN-510102', productSummary: '燕麥奶 × 3',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫' },
@@ -1083,6 +1086,22 @@ const mergeGroups = computed<MergeOrderGroup[]>(() => {
     })
   })
   return groups
+})
+/** 合併彈窗篩選:只顯示適用「期間首購後免運」的訂單 */
+const mergeFreeShipOnly = ref(false)
+/** 套用篩選後的分組:勾選時只留下 promoFirstFreeShipping 的訂單,群組仍需 ≥2 筆 */
+const mergeGroupsFiltered = computed<MergeOrderGroup[]>(() => {
+  if (!mergeFreeShipOnly.value) return mergeGroups.value
+  return mergeGroups.value
+    .map((g) => {
+      const orders = g.orders.filter((o) => o.promoFirstFreeShipping)
+      return { ...g, orders, total: orders.reduce((s, o) => s + o.amount, 0) }
+    })
+    .filter((g) => g.orders.length >= 2)
+})
+/** 切換篩選時清掉已勾選,避免選到被篩掉而隱藏的訂單 */
+watch(mergeFreeShipOnly, () => {
+  mergeSelectedIds.value = new Set()
 })
 /** header badge：有幾組需要合併的訂單（＝可合併群組數，非各群組訂單總數） */
 const mergeableOrderCount = computed(() => mergeGroups.value.length)
@@ -2238,9 +2257,25 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </AccordionPanel>
         </Accordion>
 
+        <!-- 篩選:只顯示適用「期間首購後免運」的訂單 -->
+        <div class="flex items-center gap-2">
+          <Checkbox v-model="mergeFreeShipOnly" binary input-id="mergeFreeShipOnly" />
+          <label for="mergeFreeShipOnly" class="text-sm text-[var(--p-text-color)] cursor-pointer select-none">
+            只顯示「期間首購後免運」訂單
+          </label>
+        </div>
+
+        <!-- 篩選後查無符合群組 -->
+        <div
+          v-if="mergeGroupsFiltered.length === 0"
+          class="py-8 text-center text-sm text-[var(--p-text-muted-color)]"
+        >
+          沒有符合「期間首購後免運」的可合併訂單
+        </div>
+
         <!-- Groups:每組買家用 PrimeVue Panel;有其他 group 已選時,本 group 整組 disabled(合併限單一買家) -->
         <Panel
-          v-for="g in mergeGroups"
+          v-for="g in mergeGroupsFiltered"
           :key="g.key"
           :pt="{
             root: { class: isGroupSelectable(g) ? 'overflow-hidden' : 'overflow-hidden opacity-50' },
@@ -2350,20 +2385,41 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </label>
             <div class="text-sm text-[var(--p-text-color)]">{{ mergeSelectedOrders[0]?.buyerName }}</div>
           </div>
-          <!-- 收件人 -->
+          <!-- 收件人：各訂單收件人列出(比照金額/運費) + 合併後收件人(可編輯) -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">收件人</label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>{{ o.buyerName }}</span>
+              </div>
+            </div>
             <InputText v-model="mergeForm.receiverName" class="!w-full sm:!w-[320px]" />
           </div>
-          <!-- 電話 -->
+          <!-- 電話：各訂單電話列出(比照金額/運費) + 合併後電話(可編輯) -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">電話</label>
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>{{ o.buyerPhone }}</span>
+              </div>
+            </div>
             <InputText v-model="mergeForm.phone" class="!w-full sm:!w-[320px]" />
           </div>
-          <!-- 收件地址 -->
+          <!-- 收件地址：各訂單地址列出(比照金額/運費) + 合併後地址(結構化欄位,格式比照訂單明細彈窗) -->
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">收件地址</label>
-            <InputText v-model="mergeForm.address" class="!w-full" />
+            <div class="flex flex-col gap-1 text-sm">
+              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+                <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
+                <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
+                <span>{{ o.receiverAddress }}</span>
+              </div>
+            </div>
+            <ShippingAddressFields v-model="mergeForm.address" />
           </div>
           <!-- 商品金額(鎖 + 各訂單列出) -->
           <div class="flex flex-col gap-2 px-4 py-3">
