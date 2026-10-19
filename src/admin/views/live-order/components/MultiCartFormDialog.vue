@@ -191,17 +191,18 @@ const couponOn = ref(true)
 const rewardOn = ref(true)
 /**
  * 目前套用到此多購物車的免運活動（唯讀顯示）。
- * 關聯沿用行銷「免運活動」資料：targetType=全站 一律套用；
- * targetType=指定多購物車 且 targetName 等於本車名稱者套用。活動本身於行銷模組設定。
+ * 關聯沿用行銷「免運活動」資料。一檔規則：同一時間一台車只會套用一檔 —
+ * 優先取「指定此車」的活動（targetName 相符），否則取一檔「全站」活動。活動本身於行銷模組設定。
  */
-const appliedFreeShipping = computed<FreeShippingRow[]>(() =>
-  mockFreeShippingList.filter(
-    (a) =>
-      a.enabled &&
-      (a.targetType === FreeShippingTargetType.All ||
-        (a.targetType === FreeShippingTargetType.CheckoutSetting && a.targetName === name.value)),
-  ),
-)
+const appliedFreeShipping = computed<FreeShippingRow[]>(() => {
+  const active = mockFreeShippingList.filter((a) => a.enabled)
+  const specific = active.find(
+    (a) => a.targetType === FreeShippingTargetType.CheckoutSetting && a.targetName === name.value,
+  )
+  if (specific) return [specific]
+  const storeWide = active.find((a) => a.targetType === FreeShippingTargetType.All)
+  return storeWide ? [storeWide] : []
+})
 const feeVals = ref<Record<string, number>>({})
 const feeOff = ref<Record<string, boolean>>({})
 const feeEdit = ref<Record<string, boolean>>({})
