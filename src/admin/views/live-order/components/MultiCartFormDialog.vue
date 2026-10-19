@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { mockFreeShippingList } from '@/admin/views/marketing/free-shipping/mockData'
+import { FreeShippingTargetType, type FreeShippingRow } from '@/admin/views/marketing/free-shipping/types'
 
 /**
  * 新增 / 編輯多購物車 dialog（依規劃原始設計 + 設計決議）。
@@ -187,6 +189,19 @@ const logiList = ref<Set<string>>(new Set())
 const transferNote = ref('')
 const couponOn = ref(true)
 const rewardOn = ref(true)
+/**
+ * 目前套用到此多購物車的免運活動（唯讀顯示）。
+ * 關聯沿用行銷「免運活動」資料：targetType=全站 一律套用；
+ * targetType=指定多購物車 且 targetName 等於本車名稱者套用。活動本身於行銷模組設定。
+ */
+const appliedFreeShipping = computed<FreeShippingRow[]>(() =>
+  mockFreeShippingList.filter(
+    (a) =>
+      a.enabled &&
+      (a.targetType === FreeShippingTargetType.All ||
+        (a.targetType === FreeShippingTargetType.CheckoutSetting && a.targetName === name.value)),
+  ),
+)
 const feeVals = ref<Record<string, number>>({})
 const feeOff = ref<Record<string, boolean>>({})
 const feeEdit = ref<Record<string, boolean>>({})
@@ -676,12 +691,29 @@ function onSave(): void {
           <span class="text-sm text-[var(--p-text-color)]">{{ couponOn ? '啟用' : '關閉' }}</span>
         </label>
       </div>
-      <div class="flex flex-col gap-2 mb-2">
+      <div class="flex flex-col gap-2 mb-4">
         <span class="text-sm text-[var(--p-text-color)]">紅利點數</span>
         <label class="inline-flex items-center gap-2 cursor-pointer w-fit">
           <ToggleSwitch v-model="rewardOn" aria-label="紅利點數" />
           <span class="text-sm text-[var(--p-text-color)]">{{ rewardOn ? '啟用' : '關閉' }}</span>
         </label>
+      </div>
+      <!-- 免運活動：唯讀顯示目前套用到此車的活動（於行銷模組設定） -->
+      <div class="flex flex-col gap-2 mb-2">
+        <span class="text-sm text-[var(--p-text-color)]">免運活動</span>
+        <div v-if="appliedFreeShipping.length" class="flex flex-col gap-2">
+          <div v-for="a in appliedFreeShipping" :key="a.id" class="flex items-center gap-2 text-sm">
+            <Tag
+              :value="a.targetType === FreeShippingTargetType.All ? '全站' : '指定此車'"
+              :severity="a.targetType === FreeShippingTargetType.All ? 'secondary' : 'warn'"
+            />
+            <span class="text-[var(--p-text-color)]">{{ a.name }}</span>
+          </div>
+        </div>
+        <span v-else class="text-sm text-[var(--p-text-muted-color)]">未套用免運活動</span>
+        <p class="text-xs text-[var(--p-text-muted-color)]">
+          免運活動於「行銷活動 › 免運活動」設定，此處僅顯示目前套用情形。
+        </p>
       </div>
     </div>
 

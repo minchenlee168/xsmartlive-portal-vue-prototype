@@ -52,7 +52,7 @@ export const mockFreeShippingList: FreeShippingRow[] = [
     name: '滿 3 件免運',
     freeType: FreeShippingFreeType.MinQuantity,
     targetType: FreeShippingTargetType.CheckoutSetting,
-    targetName: '直播收單專車',
+    targetName: 'Xsmart直播間',
     minAmount: null,
     minQuantity: 3,
     maxEligibleAmount: 150,
@@ -112,7 +112,7 @@ export const mockFreeShippingList: FreeShippingRow[] = [
     name: '直播檔期首購後免運',
     freeType: FreeShippingFreeType.PromoFirst,
     targetType: FreeShippingTargetType.CheckoutSetting,
-    targetName: '雙11直播專車',
+    targetName: '全功能配置',
     minAmount: null,
     minQuantity: null,
     maxEligibleAmount: 120,
@@ -156,4 +156,4 @@ export const mockExcludedRegionOptions: string[] = ['外島', '離島偏遠', '�
 export const mockProductOptions: string[] = ['針織外套', '保溫杯', '零食禮盒', '羊毛圍巾', '帆布包']
 
 /** 指定多購物車（mock）。 */
-export const mockCheckoutSettingOptions: string[] = ['直播收單專車', '雙11直播專車', '一般商城購物車']
+export const mockCheckoutSettingOptions: string[] = ['Xsmart直播間', '全功能配置', '貨到付款限定', '跨境配置', '自送結帳', '離島配送']
