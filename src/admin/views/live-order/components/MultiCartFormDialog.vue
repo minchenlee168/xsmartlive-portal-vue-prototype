@@ -699,9 +699,15 @@ function onSave(): void {
           <span class="text-sm text-[var(--p-text-color)]">{{ rewardOn ? '啟用' : '關閉' }}</span>
         </label>
       </div>
-      <!-- 免運活動：唯讀顯示目前套用到此車的活動（於行銷模組設定） -->
+      <!-- 免運活動：唯讀顯示目前套用到此車的活動（於行銷模組設定；說明放 label 旁 ⓘ） -->
       <div class="flex flex-col gap-2 mb-2">
-        <span class="text-sm text-[var(--p-text-color)]">免運活動</span>
+        <span class="text-sm text-[var(--p-text-color)] inline-flex items-center gap-1 w-fit">
+          免運活動
+          <i
+            v-tooltip.top="'免運活動於「行銷活動 › 免運活動」設定，此處僅顯示目前套用情形。'"
+            class="pi pi-info-circle text-[var(--p-text-muted-color)] cursor-help"
+          ></i>
+        </span>
         <div v-if="appliedFreeShipping.length" class="flex flex-col gap-2">
           <div v-for="a in appliedFreeShipping" :key="a.id" class="flex items-center gap-2 text-sm">
             <Tag
@@ -712,9 +718,6 @@ function onSave(): void {
           </div>
         </div>
         <span v-else class="text-sm text-[var(--p-text-muted-color)]">未套用免運活動</span>
-        <p class="text-xs text-[var(--p-text-muted-color)]">
-          免運活動於「行銷活動 › 免運活動」設定，此處僅顯示目前套用情形。
-        </p>
       </div>
     </div>
 
