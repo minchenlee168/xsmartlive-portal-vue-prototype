@@ -887,7 +887,6 @@ function commitInvoice(): void {
           <div class="flex items-center gap-3 flex-wrap">
             <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款狀態</span>
             <Tag :value="paymentBadge.label" :severity="paymentBadge.severity" />
-            <span class="text-[var(--p-text-muted-color)]">{{ order.mergeRecord.sources.length }} 筆來源</span>
           </div>
           <div class="flex items-center gap-3">
             <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款方式</span>
