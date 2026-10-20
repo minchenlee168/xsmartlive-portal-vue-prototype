@@ -281,6 +281,13 @@ const editingShipping = ref(false)
 const editShippingMethod = ref<string>(props.order.shippingMethod)
 const editBuyerName = ref<string>(props.order.buyerName)
 const editBuyerPhone = ref<string>(props.order.buyerPhone)
+/** 收件人電話國碼：依國別自動帶入（臺灣 +886 / 馬來西亞 +60 / 新加坡 +65 / 菲律賓 +63） */
+const PHONE_CODES = ['+886', '+60', '+65', '+63']
+const COUNTRY_PHONE_CODE: Record<string, string> = { 臺灣: '+886', 馬來西亞: '+60', 新加坡: '+65', 菲律賓: '+63' }
+const phoneCode = ref<string>('+886')
+function onAddressCountry(country: string): void {
+  phoneCode.value = COUNTRY_PHONE_CODE[country] ?? phoneCode.value
+}
 /** 收件地址字串(prototype)：編輯時由 ShippingAddressFields 透過 v-model 更新；檢視沿用此值 */
 const shippingAddress = ref<string>('臺北市中山區南京東路二段50號')
 /** 是否取貨門市配送(超商配送 / 自取):地址存門市,顯示為「門市名 / 地址」 */
@@ -363,6 +370,7 @@ watch(() => props.order.id, () => {
   editShippingMethod.value = props.order.shippingMethod
   editBuyerName.value = props.order.buyerName
   editBuyerPhone.value = props.order.buyerPhone
+  phoneCode.value = '+886'
   shippingAddress.value = '臺北市中山區南京東路二段50號'
   pickupStore.value = null
   cvsStore.value = ''
@@ -1026,12 +1034,15 @@ function commitInvoice(): void {
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs text-[var(--p-text-muted-color)]">電話</label>
-            <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
+            <div class="flex gap-2">
+              <Select v-model="phoneCode" :options="PHONE_CODES" class="shrink-0 !w-[110px]" size="small" />
+              <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
+            </div>
           </div>
           <!-- 收件地址：僅「待出貨」可編輯;備貨中以後鎖定改唯讀(收件人/電話不受影響) -->
           <template v-if="canEditShippingInfo">
-          <!-- 宅配：收件地址（結構化欄位，依各國標準規格；共用元件） -->
-          <ShippingAddressFields v-if="editShippingMethod === '常溫宅配'" v-model="shippingAddress" />
+          <!-- 宅配：收件地址（結構化欄位，依各國標準規格；共用元件；國別連動電話國碼） -->
+          <ShippingAddressFields v-if="editShippingMethod === '常溫宅配'" v-model="shippingAddress" @update:country="onAddressCountry" />
           <!-- 自取 / 超商配送：改填取貨門市 -->
           <template v-else>
             <!-- 由宅配改為取貨方式時，提醒重新填寫門市 -->

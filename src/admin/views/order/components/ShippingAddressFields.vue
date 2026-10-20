@@ -6,7 +6,7 @@
  */
 import { computed, ref, watch } from 'vue'
 
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: string]; 'update:country': [value: string] }>()
 
 /** 國別僅開放：臺灣 / 新加坡 / 馬來西亞 / 菲律賓 */
 const countryOptions = ['臺灣', '新加坡', '馬來西亞', '菲律賓']
@@ -136,6 +136,8 @@ const combined = computed<string>(() => {
   return [shippingDetail.value, phBarangay.value, phCity.value, phProvince.value, phRegion.value, shippingPostalCode.value, shippingCountry.value].filter(Boolean).join(' ')
 })
 watch(combined, (v) => emit('update:modelValue', v), { immediate: true })
+/** 對外暴露目前選的國別（供收件人電話國碼自動帶入） */
+watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
 </script>
 
 <template>

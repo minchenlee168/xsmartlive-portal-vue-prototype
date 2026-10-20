@@ -1247,6 +1247,13 @@ const mergeForm = ref({
   address: '',
   shippingFee: 120,
 })
+/** 合併後電話國碼：依收件地址國別自動帶入 */
+const PHONE_CODES = ['+886', '+60', '+65', '+63']
+const COUNTRY_PHONE_CODE: Record<string, string> = { 臺灣: '+886', 馬來西亞: '+60', 新加坡: '+65', 菲律賓: '+63' }
+const mergePhoneCode = ref<string>('+886')
+function onMergeAddressCountry(country: string): void {
+  mergePhoneCode.value = COUNTRY_PHONE_CODE[country] ?? mergePhoneCode.value
+}
 /** 優惠券是否保留(key = 原始訂單 id,預設全部保留);取消勾選 → 該券隨原單作廢退回,合計不計入 */
 const mergeCouponKept = ref<Record<string, boolean>>({})
 /** 合併後試算:商品 / 運費 / 點數折抵 / 優惠券折抵 / 總計 */
@@ -2714,7 +2721,10 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <span>{{ plainPhone(o.buyerPhone) }}</span>
               </div>
             </div>
-            <InputText v-model="mergeForm.phone" class="!w-full sm:!w-[320px]" />
+            <div class="flex gap-2 sm:!w-[320px]">
+              <Select v-model="mergePhoneCode" :options="PHONE_CODES" class="shrink-0 !w-[110px]" size="small" />
+              <InputText v-model="mergeForm.phone" class="!w-full" />
+            </div>
           </div>
           <!-- 收件地址：各訂單地址列出(比照金額/運費) + 合併後地址(結構化欄位,格式比照訂單明細彈窗) -->
           <div class="flex flex-col gap-2 px-4 py-3">
@@ -2726,7 +2736,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <span>{{ o.receiverAddress }}</span>
               </div>
             </div>
-            <ShippingAddressFields v-model="mergeForm.address" />
+            <ShippingAddressFields v-model="mergeForm.address" @update:country="onMergeAddressCountry" />
           </div>
           <!-- 商品金額(鎖 + 各訂單列出) -->
           <div class="flex flex-col gap-2 px-4 py-3">
