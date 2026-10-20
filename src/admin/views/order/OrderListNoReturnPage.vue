@@ -408,6 +408,10 @@ function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
   return digits.startsWith('0') ? `+886${digits.slice(1)}` : phone
 }
+/** 電話去除分隔符號(-):0910-246-810 → 0910246810 */
+function plainPhone(phone: string): string {
+  return phone.replace(/-/g, '')
+}
 
 const seedOrders: OrderRow[] = [
   { id: '1', createdAt: '2026-05-10 10:20', cartTag: tagFor('服飾專區'), orderNo: 'A20260510101', buyerName: '楊雅雯', buyerPhone: '0925-111-222', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'shipping', carrierStatus: 'configured', carrierName: '黑貓宅急便', trackingStatus: 'TCAT-260510-A099', orderSource: 'live', socialPlatform: 'facebook',  multiCart: 'default',     sessionName: 'session_0620', channel: 'Facebook',  couponActivity: '母親節限定 8 折', couponDiscount: 200, pointsDiscount: 50, dispatchBatchCount: 0 },
@@ -1223,7 +1227,7 @@ function goToMergeEditor(): void {
   const first = mergeSelectedOrders.value[0]
   mergeForm.value = {
     receiverName: first.buyerName,
-    phone: first.buyerPhone,
+    phone: plainPhone(first.buyerPhone),
     address: first.receiverAddress ?? '',
     shippingFee: 120,
   }
@@ -2705,7 +2709,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
                 <span class="mx-1 text-[var(--p-text-muted-color)]">：</span>
-                <span>{{ o.buyerPhone }}</span>
+                <span>{{ plainPhone(o.buyerPhone) }}</span>
               </div>
             </div>
             <InputText v-model="mergeForm.phone" class="!w-full sm:!w-[320px]" />
