@@ -141,7 +141,7 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-3 max-w-[320px]">
     <!-- 國別 -->
     <div class="flex flex-col gap-1">
       <label class="text-xs text-[var(--p-text-muted-color)] flex items-center gap-1 flex-wrap">
@@ -150,7 +150,7 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
           <i class="pi pi-globe" style="font-size: 11px"></i>支援跨境配送
         </span>
       </label>
-      <Select v-model="shippingCountry" :options="countryOptions" placeholder="請選擇國別" class="w-full sm:!w-[320px]" size="small" />
+      <Select v-model="shippingCountry" :options="countryOptions" placeholder="請選擇國別" class="w-full" size="small" />
     </div>
 
     <!-- 郵遞區號：菲律賓非必填，其餘國家必填 -->
@@ -163,7 +163,7 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
         :placeholder="postalPlaceholder"
         :maxlength="postalMaxLength"
         inputmode="numeric"
-        class="w-full sm:!w-[320px]"
+        class="w-full"
         size="small"
         @input="sanitizePostal"
       />
@@ -173,7 +173,7 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
     <template v-if="isTaiwan">
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">城市 / 區 <span class="text-[var(--p-red-500)]">*</span></label>
-        <div class="flex gap-2 sm:!w-[320px]">
+        <div class="flex gap-2">
           <Select v-model="shippingCity" :options="cityOptions" placeholder="請選擇城市" class="w-full" size="small" />
           <Select v-model="shippingDistrict" :options="districtOptions" placeholder="請選擇區" class="w-full" size="small" show-clear />
         </div>
@@ -188,19 +188,19 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
     <template v-else-if="isPhilippines">
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">大區（Region） <span class="text-[var(--p-red-500)]">*</span></label>
-        <Select v-model="phRegion" :options="phRegionOptions" placeholder="請選擇大區" class="w-full sm:!w-[320px]" size="small" />
+        <Select v-model="phRegion" :options="phRegionOptions" placeholder="請選擇大區" class="w-full" size="small" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">省（Province） <span class="text-[var(--p-red-500)]">*</span></label>
-        <Select v-model="phProvince" :options="phProvinceOptions" placeholder="請選擇省" class="w-full sm:!w-[320px]" size="small" />
+        <Select v-model="phProvince" :options="phProvinceOptions" placeholder="請選擇省" class="w-full" size="small" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">市（City） <span class="text-[var(--p-red-500)]">*</span></label>
-        <Select v-model="phCity" :options="phCityOptions" placeholder="請選擇市" class="w-full sm:!w-[320px]" size="small" />
+        <Select v-model="phCity" :options="phCityOptions" placeholder="請選擇市" class="w-full" size="small" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">村里（Barangay） <span class="text-[var(--p-red-500)]">*</span></label>
-        <Select v-model="phBarangay" :options="phBarangayOptions" placeholder="請選擇村里" class="w-full sm:!w-[320px]" size="small" />
+        <Select v-model="phBarangay" :options="phBarangayOptions" placeholder="請選擇村里" class="w-full" size="small" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">詳細收件地址 <span class="text-[var(--p-red-500)]">*</span></label>
@@ -220,11 +220,11 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
     <template v-else>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">城市 <span class="text-[var(--p-red-500)]">*</span></label>
-        <InputText v-model="shippingForeignCity" placeholder="城市" class="w-full sm:!w-[320px]" size="small" />
+        <InputText v-model="shippingForeignCity" placeholder="城市" class="w-full" size="small" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">州/省/地區 <span class="text-[var(--p-red-500)]">*</span></label>
-        <Select v-model="shippingState" :options="malaysiaStateOptions" placeholder="請選擇州/省/地區" class="w-full sm:!w-[320px]" size="small" show-clear />
+        <Select v-model="shippingState" :options="malaysiaStateOptions" placeholder="請選擇州/省/地區" class="w-full" size="small" show-clear />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-[var(--p-text-muted-color)]">詳細收件地址 <span class="text-[var(--p-red-500)]">*</span></label>
