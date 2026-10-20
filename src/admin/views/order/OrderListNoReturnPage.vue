@@ -2746,7 +2746,6 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
                 <span class="mx-1 text-[var(--p-text-muted-color)]">&gt;</span>
                 <span>${{ mergePerOrderShipping(i) }}</span>
-                <span v-if="mergeIsPromoFreeShip && i > 0" class="ml-1 text-xs text-[var(--p-text-muted-color)]">（期間首購後免運）</span>
               </div>
               <!-- 已付款:純顯示 + 差額列 + 差額調整(走金流) -->
               <template v-if="mergeAllPaid">
