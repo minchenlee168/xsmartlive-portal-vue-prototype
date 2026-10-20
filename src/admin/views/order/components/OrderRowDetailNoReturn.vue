@@ -323,8 +323,8 @@ const isPhilippines = computed(() => shippingCountry.value === '菲律賓')
 const isSingapore = computed(() => shippingCountry.value === '新加坡')
 /** 是否為馬來西亞：城市必填、州/省/地區下拉，儲存依標準格式 */
 const isMalaysia = computed(() => shippingCountry.value === '馬來西亞')
-/** 各國郵遞區號位數(皆純數字)：臺灣/馬來西亞 5 碼、新加坡 6 碼、菲律賓 4 碼 */
-const POSTAL_MAX: Record<string, number> = { 臺灣: 5, 馬來西亞: 5, 新加坡: 6, 菲律賓: 4 }
+/** 各國郵遞區號位數(皆純數字)：臺灣/新加坡 6 碼、馬來西亞 5 碼、菲律賓 4 碼 */
+const POSTAL_MAX: Record<string, number> = { 臺灣: 6, 馬來西亞: 5, 新加坡: 6, 菲律賓: 4 }
 const postalMaxLength = computed<number>(() => POSTAL_MAX[shippingCountry.value] ?? 10)
 const postalPlaceholder = computed<string>(() => (isTaiwan.value ? '請輸入郵遞區號' : `${postalMaxLength.value} 碼數字`))
 /** 僅允許數字並限制位數 */
