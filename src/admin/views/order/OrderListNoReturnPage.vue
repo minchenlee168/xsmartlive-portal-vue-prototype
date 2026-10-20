@@ -1371,6 +1371,8 @@ function confirmMerge(): void {
         paymentMethodLabel: first.paymentMethodLabel,
         receiverAddress: mergeForm.value.address || first.receiverAddress,
         temperature: first.temperature,
+        // 整組皆為期間首購後免運 → 合併單沿用此活動(商品明細顯示原始運費 + 免運折抵)
+        promoFirstFreeShipping: sources.every((o) => o.promoFirstFreeShipping),
         mergeRecord: {
           mergedAt,
           paymentMethodLabel: `${first.paymentMethodLabel ?? '信用卡一次付清'}（藍新）`,

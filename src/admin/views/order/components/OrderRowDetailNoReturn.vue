@@ -213,16 +213,29 @@ const progressSteps = computed<StepItem[]>(() => {
   }))
 })
 
-const shippingFee = 120
+const SHIP_PER_ORDER = 120
+/** 合併單的來源筆數(非合併單視為 1 筆) */
+const shipUnitCount = computed(() => props.order.mergeRecord?.sources.length ?? 1)
+/** 運費「本來」總額：合併單＝各來源原始運費加總(N×120)；單筆＝120 */
+const shippingFee = computed(() => shipUnitCount.value * SHIP_PER_ORDER)
 const couponDiscount = computed(() => props.order.couponDiscount ?? 0)
 const pointsDiscount = computed(() => props.order.pointsDiscount ?? 0)
-/** 期間首購後免運:免運折抵金額＝被折抵的運費(上限比照活動 maxEligibleAmount 120) */
-const freeShipDiscount = computed(() => (props.order.promoFirstFreeShipping ? Math.min(shippingFee, 120) : 0))
+/**
+ * 期間首購後免運折抵：
+ * - 合併單：第一筆收運費、其餘免運 → 折抵 =(來源筆數 − 1)×120
+ * - 單筆：免運 → 折抵 120
+ */
+const freeShipDiscount = computed(() => {
+  if (!props.order.promoFirstFreeShipping) return 0
+  return props.order.mergeRecord
+    ? Math.max(0, shipUnitCount.value - 1) * SHIP_PER_ORDER
+    : SHIP_PER_ORDER
+})
 /**
  * 反推商品總額,讓「商品總額 + 運費 - 折抵 = 訂單總計 = 應付金額(order.amount)」對得起來。
  * 訂單總計即 order.amount,與付款方式卡的「應付金額」一致。
  */
-const subtotal = computed(() => Math.max(0, props.order.amount - shippingFee + couponDiscount.value + pointsDiscount.value + freeShipDiscount.value))
+const subtotal = computed(() => Math.max(0, props.order.amount - shippingFee.value + couponDiscount.value + pointsDiscount.value + freeShipDiscount.value))
 const total = computed(() => props.order.amount)
 
 /** 商品明細：prototype mock 一筆,小計＝商品總額(subtotal),單價由小計 ÷ 數量反推 */
