@@ -228,16 +228,18 @@ const total = computed(() => props.order.amount)
 /** 商品明細：prototype mock 一筆,小計＝商品總額(subtotal),單價由小計 ÷ 數量反推 */
 interface ProductRow { name: string; spec: string; source: string; price: number; qty: number; lineTotal: number }
 const productRows = computed<ProductRow[]>(() => {
-  // 合併訂單:列出各原始訂單本來的商品(以商品摘要還原名稱／數量)
+  // 合併訂單:列出各原始訂單本來的商品(名稱／規格／訂單來源皆依原始訂單呈現)
   if (props.order.mergeRecord) {
     return props.order.mergeRecord.sources.map((s) => {
       const [namePart, qtyPart] = (s.productSummary ?? '').split(/\s*×\s*/)
       const qty = Number(qtyPart) || s.itemCount || 1
       const lineTotal = s.productAmount ?? s.amount
+      // 商品摘要括號內為規格(如「純棉素色短T(黑)」→ 名稱「純棉素色短T」、規格「黑」)
+      const variant = (namePart ?? '').match(/^(.*?)\s*[（(]([^（）()]+)[）)]\s*$/)
       return {
-        name: namePart?.trim() || '商品',
-        spec: `原單 ${s.orderNo}`,
-        source: sourceLabel.value,
+        name: (variant ? variant[1] : namePart ?? '').trim() || '商品',
+        spec: variant ? variant[2].trim() : '—',
+        source: ORDER_SOURCE_LABEL[s.orderSource]?.short ?? '—',
         price: qty > 0 ? Math.round(lineTotal / qty) : lineTotal,
         qty,
         lineTotal,
