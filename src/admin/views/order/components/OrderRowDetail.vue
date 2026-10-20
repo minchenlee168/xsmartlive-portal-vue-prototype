@@ -4,6 +4,7 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import type { MenuItem } from 'primevue/menuitem'
 import ShippingConfigDialog from './ShippingConfigDialog.vue'
+import ShippingAddressFields from './ShippingAddressFields.vue'
 import IssueInvoiceDialog from './IssueInvoiceDialog.vue'
 import ShippingListPrintDialog from './ShippingListPrintDialog.vue'
 import { useShippingBatches, type BatchShippingStatus, type OrderBatch } from '../composables/useShippingBatches'
@@ -187,98 +188,8 @@ const editingShipping = ref(false)
 const editShippingMethod = ref<string>(props.order.shippingMethod)
 const editBuyerName = ref<string>(props.order.buyerName)
 const editBuyerPhone = ref<string>(props.order.buyerPhone)
-/**
- * 地址欄不在 OrderRow 上，用 local ref 保存 prototype 值。
- * 收件地址拆成 城市 / 區 / 詳細地址三段編輯，顯示時再合併。
- */
-const countryOptions = ['臺灣', '新加坡', '馬來西亞', '菲律賓']
-/** 商家是否支援跨境配送(prototype：預設支援;實際由商家設定決定)。支援時國別旁顯示注記 */
-const supportsCrossBorder = true
-const shippingCountry = ref<string>('臺灣')
-const cityOptions = ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市']
-const districtMap: Record<string, string[]> = {
-  臺北市: ['中正區', '大同區', '中山區', '松山區', '大安區', '萬華區', '信義區', '士林區', '北投區', '內湖區', '南港區', '文山區'],
-  新北市: ['板橋區', '三重區', '中和區', '永和區', '新莊區', '新店區', '土城區', '蘆洲區'],
-  桃園市: ['桃園區', '中壢區', '平鎮區', '八德區', '龜山區', '龍潭區'],
-  臺中市: ['中區', '東區', '西區', '南區', '北區', '西屯區', '北屯區', '南屯區'],
-  臺南市: ['中西區', '東區', '南區', '北區', '安平區', '安南區', '永康區'],
-  高雄市: ['楠梓區', '左營區', '鼓山區', '三民區', '新興區', '前金區', '苓雅區', '前鎮區', '鳳山區'],
-}
-const shippingCity = ref<string>('臺北市')
-const shippingDistrict = ref<string | null>('中山區')
-const shippingDetail = ref<string>('南京東路二段50號')
-/** 國外地址欄位：郵遞區號 / 城市（自由輸入）/ 州省地區 */
-const shippingPostalCode = ref<string>('')
-const shippingForeignCity = ref<string>('')
-const shippingState = ref<string | null>('')
-/** 菲律賓專用：大區 / 省 / 市 / 村里（Barangay），皆為下拉 */
-const phRegionOptions = ['Metro Manila', 'Calabarzon', 'Central Luzon', 'Central Visayas', 'Davao Region']
-const phProvinceOptions = ['METRO-MANILA', 'CEBU', 'DAVAO', 'LAGUNA', 'CAVITE']
-const phCityOptions = ['BINONDO', 'MAKATI', 'QUEZON CITY', 'MANILA', 'TAGUIG']
-const phBarangayOptions = ['BARANGAY 287', 'BARANGAY 288', 'BARANGAY 289', 'BARANGAY 290']
-/** 馬來西亞州/省/地區（13 州 + 3 聯邦直轄區） */
-const malaysiaStateOptions = ['Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis', 'Pulau Pinang', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu', 'Kuala Lumpur', 'Labuan', 'Putrajaya']
-const phRegion = ref<string | null>('Metro Manila')
-const phProvince = ref<string | null>('METRO-MANILA')
-const phCity = ref<string | null>('BINONDO')
-const phBarangay = ref<string | null>('BARANGAY 287')
-/** 是否為臺灣：臺灣用 城市/區 下拉，其他國家改用 郵遞區號/城市/州省 自由輸入 */
-const isTaiwan = computed(() => shippingCountry.value === '臺灣')
-/** 是否為菲律賓：郵遞區號外，改用 大區/省/市/村里 下拉 */
-const isPhilippines = computed(() => shippingCountry.value === '菲律賓')
-/** 是否為新加坡：只保留 郵遞區號 + 詳細收件地址 */
-const isSingapore = computed(() => shippingCountry.value === '新加坡')
-/** 是否為馬來西亞：城市必填、州/省/地區下拉，儲存依標準格式 */
-const isMalaysia = computed(() => shippingCountry.value === '馬來西亞')
-/** 各國郵遞區號位數(皆純數字)：臺灣/新加坡 6 碼、馬來西亞 5 碼、菲律賓 4 碼 */
-const POSTAL_MAX: Record<string, number> = { 臺灣: 6, 馬來西亞: 5, 新加坡: 6, 菲律賓: 4 }
-const postalMaxLength = computed<number>(() => POSTAL_MAX[shippingCountry.value] ?? 10)
-const postalPlaceholder = computed<string>(() => (isTaiwan.value ? '請輸入郵遞區號' : `${postalMaxLength.value} 碼數字`))
-/** 僅允許數字並限制位數 */
-function sanitizePostal(): void {
-  shippingPostalCode.value = shippingPostalCode.value.replace(/\D/g, '').slice(0, postalMaxLength.value)
-}
-/** 切換國別時，依新國別位數重新截斷郵遞區號 */
-watch(shippingCountry, sanitizePostal)
-/** 當前城市對應的區域選項 */
-const districtOptions = computed<string[]>(() => districtMap[shippingCity.value] ?? [])
-/** 檢視用完整地址：臺灣＝城市＋區＋詳細；菲律賓＝村里, 市, 省, 大區 郵遞區號, 國別；其他國外＝詳細, 城市, 州省 郵遞區號, 國別 */
-const shippingAddress = computed<string>(() => {
-  if (isTaiwan.value) {
-    const tw = `${shippingCity.value}${shippingDistrict.value ?? ''}${shippingDetail.value}`
-    return shippingPostalCode.value ? `${shippingPostalCode.value} ${tw}` : tw
-  }
-  if (isPhilippines.value) {
-    return [
-      phBarangay.value,
-      phCity.value,
-      phProvince.value,
-      [phRegion.value, shippingPostalCode.value].filter(Boolean).join(' '),
-      shippingCountry.value,
-    ].filter(Boolean).join(', ')
-  }
-  if (isMalaysia.value) {
-    // 馬來西亞標準格式：詳細地址, 郵遞區號 城市, 州/省/地區, 國別
-    return [
-      shippingDetail.value,
-      [shippingPostalCode.value, shippingForeignCity.value].filter(Boolean).join(' '),
-      shippingState.value,
-      shippingCountry.value,
-    ].filter(Boolean).join(', ')
-  }
-  return [
-    shippingDetail.value,
-    shippingForeignCity.value,
-    [shippingState.value, shippingPostalCode.value].filter(Boolean).join(' '),
-    shippingCountry.value,
-  ].filter(Boolean).join(', ')
-})
-/** 切換城市時清掉不屬於新城市的區域 */
-watch(shippingCity, (city) => {
-  if (shippingDistrict.value && !(districtMap[city] ?? []).includes(shippingDistrict.value)) {
-    shippingDistrict.value = null
-  }
-})
+/** 收件地址字串(prototype)：編輯時由 ShippingAddressFields 透過 v-model 更新；檢視沿用此值 */
+const shippingAddress = ref<string>('臺北市中山區南京東路二段50號')
 /** 自取:商家自有取貨門市選項 */
 const pickupStoreOptions = [
   { label: 'MIFFY 信義門市 — 台北市信義區忠孝東路四段45號', value: 'xinyi' },
@@ -345,17 +256,7 @@ watch(() => props.order.id, () => {
   editShippingMethod.value = props.order.shippingMethod
   editBuyerName.value = props.order.buyerName
   editBuyerPhone.value = props.order.buyerPhone
-  shippingCountry.value = '臺灣'
-  shippingCity.value = '臺北市'
-  shippingDistrict.value = '中山區'
-  shippingDetail.value = '南京東路二段50號'
-  shippingPostalCode.value = ''
-  shippingForeignCity.value = ''
-  shippingState.value = ''
-  phRegion.value = 'Metro Manila'
-  phProvince.value = 'METRO-MANILA'
-  phCity.value = 'BINONDO'
-  phBarangay.value = 'BARANGAY 287'
+  shippingAddress.value = '臺北市中山區南京東路二段50號'
   pickupStore.value = null
   cvsStore.value = ''
   editingShipping.value = false
@@ -906,118 +807,8 @@ function commitInvoice(): void {
           </div>
           <!-- 收件地址：僅「待出貨」可編輯;備貨中以後鎖定改唯讀(收件人/電話不受影響) -->
           <template v-if="canEditShippingInfo">
-          <!-- 宅配：收件地址（國別 + 城市 / 區 + 詳細收件地址） -->
-          <template v-if="editShippingMethod === '常溫宅配'">
-            <div class="flex flex-col gap-1">
-              <label class="text-xs text-[var(--p-text-muted-color)] flex items-center gap-1 flex-wrap">
-                國別
-                <!-- 注記：商家支援跨境配送時才顯示 -->
-                <span v-if="supportsCrossBorder" class="inline-flex items-center gap-1 text-[var(--p-primary-color)]">
-                  <i class="pi pi-globe" style="font-size: 11px"></i>支援跨境配送
-                </span>
-              </label>
-              <Select
-                v-model="shippingCountry"
-                :options="countryOptions"
-                placeholder="請選擇國別"
-                class="w-full"
-                size="small"
-              />
-            </div>
-            <!-- 郵遞區號：固定在國別下第一欄；菲律賓非必填，其餘國家必填 -->
-            <div class="flex flex-col gap-1">
-              <label class="text-xs text-[var(--p-text-muted-color)]">
-                郵遞區號 <span v-if="!isPhilippines" class="text-[var(--p-red-500)]">*</span>
-              </label>
-              <InputText
-                v-model="shippingPostalCode"
-                :placeholder="postalPlaceholder"
-                :maxlength="postalMaxLength"
-                inputmode="numeric"
-                class="w-full"
-                size="small"
-                @input="sanitizePostal"
-              />
-            </div>
-            <!-- 臺灣：城市 / 區 下拉 + 詳細收件地址 -->
-            <template v-if="isTaiwan">
-              <div class="flex flex-col gap-1">
-                <label class="text-xs text-[var(--p-text-muted-color)]">城市 / 區</label>
-                <div class="flex gap-2">
-                  <Select
-                    v-model="shippingCity"
-                    :options="cityOptions"
-                    placeholder="請選擇城市"
-                    class="w-full"
-                    size="small"
-                  />
-                  <Select
-                    v-model="shippingDistrict"
-                    :options="districtOptions"
-                    placeholder="請選擇區域"
-                    class="w-full"
-                    size="small"
-                    show-clear
-                  />
-                </div>
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="text-xs text-[var(--p-text-muted-color)]">
-                  詳細收件地址 <span class="text-[var(--p-red-500)]">*</span>
-                </label>
-                <InputText v-model="shippingDetail" placeholder="例：中山二路10號" class="w-full" size="small" />
-              </div>
-            </template>
-            <!-- 其他國家：郵遞區號下方欄位依國別切換 -->
-            <template v-else>
-              <!-- 菲律賓：大區 / 省 / 市 / 村里（Barangay）皆下拉、皆必填 -->
-              <template v-if="isPhilippines">
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">
-                    大區 <span class="text-[var(--p-red-500)]">*</span>
-                  </label>
-                  <Select v-model="phRegion" :options="phRegionOptions" placeholder="請選擇大區" class="w-full" size="small" show-clear />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">
-                    省 <span class="text-[var(--p-red-500)]">*</span>
-                  </label>
-                  <Select v-model="phProvince" :options="phProvinceOptions" placeholder="請選擇省" class="w-full" size="small" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">
-                    市 <span class="text-[var(--p-red-500)]">*</span>
-                  </label>
-                  <Select v-model="phCity" :options="phCityOptions" placeholder="請選擇市" class="w-full" size="small" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">
-                    村里（Barangay） <span class="text-[var(--p-red-500)]">*</span>
-                  </label>
-                  <Select v-model="phBarangay" :options="phBarangayOptions" placeholder="請選擇村里" class="w-full" size="small" />
-                </div>
-              </template>
-              <!-- 其他國家：城市 / 州省地區 / 詳細收件地址 皆自由輸入(新加坡只留詳細地址) -->
-              <template v-else>
-                <div v-if="!isSingapore" class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">
-                    城市 <span class="text-[var(--p-red-500)]">*</span>
-                  </label>
-                  <InputText v-model="shippingForeignCity" placeholder="城市" class="w-full" size="small" />
-                </div>
-                <div v-if="!isSingapore" class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">州/省/地區</label>
-                  <Select v-model="shippingState" :options="malaysiaStateOptions" placeholder="請選擇州/省/地區" class="w-full" size="small" show-clear />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">
-                    詳細收件地址 <span class="text-[var(--p-red-500)]">*</span>
-                  </label>
-                  <InputText v-model="shippingDetail" placeholder="詳細收件地址" class="w-full" size="small" />
-                </div>
-              </template>
-            </template>
-          </template>
+          <!-- 宅配：收件地址（結構化欄位，依各國標準規格；共用元件） -->
+          <ShippingAddressFields v-if="editShippingMethod === '常溫宅配'" v-model="shippingAddress" />
           <!-- 自取 / 超商配送：改填取貨門市 -->
           <template v-else>
             <!-- 由宅配改為取貨方式時，提醒重新填寫門市 -->
