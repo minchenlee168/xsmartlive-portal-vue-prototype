@@ -210,12 +210,14 @@ const shippingDetail = ref<string>('南京東路二段50號')
 /** 國外地址欄位：郵遞區號 / 城市（自由輸入）/ 州省地區 */
 const shippingPostalCode = ref<string>('')
 const shippingForeignCity = ref<string>('')
-const shippingState = ref<string>('')
+const shippingState = ref<string | null>('')
 /** 菲律賓專用：大區 / 省 / 市 / 村里（Barangay），皆為下拉 */
 const phRegionOptions = ['Metro Manila', 'Calabarzon', 'Central Luzon', 'Central Visayas', 'Davao Region']
 const phProvinceOptions = ['METRO-MANILA', 'CEBU', 'DAVAO', 'LAGUNA', 'CAVITE']
 const phCityOptions = ['BINONDO', 'MAKATI', 'QUEZON CITY', 'MANILA', 'TAGUIG']
 const phBarangayOptions = ['BARANGAY 287', 'BARANGAY 288', 'BARANGAY 289', 'BARANGAY 290']
+/** 馬來西亞州/省/地區（13 州 + 3 聯邦直轄區） */
+const malaysiaStateOptions = ['Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis', 'Pulau Pinang', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu', 'Kuala Lumpur', 'Labuan', 'Putrajaya']
 const phRegion = ref<string | null>('Metro Manila')
 const phProvince = ref<string | null>('METRO-MANILA')
 const phCity = ref<string | null>('BINONDO')
@@ -226,10 +228,12 @@ const isTaiwan = computed(() => shippingCountry.value === '臺灣')
 const isPhilippines = computed(() => shippingCountry.value === '菲律賓')
 /** 是否為新加坡：只保留 郵遞區號 + 詳細收件地址 */
 const isSingapore = computed(() => shippingCountry.value === '新加坡')
+/** 是否為馬來西亞：城市必填、州/省/地區下拉，儲存依標準格式 */
+const isMalaysia = computed(() => shippingCountry.value === '馬來西亞')
 /** 各國郵遞區號位數(皆純數字)：臺灣/馬來西亞 5 碼、新加坡 6 碼、菲律賓 4 碼 */
 const POSTAL_MAX: Record<string, number> = { 臺灣: 5, 馬來西亞: 5, 新加坡: 6, 菲律賓: 4 }
 const postalMaxLength = computed<number>(() => POSTAL_MAX[shippingCountry.value] ?? 10)
-const postalPlaceholder = computed<string>(() => `${postalMaxLength.value} 碼數字`)
+const postalPlaceholder = computed<string>(() => (isTaiwan.value ? '請輸入郵遞區號' : `${postalMaxLength.value} 碼數字`))
 /** 僅允許數字並限制位數 */
 function sanitizePostal(): void {
   shippingPostalCode.value = shippingPostalCode.value.replace(/\D/g, '').slice(0, postalMaxLength.value)
@@ -250,6 +254,15 @@ const shippingAddress = computed<string>(() => {
       phCity.value,
       phProvince.value,
       [phRegion.value, shippingPostalCode.value].filter(Boolean).join(' '),
+      shippingCountry.value,
+    ].filter(Boolean).join(', ')
+  }
+  if (isMalaysia.value) {
+    // 馬來西亞標準格式：詳細地址, 郵遞區號 城市, 州/省/地區, 國別
+    return [
+      shippingDetail.value,
+      [shippingPostalCode.value, shippingForeignCity.value].filter(Boolean).join(' '),
+      shippingState.value,
       shippingCountry.value,
     ].filter(Boolean).join(', ')
   }
@@ -914,7 +927,7 @@ function commitInvoice(): void {
             <!-- 郵遞區號：固定在國別下第一欄；菲律賓非必填，其餘國家必填 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs text-[var(--p-text-muted-color)]">
-                郵遞區號 <span v-if="!isPhilippines && !isTaiwan" class="text-[var(--p-red-500)]">*</span>
+                郵遞區號 <span v-if="!isPhilippines" class="text-[var(--p-red-500)]">*</span>
               </label>
               <InputText
                 v-model="shippingPostalCode"
@@ -987,15 +1000,19 @@ function commitInvoice(): void {
               <!-- 其他國家：城市 / 州省地區 / 詳細收件地址 皆自由輸入(新加坡只留詳細地址) -->
               <template v-else>
                 <div v-if="!isSingapore" class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">城市</label>
+                  <label class="text-xs text-[var(--p-text-muted-color)]">
+                    城市 <span class="text-[var(--p-red-500)]">*</span>
+                  </label>
                   <InputText v-model="shippingForeignCity" placeholder="城市" class="w-full" size="small" />
                 </div>
                 <div v-if="!isSingapore" class="flex flex-col gap-1">
                   <label class="text-xs text-[var(--p-text-muted-color)]">州/省/地區</label>
-                  <InputText v-model="shippingState" placeholder="州/省/地區" class="w-full" size="small" />
+                  <Select v-model="shippingState" :options="malaysiaStateOptions" placeholder="請選擇州/省/地區" class="w-full" size="small" show-clear />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-xs text-[var(--p-text-muted-color)]">詳細收件地址</label>
+                  <label class="text-xs text-[var(--p-text-muted-color)]">
+                    詳細收件地址 <span class="text-[var(--p-red-500)]">*</span>
+                  </label>
                   <InputText v-model="shippingDetail" placeholder="詳細收件地址" class="w-full" size="small" />
                 </div>
               </template>
