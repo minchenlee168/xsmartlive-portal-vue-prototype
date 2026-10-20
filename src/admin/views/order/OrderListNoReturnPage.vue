@@ -1274,8 +1274,19 @@ const mergePointsEarnedTotal = computed(() =>
 )
 /** 每筆原始訂單運費(prototype 固定 $120) */
 const MERGE_PER_ORDER_SHIPPING = 120
+/** 期間首購後免運:整組皆為此活動訂單時,僅第一筆收運費、其餘免運 */
+const mergeIsPromoFreeShip = computed(
+  () => mergeSelectedOrders.value.length > 0 && mergeSelectedOrders.value.every((o) => o.promoFirstFreeShipping),
+)
+/** 單筆原始訂單運費:期間首購後免運時只有第一筆收 $120,其餘 $0 */
+function mergePerOrderShipping(index: number): number {
+  if (mergeIsPromoFreeShip.value) return index === 0 ? MERGE_PER_ORDER_SHIPPING : 0
+  return MERGE_PER_ORDER_SHIPPING
+}
 /** 合併前運費(各原始訂單運費加總) */
-const mergeShippingBefore = computed(() => mergeSelectedOrders.value.length * MERGE_PER_ORDER_SHIPPING)
+const mergeShippingBefore = computed(() =>
+  mergeSelectedOrders.value.reduce((sum, _o, i) => sum + mergePerOrderShipping(i), 0),
+)
 /** 運費差額 = 合併前 − 合併後;> 0 溢收(退還會員)、< 0 短收(向會員收) */
 const mergeShippingDiff = computed(() => mergeShippingBefore.value - mergeForm.value.shippingFee)
 /** 合併群組是否皆已付款:已付款 → 運費純顯示 + 差額調整(走金流);未付款 → 運費可直接編輯 */
@@ -2731,10 +2742,11 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           <div class="flex flex-col gap-2 px-4 py-3">
             <label class="text-sm text-[var(--p-text-muted-color)]">運費</label>
             <div class="flex flex-col gap-1 text-sm">
-              <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
+              <div v-for="(o, i) in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
                 <span class="mx-1 text-[var(--p-text-muted-color)]">&gt;</span>
-                <span>${{ MERGE_PER_ORDER_SHIPPING }}</span>
+                <span>${{ mergePerOrderShipping(i) }}</span>
+                <span v-if="mergeIsPromoFreeShip && i > 0" class="ml-1 text-xs text-[var(--p-text-muted-color)]">（期間首購後免運）</span>
               </div>
               <!-- 已付款:純顯示 + 差額列 + 差額調整(走金流) -->
               <template v-if="mergeAllPaid">
