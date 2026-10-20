@@ -2416,7 +2416,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             </div>
             <div class="flex gap-2 sm:!w-[320px]">
               <Select v-model="mergePhoneCode" :options="PHONE_CODES" class="shrink-0 !w-[110px]" size="small" />
-              <InputText v-model="mergeForm.phone" class="!w-full" />
+              <InputText v-model="mergeForm.phone" class="!w-full" @input="mergeForm.phone = mergeForm.phone.replace(/-/g, '')" />
             </div>
           </div>
           <!-- 收件地址：各訂單地址列出(比照金額/運費) + 合併後地址(結構化欄位,格式比照訂單明細彈窗) -->

@@ -280,7 +280,7 @@ const shippingMethodOptions = [
 const editingShipping = ref(false)
 const editShippingMethod = ref<string>(props.order.shippingMethod)
 const editBuyerName = ref<string>(props.order.buyerName)
-const editBuyerPhone = ref<string>(props.order.buyerPhone)
+const editBuyerPhone = ref<string>(props.order.buyerPhone.replace(/-/g, ''))
 /** 收件人電話國碼：依國別自動帶入（臺灣 +886 / 馬來西亞 +60 / 新加坡 +65 / 菲律賓 +63） */
 const PHONE_CODES = ['+886', '+60', '+65', '+63']
 const COUNTRY_PHONE_CODE: Record<string, string> = { 臺灣: '+886', 馬來西亞: '+60', 新加坡: '+65', 菲律賓: '+63' }
@@ -369,7 +369,7 @@ const hasCheckoutNo = computed(() => {
 watch(() => props.order.id, () => {
   editShippingMethod.value = props.order.shippingMethod
   editBuyerName.value = props.order.buyerName
-  editBuyerPhone.value = props.order.buyerPhone
+  editBuyerPhone.value = props.order.buyerPhone.replace(/-/g, '')
   phoneCode.value = '+886'
   shippingAddress.value = '臺北市中山區南京東路二段50號'
   pickupStore.value = null
@@ -1036,7 +1036,7 @@ function commitInvoice(): void {
             <label class="text-xs text-[var(--p-text-muted-color)]">電話 <span class="text-[var(--p-red-500)]">*</span></label>
             <div class="flex gap-2">
               <Select v-model="phoneCode" :options="PHONE_CODES" class="shrink-0 !w-[110px]" size="small" />
-              <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
+              <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" @input="editBuyerPhone = editBuyerPhone.replace(/-/g, '')" />
             </div>
           </div>
           <!-- 收件地址：僅「待出貨」可編輯;備貨中以後鎖定改唯讀(收件人/電話不受影響) -->
