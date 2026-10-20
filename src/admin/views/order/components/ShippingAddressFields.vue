@@ -47,7 +47,7 @@ const districtOptions = computed<string[]>(() => districtMap[shippingCity.value]
 /** 各國郵遞區號位數(皆純數字)：臺灣/馬來西亞 5 碼、新加坡 6 碼、菲律賓 4 碼 */
 const POSTAL_MAX: Record<string, number> = { 臺灣: 5, 馬來西亞: 5, 新加坡: 6, 菲律賓: 4 }
 const postalMaxLength = computed<number>(() => POSTAL_MAX[shippingCountry.value] ?? 10)
-const postalPlaceholder = computed<string>(() => `${postalMaxLength.value} 碼數字`)
+const postalPlaceholder = computed<string>(() => (isTaiwan.value ? '請填寫郵遞區號' : `${postalMaxLength.value} 碼數字`))
 /** 僅允許數字並限制位數 */
 function sanitizePostal(): void {
   shippingPostalCode.value = shippingPostalCode.value.replace(/\D/g, '').slice(0, postalMaxLength.value)
@@ -124,7 +124,9 @@ watch(combined, (v) => emit('update:modelValue', v), { immediate: true })
     <!-- 臺灣：城市 / 區 下拉 + 詳細收件地址 -->
     <template v-if="isTaiwan">
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-[var(--p-text-muted-color)]">城市 / 區</label>
+        <label class="text-xs text-[var(--p-text-muted-color)]">
+          城市 / 區 <span class="text-[var(--p-red-500)]">*</span>
+        </label>
         <div class="flex gap-2 sm:!w-[320px]">
           <Select
             v-model="shippingCity"
@@ -190,7 +192,9 @@ watch(combined, (v) => emit('update:modelValue', v), { immediate: true })
           <InputText v-model="shippingState" placeholder="州/省/地區" class="w-full sm:!w-[320px]" size="small" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-[var(--p-text-muted-color)]">詳細收件地址</label>
+          <label class="text-xs text-[var(--p-text-muted-color)]">
+            詳細收件地址 <span class="text-[var(--p-red-500)]">*</span>
+          </label>
           <InputText v-model="shippingDetail" placeholder="詳細收件地址" class="w-full" size="small" />
         </div>
       </template>
