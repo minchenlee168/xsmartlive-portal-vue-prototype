@@ -2394,7 +2394,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </div>
           <!-- 收件人：各訂單收件人列出(比照金額/運費) + 合併後收件人(可編輯) -->
           <div class="flex flex-col gap-2 px-4 py-3">
-            <label class="text-sm text-[var(--p-text-muted-color)]">收件人</label>
+            <label class="text-sm text-[var(--p-text-muted-color)]">收件人 <span class="text-[var(--p-red-500)]">*</span></label>
             <div class="flex flex-col gap-1 text-sm">
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>
@@ -2406,7 +2406,7 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
           </div>
           <!-- 電話：各訂單電話列出(比照金額/運費) + 合併後電話(可編輯) -->
           <div class="flex flex-col gap-2 px-4 py-3">
-            <label class="text-sm text-[var(--p-text-muted-color)]">電話</label>
+            <label class="text-sm text-[var(--p-text-muted-color)]">電話 <span class="text-[var(--p-red-500)]">*</span></label>
             <div class="flex flex-col gap-1 text-sm">
               <div v-for="o in mergeSelectedOrders" :key="o.id" class="text-[var(--p-text-color)]">
                 <span class="text-[var(--p-primary-color)]">{{ o.orderNo }}</span>

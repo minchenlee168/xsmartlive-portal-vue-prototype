@@ -145,7 +145,7 @@ watch(shippingCountry, (c) => emit('update:country', c), { immediate: true })
     <!-- 國別 -->
     <div class="flex flex-col gap-1">
       <label class="text-xs text-[var(--p-text-muted-color)] flex items-center gap-1 flex-wrap">
-        國別
+        國別 <span class="text-[var(--p-red-500)]">*</span>
         <span v-if="supportsCrossBorder" class="inline-flex items-center gap-1 text-[var(--p-primary-color)]">
           <i class="pi pi-globe" style="font-size: 11px"></i>支援跨境配送
         </span>

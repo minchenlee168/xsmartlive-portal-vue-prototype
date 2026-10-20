@@ -806,11 +806,11 @@ function commitInvoice(): void {
             </template>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-[var(--p-text-muted-color)]">收件人</label>
+            <label class="text-xs text-[var(--p-text-muted-color)]">收件人 <span class="text-[var(--p-red-500)]">*</span></label>
             <InputText v-model="editBuyerName" placeholder="收件人姓名" class="w-full" size="small" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-[var(--p-text-muted-color)]">電話</label>
+            <label class="text-xs text-[var(--p-text-muted-color)]">電話 <span class="text-[var(--p-red-500)]">*</span></label>
             <div class="flex gap-2">
               <Select v-model="phoneCode" :options="PHONE_CODES" class="shrink-0 !w-[110px]" size="small" />
               <InputText v-model="editBuyerPhone" placeholder="收件人電話" class="w-full" size="small" />
