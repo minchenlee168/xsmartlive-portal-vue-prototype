@@ -55,6 +55,8 @@ interface OrderRow {
   invoiceStatus?: 'not_issued' | 'issued' | 'not_required' | 'voided' | 'issue_failed' | 'void_failed'
   /** 是否適用「期間首購後免運」活動;true 則商品明細顯示免運折抵 */
   promoFirstFreeShipping?: boolean
+  /** 是否為此活動的「首購」訂單(首購付運費、不享免運折抵) */
+  promoFirstPurchase?: boolean
 }
 
 interface Props {
@@ -155,8 +157,10 @@ const progressSteps = computed<StepItem[]>(() => {
 const shippingFee = 120
 const couponDiscount = computed(() => props.order.couponDiscount ?? 0)
 const pointsDiscount = computed(() => props.order.pointsDiscount ?? 0)
-/** 期間首購後免運:免運折抵金額＝被折抵的運費(上限比照活動 maxEligibleAmount 120) */
-const freeShipDiscount = computed(() => (props.order.promoFirstFreeShipping ? Math.min(shippingFee, 120) : 0))
+/** 期間首購後免運:首購(promoFirstPurchase)付運費不折抵;之後的訂單才免運(折抵被折抵的運費,上限 120) */
+const freeShipDiscount = computed(() =>
+  props.order.promoFirstFreeShipping && !props.order.promoFirstPurchase ? Math.min(shippingFee, 120) : 0,
+)
 /**
  * 反推商品總額,讓「商品總額 + 運費 - 折抵 = 訂單總計 = 應付金額(order.amount)」對得起來。
  * 訂單總計即 order.amount,與付款方式卡的「應付金額」一致。

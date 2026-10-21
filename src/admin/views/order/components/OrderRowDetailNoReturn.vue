@@ -90,6 +90,8 @@ interface OrderRow {
   cancelReason?: string
   /** 是否適用「期間首購後免運」活動;true 則商品明細顯示免運折抵 */
   promoFirstFreeShipping?: boolean
+  /** 是否為此活動的「首購」訂單(首購付運費、不享免運折抵) */
+  promoFirstPurchase?: boolean
 }
 
 interface Props {
@@ -223,14 +225,13 @@ const couponDiscount = computed(() => props.order.couponDiscount ?? 0)
 const pointsDiscount = computed(() => props.order.pointsDiscount ?? 0)
 /**
  * 期間首購後免運折抵：
- * - 合併單：第一筆收運費、其餘免運 → 折抵 =(來源筆數 − 1)×120
- * - 單筆：免運 → 折抵 120
+ * - 合併單：第一筆(首購)收運費、其餘免運 → 折抵 =(來源筆數 − 1)×120
+ * - 單筆：首購(promoFirstPurchase)要付運費不折抵；之後的訂單才免運 → 折抵 120
  */
 const freeShipDiscount = computed(() => {
   if (!props.order.promoFirstFreeShipping) return 0
-  return props.order.mergeRecord
-    ? Math.max(0, shipUnitCount.value - 1) * SHIP_PER_ORDER
-    : SHIP_PER_ORDER
+  if (props.order.mergeRecord) return Math.max(0, shipUnitCount.value - 1) * SHIP_PER_ORDER
+  return props.order.promoFirstPurchase ? 0 : SHIP_PER_ORDER
 })
 /**
  * 反推商品總額,讓「商品總額 + 運費 - 折抵 = 訂單總計 = 應付金額(order.amount)」對得起來。

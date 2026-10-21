@@ -75,6 +75,8 @@ interface OrderRow {
   temperature?: string
   /** 是否適用「期間首購後免運」活動;合併彈窗可依此篩選 */
   promoFirstFreeShipping?: boolean
+  /** 是否為此活動的「首購」訂單(首購付運費、不享免運折抵) */
+  promoFirstPurchase?: boolean
 }
 
 /** 合併訂單彈窗使用的訂單分組:同一買家 + 同址 + 同配送 + 同溫層 + 未取號才可合併 */
@@ -414,7 +416,7 @@ const seedOrders: OrderRow[] = [
 
   // 合併訂單 demo:三組同買家 + 同址 + 同溫層 + 未取號 → 可合併
   // 周庭安 x 3 - 台北市大安區敦化南路二段100號 · 常溫宅配 · 信用卡一次付清 · 適用期間首購後免運(demo 篩選用)
-  { id: 'm1', createdAt: '2026-06-25 14:02', cartTag: tagFor('服飾專區'), orderNo: 'A20260625301', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625301', productSummary: '純棉素色短T(黑) × 2', paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true },
+  { id: 'm1', createdAt: '2026-06-25 14:02', cartTag: tagFor('服飾專區'), orderNo: 'A20260625301', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1300, itemCount: 2, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625301', productSummary: '純棉素色短T(黑) × 2', paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true, promoFirstPurchase: true },
   { id: 'm2', createdAt: '2026-06-26 09:41', cartTag: tagFor('服飾專區'), orderNo: 'A20260625302', buyerName: '周庭安', buyerPhone: '0910-246-810', amount: 1400, itemCount: 1, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625302', productSummary: '韓版寬鬆連帽外套(黑) × 1', paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true },
   { id: 'm3', createdAt: '2026-06-27 18:15', cartTag: tagFor('生活雜貨'), orderNo: 'A20260625303', buyerName: '周庭安', buyerPhone: '0910-246-810', amount:  500, itemCount: 4, shippingMethod: '常溫宅配', paymentStatus: 'paid',   shippingStatus: 'pending', carrierStatus: 'unconfigured', trackingStatus: null, orderSource: 'shop', multiCart: 'default', channel: '商城', receiverAddress: '台北市大安區敦化南路二段100號', transactionId: 'TXN-625303', productSummary: '燕麥奶 × 4',              paymentMethodLabel: '信用卡一次付清', temperature: '常溫', promoFirstFreeShipping: true },
   // 楊雅雯 x 3 - 台北市中山區南京東路二段50號 · 常溫宅配 · 信用卡一次付清
