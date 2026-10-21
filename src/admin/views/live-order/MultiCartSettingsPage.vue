@@ -102,6 +102,19 @@ const carts = ref<MultiCartRecord[]>([
     payList: ['ATM 繳費帳號', '貨到付款'],
     logiList: ['宅配', '商家自建（如郵局）'],
   },
+  {
+    date: '2026-10-21 10:00',
+    name: '服飾專區',
+    id: 'MC-000008',
+    desc: '服飾類商品專用收單設定；綁定期間首購後免運',
+    mode: '標單必結',
+    temp: '常溫',
+    coupon: true,
+    reward: true,
+    on: true,
+    payList: ['線上信用卡（藍新）', 'Apple Pay', 'LINE Pay', '貨到付款'],
+    logiList: ['宅配', '超商配送', '自取'],
+  },
 ])
 
 // ── 搜尋 / 篩選 ────────────────────────────────

@@ -147,6 +147,26 @@ export const mockFreeShippingList: FreeShippingRow[] = [
     purchaseCount: 0,
     enabled: true,
   },
+  {
+    id: '8',
+    name: '服飾專區首購後免運',
+    freeType: FreeShippingFreeType.PromoFirst,
+    targetType: FreeShippingTargetType.CheckoutSetting,
+    targetName: '服飾專區',
+    minAmount: null,
+    minQuantity: null,
+    maxEligibleAmount: 120,
+    includeCouponAmount: FreeShippingIncludeCoupon.Excluded,
+    usageLimit: null,
+    productName: '',
+    excludedRegions: [],
+    description: '服飾專區檔期內第一筆照收運費，之後成立的訂單皆免運。',
+    remark: '',
+    startAt: '2026-10-01 00:00:00',
+    endAt: '2026-12-31 23:59:59',
+    purchaseCount: 0,
+    enabled: true,
+  },
 ]
 
 /** 可選的不可免運地區（mock）。 */
@@ -156,4 +176,4 @@ export const mockExcludedRegionOptions: string[] = ['外島', '離島偏遠', '�
 export const mockProductOptions: string[] = ['針織外套', '保溫杯', '零食禮盒', '羊毛圍巾', '帆布包']
 
 /** 指定多購物車（mock）。 */
-export const mockCheckoutSettingOptions: string[] = ['Xsmart直播間', '全功能配置', '貨到付款限定', '跨境配置', '自送結帳', '離島配送']
+export const mockCheckoutSettingOptions: string[] = ['Xsmart直播間', '全功能配置', '貨到付款限定', '跨境配置', '自送結帳', '離島配送', '服飾專區']
