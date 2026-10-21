@@ -1360,10 +1360,12 @@ function confirmMerge(): void {
       // 付款狀態依來源推導:全部已付款才算已付款,只要有一筆待付款,合併單仍為待付款
       const mergedPaymentStatus: OrderRow['paymentStatus'] =
         sources.every((o) => o.paymentStatus === 'paid') ? 'paid' : 'unpaid'
+      // 多購物車:來源皆屬同一台 → 沿用該多購物車;分屬不同台才標「合併訂單」
+      const sameCart = sources.every((o) => o.cartTag.label === first.cartTag.label)
       const mergedOrder: OrderRow = {
         id: `merged-${orderNo}`,
         createdAt: mergedAt,
-        cartTag: { label: '合併訂單', bg: '#ede9fe', color: '#6d28d9' },
+        cartTag: sameCart ? { ...first.cartTag } : { label: '合併訂單', bg: '#ede9fe', color: '#6d28d9' },
         orderNo,
         buyerName: first.buyerName,
         buyerPhone: mergeForm.value.phone || first.buyerPhone,
