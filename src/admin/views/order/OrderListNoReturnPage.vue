@@ -1906,6 +1906,12 @@ function isShippingProgress(s: OrderRow['shippingStatus']): boolean {
             <template #body="{ data }">
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2 flex-wrap">
+                  <!-- 合併訂單:多購物車 tag 前加主色 outline「合」tag -->
+                  <span
+                    v-if="data.mergeRecord"
+                    v-tooltip.top="'合併訂單'"
+                    class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium border border-[var(--p-primary-color)] text-[var(--p-primary-color)]"
+                  >合</span>
                   <Tag :value="data.cartTag.label" severity="secondary" />
                   <!-- 已分批 N 批 tag -->
                   <Tag
