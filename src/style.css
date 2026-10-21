@@ -8,6 +8,27 @@
   font-family: "Noto Sans TC", sans-serif;
 }
 
+/* 全域捲軸樣式（對齊正式專案 xsmartlive-portal-vue：細捲軸、thumb 走主色紫）。
+   軌道與 thumb 描邊為純黑半透明壓暗，疊在任何底色上效果一致、刻意不隨主題翻轉。 */
+@layer base {
+  /* Chrome, Safari, Opera */
+  ::-webkit-scrollbar {
+    width: 0.375rem;
+    height: 0.375rem;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 0.1875rem;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--p-primary-color);
+    border-radius: 0.1875rem;
+    border: 0.0625rem solid rgba(0, 0, 0, 0.1);
+  }
+}
+
 :root {
   /* 主色（純色）：用於文字、border、icon、spinner。品牌色 #7008e7 */
   --primary:           #7008e7;

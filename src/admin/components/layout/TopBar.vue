@@ -11,12 +11,29 @@ import { CHANGELOG, type ChangelogRelease } from '@/admin/constants/changelog';
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+import { RouteName } from '@/admin/router';
 
 const { t } = useI18n();
 const { showSuccess } = useGlobalToast();
 const configStore = useConfigStore();
 const shopStore = useShopStore();
 const { shops, currentShopId, currentShop } = storeToRefs(shopStore);
+const route = useRoute();
+const router = useRouter();
+
+// 進入商家管理（對齊正式專案：按鈕放 TopBar 左側）；已在商家管理模式則切回主選單。
+const isMerchantManagementMode = computed(() => {
+  const name = String(route.name ?? '');
+  return name === 'merchant-management' || name.startsWith('merchant-management.');
+});
+async function handleClickMerchantManagement() {
+  if (isMerchantManagementMode.value) {
+    await router.push({ name: RouteName.LiveOrder });
+    return;
+  }
+  await router.push({ name: RouteName.StoreManagement });
+}
 
 // 此 prototype 是 mock-only，shopStore 已有預設假資料，不需要 fetchAvailableShops。
 
@@ -117,55 +134,31 @@ function copyRelease(rel: ChangelogRelease): void {
 </script>
 
 <template>
-  <!-- 手機（< 640px）內 padding 縮小 px-3、桌機 px-6；左區允許縮收（min-w-0 + flex-1）讓右區 3 顆 icon 永遠顯示 -->
-  <div class="flex items-center justify-between shrink-0 w-full h-20 px-3 sm:px-6 border-b border-gray-200 dark:border-gray-700 gap-2">
+  <!-- 對齊正式專案：header 走 bg-surface token、px-4 py-2.5、無底框（靠底色與內容區分層）。
+       左區允許縮收（min-w-0 + flex-1）讓右區 3 顆 icon 永遠顯示 -->
+  <div class="flex items-center justify-between shrink-0 w-full bg-surface-0 dark:bg-surface-900 px-4 py-2.5 gap-2">
     <div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+      <!-- 對齊正式專案：Logo 僅圖，商店名稱改放 Logo 旁大字可點切換 -->
       <RouterLink
         to="/"
-        class="flex items-center gap-4 shrink-0"
+        class="flex items-center shrink-0"
       >
         <Logo :width="40" />
-
-        <p
-          class="hidden font-medium text-xl"
-          :class="{
-            'sm:block': configStore.isSidebarExpanded
-          }"
-        >
-          {{ $t('system.app_name') }}
-        </p>
       </RouterLink>
 
-      <Button
-        rounded
-        size="small"
-        severity="secondary"
-        class="transition-all duration-200 shrink-0"
-        :class="{
-          'rotate-180': !configStore.isSidebarExpanded
-        }"
-        @click="configStore.toggleSidebar"
-      >
-        <template #icon>
-          <FontAwesomeIcon :icon="['far', 'chevron-left']" />
-        </template>
-      </Button>
-      <div id="topbar-left-slot" />
-
+      <!-- 商店名稱：大字 text-xl、可點開選單切換商店（去掉「目前在：」前綴，對齊正式專案 TopBarBrand） -->
       <Button
         v-if="shops.length > 0"
         text
-        size="small"
         severity="secondary"
-        class="h-9 min-w-0 shrink"
+        class="min-w-0 shrink px-2"
+        :aria-label="t('topbar.switchable_shops')"
         @click="toggleShopMenu"
       >
-        <!-- 手機隱藏「目前在：」prefix，只留商家名 + chevron 節省寬度 -->
-        <span class="hidden sm:inline text-sm text-color-secondary">{{ t('topbar.current_at') }}</span>
-        <span class="text-primary font-medium text-sm mx-1 truncate max-w-[120px] sm:max-w-none">{{ currentShop?.name ?? '-' }}</span>
+        <span class="font-medium text-xl truncate max-w-[140px] sm:max-w-60">{{ currentShop?.name ?? '-' }}</span>
         <FontAwesomeIcon
           :icon="['far', 'chevron-down']"
-          class="text-xs shrink-0"
+          class="text-xs shrink-0 ml-1"
         />
       </Button>
 
@@ -190,18 +183,36 @@ function copyRelease(rel: ChangelogRelease): void {
         </template>
       </Menu>
 
-      <!-- 前台檢視：手機只顯示眼睛 icon（無 label），桌機才有文字 -->
-      <Button
-        size="small"
-        severity="secondary"
-        variant="outlined"
-        class="h-9 shrink-0"
-        v-tooltip.bottom="t('topbar.front_view')"
-        @click="handleFrontView"
-      >
-        <FontAwesomeIcon :icon="['far', 'eye']" />
-        <span class="hidden sm:inline ml-2">{{ t('topbar.front_view') }}</span>
-      </Button>
+      <!-- 側邊欄開關 + 進入商家管理 併成一組靠左（對齊正式專案左側 pill group） -->
+      <div class="flex items-center gap-1 shrink-0">
+        <Button
+          rounded
+          size="small"
+          severity="secondary"
+          class="transition-all duration-200"
+          :class="{
+            'rotate-180': !configStore.isSidebarExpanded
+          }"
+          @click="configStore.toggleSidebar"
+        >
+          <template #icon>
+            <FontAwesomeIcon :icon="['far', 'chevron-left']" />
+          </template>
+        </Button>
+        <Button
+          rounded
+          size="small"
+          severity="secondary"
+          variant="text"
+          v-tooltip.bottom="isMerchantManagementMode ? t('layout.button.back_to_main') : t('nav.merchant_management.merchant_management')"
+          @click="handleClickMerchantManagement"
+        >
+          <template #icon>
+            <FontAwesomeIcon :icon="['far', isMerchantManagementMode ? 'shop' : 'city']" />
+          </template>
+        </Button>
+      </div>
+      <div id="topbar-left-slot" />
 
       <!-- prototype 更新時間提示：手機隱藏，避免擠壓主要 buttons；右側 info icon 點開 changelog Dialog -->
       <span
@@ -324,6 +335,18 @@ function copyRelease(rel: ChangelogRelease): void {
         id="topbar-right-slot"
         class="inline-flex gap-4"
       />
+      <!-- 進入商城前台：對齊正式專案放右區（主題/語系左側），icon-only + tooltip -->
+      <Button
+        rounded
+        severity="contrast"
+        variant="text"
+        v-tooltip.bottom="t('topbar.front_view')"
+        @click="handleFrontView"
+      >
+        <template #icon>
+          <FontAwesomeIcon :icon="['far', 'store']" />
+        </template>
+      </Button>
       <ThemeSwitcher />
       <LanguageSelector />
       <DropdownMenu

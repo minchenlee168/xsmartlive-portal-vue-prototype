@@ -172,10 +172,10 @@ function resolveChildKey(child: MenuItem, index: number): string {
       v-if="item.to && !item.items && !item.planning"
       :to="{ name: item.to }"
       tabindex="0"
-      class="flex items-center h-14 p-4 gap-2 cursor-pointer hover:text-primary"
+      class="relative flex items-center h-14 p-4 gap-2 cursor-pointer hover:text-primary before:absolute before:top-1/2 before:left-1.5 before:-translate-y-1/2 before:border-y-6 before:border-l-6 before:border-y-transparent before:border-l-primary"
       :class="{
         'text-primary': isActiveMenuItem,
-        'border-r-4 border-primary': props.isExpanded && isActiveMenuItem
+        'before:hidden': !props.isExpanded || !isActiveMenuItem
       }"
     >
       <img
@@ -213,7 +213,7 @@ function resolveChildKey(child: MenuItem, index: number): string {
         v-show="isExpandedMenu"
         class="transition-all duration-200"
         :class="{
-          'pl-4 bg-neutral-100 dark:bg-gray-900': props.isExpanded
+          'm-2 rounded-lg bg-gray-100 pl-2 dark:bg-gray-800': props.isExpanded
         }"
       >
         <MenuItem

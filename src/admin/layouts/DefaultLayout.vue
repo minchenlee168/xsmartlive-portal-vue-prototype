@@ -23,10 +23,12 @@ onMounted(() => {
   <div class="flex flex-col w-screen h-screen">
     <TopBar />
 
-    <div class="overflow-y-hidden flex flex-1">
+    <!-- 中段列底色走 bg-surface（與 TopBar / Sidebar 同白底），讓內容面板的左上圓角「浮」出來 -->
+    <div class="overflow-y-hidden flex flex-1 bg-surface-0 dark:bg-surface-900">
       <Sidebar />
 
-      <div class="flex flex-1 flex-col min-w-0 bg-gray-100 dark:bg-gray-800">
+      <!-- 內容面板：左上圓角 + 內陰影，塞進 header 下方、sidebar 右側（對齊正式專案 DefaultLayout） -->
+      <div class="flex flex-1 flex-col min-w-0 overflow-x-hidden rounded-tl-2xl bg-gray-100 inset-shadow-[1px_1px_4px] inset-shadow-black/8 dark:bg-gray-800 dark:inset-shadow-black/40">
         <div class="overflow-auto p-4 flex flex-1 flex-col gap-4">
           <RouterView />
         </div>

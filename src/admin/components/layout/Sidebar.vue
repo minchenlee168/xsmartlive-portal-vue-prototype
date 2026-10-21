@@ -1,38 +1,19 @@
 <script setup lang="ts">
+// 「進入商家管理」按鈕已移至 TopBar（對齊正式專案），故此處不再提供 sidebar 底部入口。
 import Mask from '@/admin/components/portal-ui/Mask.vue';
 import { useConfigStore } from '@/admin/stores/config';
-import { RouteName } from '@/admin/router';
 import SidebarMenu from './SidebarMenu.vue';
+import Logo from './Logo.vue';
 
 import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useI18n } from 'vue-i18n';
 
 const configStore = useConfigStore();
-const router = useRouter();
-const { t } = useI18n();
 
 const isSidebarHovering = ref(false);
 const currentRouteMenuItems = ref<string[]>([]);
 const expandedMenuPath = ref<string[]>([]);
 
 const isSidebarHoverExpanded = computed(() => configStore.isSidebarExpanded || isSidebarHovering.value);
-
-const isMerchantMode = computed(() => configStore.loginMode === 'merchant');
-
-const isMerchantManagementMode = computed(() => {
-  const name = router.currentRoute.value.name;
-  return typeof name === 'string'
-    && (name === 'merchant-management' || name.startsWith('merchant-management.'));
-});
-
-async function handleClickMerchantManagement() {
-  if (isMerchantManagementMode.value) {
-    await router.push({ name: RouteName.LiveOrder });
-    return;
-  }
-  await router.push({ name: RouteName.StoreManagement });
-}
 </script>
 
 <template>
@@ -46,39 +27,29 @@ async function handleClickMerchantManagement() {
       @click="configStore.toggleSidebar"
     >
       <div
-        class="flex flex-col h-full border-gray-200 border-r bg-white cursor-auto dark:border-gray-700 dark:bg-black"
+        class="flex flex-col h-full bg-white cursor-auto dark:bg-surface-900"
         :class="[
           configStore.isSidebarExpanded ? 'w-64' : 'w-0'
         ]"
         @click.stop
       >
-        <div class="overflow-y-auto flex-1">
+        <div class="overflow-y-auto flex-1 [&::-webkit-scrollbar-track]:bg-transparent">
           <SidebarMenu
             v-model:current-route-menu-items="currentRouteMenuItems"
             v-model:expand-menu-path="expandedMenuPath"
             :is-expanded="isSidebarHoverExpanded"
           />
         </div>
-        <button
-          v-if="isMerchantMode"
-          type="button"
-          class="merchant-management-button"
-          :class="{ 'merchant-management-button--active': isMerchantManagementMode }"
-          @click="handleClickMerchantManagement"
-        >
-          <FontAwesomeIcon
-            :icon="['far', isMerchantManagementMode ? 'chevron-left' : 'building-user']"
-            class="text-base"
-          />
-          <span
-            v-if="isSidebarHoverExpanded"
-            class="truncate"
-          >
-            {{ isMerchantManagementMode
-              ? t('layout.button.back_to_main')
-              : t('nav.merchant_management.merchant_management') }}
+
+        <!-- Powered by（對齊正式專案 sidebar footer）；行動版恆為展開態 -->
+        <div class="shrink-0 flex items-center justify-center py-1.5 px-4">
+          <span class="inline-flex items-center gap-1 text-xs text-[var(--p-text-muted-color)]">
+            Powered by
+            <span class="inline-flex items-center gap-1 font-medium">
+              <Logo :width="13" />{{ $t('system.app_name') }}
+            </span>
           </span>
-        </button>
+        </div>
       </div>
     </Mask>
   </Transition>
@@ -90,7 +61,7 @@ async function handleClickMerchantManagement() {
     @mouseleave="isSidebarHovering = false"
   >
     <div
-      class="sidebar-panel flex flex-col relative h-full border-gray-200 border-r bg-white dark:border-gray-700 dark:bg-black"
+      class="sidebar-panel flex flex-col relative h-full bg-white dark:bg-surface-900"
       :class="[
         configStore.isSidebarExpanded
           ? 'w-64 sidebar-panel--dock'
@@ -102,7 +73,7 @@ async function handleClickMerchantManagement() {
       ]"
     >
       <div
-        class="flex-1"
+        class="flex-1 [&::-webkit-scrollbar-track]:bg-transparent"
         :class="[
           (configStore.isSidebarExpanded || isSidebarHovering)
             ? 'overflow-y-auto'
@@ -115,25 +86,26 @@ async function handleClickMerchantManagement() {
           :is-expanded="isSidebarHoverExpanded"
         />
       </div>
-      <button
-        type="button"
-        class="merchant-management-button"
-        :class="{ 'merchant-management-button--active': isMerchantManagementMode }"
-        @click="handleClickMerchantManagement"
+
+      <!-- Powered by（對齊正式專案 sidebar footer）：展開顯示「Powered by + logo + 名稱」，收合只顯示 logo -->
+      <div
+        class="shrink-0 flex items-center justify-center py-1.5"
+        :class="{ 'px-4': isSidebarHoverExpanded }"
       >
-        <FontAwesomeIcon
-          :icon="['far', isMerchantManagementMode ? 'chevron-left' : 'building-user']"
-          class="text-base"
-        />
         <span
           v-if="isSidebarHoverExpanded"
-          class="truncate"
+          class="inline-flex items-center gap-1 text-xs text-[var(--p-text-muted-color)] whitespace-nowrap"
         >
-          {{ isMerchantManagementMode
-            ? t('layout.button.back_to_main')
-            : t('nav.merchant_management.merchant_management') }}
+          Powered by
+          <span class="inline-flex items-center gap-1 font-medium">
+            <Logo :width="13" />{{ $t('system.app_name') }}
+          </span>
         </span>
-      </button>
+        <Logo
+          v-else
+          :width="16"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -167,20 +139,5 @@ async function handleClickMerchantManagement() {
 .sidebar-panel--overlay {
   z-index: 50;
   transition-delay: 0ms, 0ms, 0ms;
-}
-
-.merchant-management-button {
-  @apply flex items-center gap-3 shrink-0 w-full h-12 px-4 border-t cursor-pointer transition-colors;
-  border-color: var(--p-content-border-color);
-  color: var(--p-text-color);
-}
-
-.merchant-management-button:hover {
-  background-color: var(--p-content-hover-background);
-}
-
-.merchant-management-button--active {
-  color: var(--p-primary-color);
-  background-color: var(--p-highlight-background);
 }
 </style>
