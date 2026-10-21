@@ -1,17 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { mockFreeShippingList } from '@/admin/views/marketing/free-shipping/mockData'
-import { FreeShippingTargetType, FreeShippingFreeType, type FreeShippingRow } from '@/admin/views/marketing/free-shipping/types'
-
-/** 免運類型 → 顯示文字（免運活動只顯示「類型」，不顯示活動名稱） */
-const FREE_TYPE_LABEL: Record<number, string> = {
-  [FreeShippingFreeType.FirstPurchase]: '首購免運',
-  [FreeShippingFreeType.SingleItem]: '單品免運',
-  [FreeShippingFreeType.MinAmount]: '滿額免運',
-  [FreeShippingFreeType.MinQuantity]: '滿件免運',
-  [FreeShippingFreeType.LimitedTime]: '期間免運',
-  [FreeShippingFreeType.PromoFirst]: '期間首購後免運',
-}
+import { FreeShippingTargetType, type FreeShippingRow } from '@/admin/views/marketing/free-shipping/types'
 
 /**
  * 新增 / 編輯多購物車 dialog（依規劃原始設計 + 設計決議）。
@@ -724,7 +714,7 @@ function onSave(): void {
               :value="a.targetType === FreeShippingTargetType.All ? '全站' : '指定多購物車'"
               :severity="a.targetType === FreeShippingTargetType.All ? 'secondary' : 'warn'"
             />
-            <span class="text-[var(--p-text-color)]">{{ FREE_TYPE_LABEL[a.freeType] ?? a.name }}</span>
+            <span class="text-[var(--p-text-color)]">{{ a.name }}</span>
           </div>
         </div>
         <span v-else class="text-sm text-[var(--p-text-muted-color)]">未套用免運活動</span>
