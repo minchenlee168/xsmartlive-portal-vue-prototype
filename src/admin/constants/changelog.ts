@@ -26,7 +26,7 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
-    version: 'v1.1.3',
+    version: 'v1.2.0',
     date: '2026-10-21',
     module: '訂單管理',
     groups: [
