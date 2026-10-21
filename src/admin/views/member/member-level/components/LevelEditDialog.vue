@@ -9,7 +9,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import FormField from '@/admin/components/ui/FormField.vue';
+import BaseFormField from '@/admin/components/ui/BaseFormField.vue';
 import {
   MEMBER_LEVEL_BIRTHDAY_GIFT_TIMING,
   MEMBER_LEVEL_UPGRADE_POINTS_TIMING,
@@ -226,7 +226,7 @@ function handleSave() {
       class="flex flex-col gap-5"
     >
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField
+        <BaseFormField
           :label="$t('member_level.edit_dialog.label.name')"
           required
           class-name="max-w-none"
@@ -246,9 +246,9 @@ function handleSave() {
           >
             {{ nameError }}
           </Message>
-        </FormField>
+        </BaseFormField>
 
-        <FormField
+        <BaseFormField
           :label="$t('member_level.edit_dialog.label.threshold')"
           required
           :hint="thresholdHint"
@@ -272,10 +272,10 @@ function handleSave() {
           >
             {{ thresholdError }}
           </Message>
-        </FormField>
+        </BaseFormField>
       </div>
 
-      <FormField
+      <BaseFormField
         :label="$t('member_level.edit_dialog.label.discount_rate')"
         required
         :hint="$t('member_level.edit_dialog.description.discount_rate')"
@@ -306,7 +306,7 @@ function handleSave() {
         >
           {{ discountRateError }}
         </Message>
-      </FormField>
+      </BaseFormField>
 
       <section class="flex flex-col gap-3">
         <h3 class="text-sm font-medium text-muted-color">
@@ -331,7 +331,7 @@ function handleSave() {
 
           <template v-if="birthdayGiftEnabled">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <FormField
+              <BaseFormField
                 :label="$t('member_level.edit_dialog.label.gift_points')"
                 required
                 class-name="max-w-none"
@@ -352,9 +352,9 @@ function handleSave() {
                 >
                   {{ birthdayGiftPointsError }}
                 </Message>
-              </FormField>
+              </BaseFormField>
 
-              <FormField
+              <BaseFormField
                 :label="$t('member_level.edit_dialog.label.gift_timing')"
                 class-name="max-w-none"
               >
@@ -365,9 +365,9 @@ function handleSave() {
                   option-label="label"
                   option-value="value"
                 />
-              </FormField>
+              </BaseFormField>
 
-              <FormField
+              <BaseFormField
                 :label="$t('member_level.edit_dialog.label.expire_days')"
                 required
                 class-name="max-w-none"
@@ -395,7 +395,7 @@ function handleSave() {
                 >
                   {{ birthdayGiftExpireDaysError }}
                 </Message>
-              </FormField>
+              </BaseFormField>
             </div>
             <div
               class="flex items-start gap-2 rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 text-sm text-muted-color"
@@ -429,7 +429,7 @@ function handleSave() {
 
           <template v-if="upgradePointsEnabled">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <FormField
+              <BaseFormField
                 :label="$t('member_level.edit_dialog.label.gift_points')"
                 required
                 class-name="max-w-none"
@@ -450,9 +450,9 @@ function handleSave() {
                 >
                   {{ upgradePointsError }}
                 </Message>
-              </FormField>
+              </BaseFormField>
 
-              <FormField
+              <BaseFormField
                 :label="$t('member_level.edit_dialog.label.gift_timing')"
                 class-name="max-w-none"
               >
@@ -463,9 +463,9 @@ function handleSave() {
                   option-label="label"
                   option-value="value"
                 />
-              </FormField>
+              </BaseFormField>
 
-              <FormField
+              <BaseFormField
                 :label="$t('member_level.edit_dialog.label.expire_days')"
                 required
                 class-name="max-w-none"
@@ -493,7 +493,7 @@ function handleSave() {
                 >
                   {{ upgradePointsExpireDaysError }}
                 </Message>
-              </FormField>
+              </BaseFormField>
             </div>
             <div
               class="flex items-start gap-2 rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 text-sm text-muted-color"

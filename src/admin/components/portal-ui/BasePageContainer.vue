@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import PageTitle from './PageTitle.vue';
+import PageHeader from './PageHeader.vue';
 
 const props = withDefaults(defineProps<{
   title: string;
@@ -17,7 +17,7 @@ const emit = defineEmits<{
   <Card>
     <template #title>
       <div class="mb-4 flex items-start justify-between gap-4">
-        <PageTitle
+        <PageHeader
           :title="props.title"
           :show-back="props.showBack"
           @back="emit('back')"

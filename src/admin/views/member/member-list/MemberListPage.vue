@@ -22,7 +22,7 @@ import {
 } from './utils/mockMemberDisplay';
 import { useGlobalDialog } from '@/admin/composables/useGlobalDialog';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
-import PageTitle from '@/admin/components/portal-ui/PageTitle.vue';
+import PageHeader from '@/admin/components/portal-ui/PageHeader.vue';
 import PaginationTable from '@/admin/components/portal-ui/PaginationTable.vue';
 
 import { computed, ref, useTemplateRef } from 'vue';
@@ -241,7 +241,7 @@ function handleResetFilter() {
     <Card>
       <template #content>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <PageTitle
+          <PageHeader
             :title="$t('member.title.list')"
             :show-back="false"
           />

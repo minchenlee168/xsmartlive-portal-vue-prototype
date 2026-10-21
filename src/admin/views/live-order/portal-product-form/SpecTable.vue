@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import FormField from '@/admin/components/ui/FormField.vue'
+import BaseFormField from '@/admin/components/ui/BaseFormField.vue'
 import { useSpecManager } from './composables/useSpecManager'
 import { fetchSpecListApi, type SpecListItem, type SpecListChild } from '@/admin/api/portal-spec'
 import type {
@@ -387,7 +387,7 @@ function focusTableCell(
           :key="specIndex"
           class="space-y-2"
         >
-          <FormField
+          <BaseFormField
             :label="`${t('portal_product.spec_table.label.spec_group')} ${specIndex + 1}`"
             class-name="w-full"
           >
@@ -450,7 +450,7 @@ function focusTableCell(
                 </template>
               </Button>
             </div>
-          </FormField>
+          </BaseFormField>
 
           <div>
             <div class="flex items-center gap-2 flex-wrap">

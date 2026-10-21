@@ -2,6 +2,21 @@
 import { computed, ref, watch } from 'vue'
 import { mockFreeShippingList } from '@/admin/views/marketing/free-shipping/mockData'
 import { FreeShippingTargetType, type FreeShippingRow } from '@/admin/views/marketing/free-shipping/types'
+import type { CheckoutMode, TempLayer, MultiCartRecord, MultiCartFormPayload } from './multiCartTypes'
+import {
+  LOGI_OPTIONS,
+  TEMP_OPTIONS,
+  METHOD_CONFIG,
+  CB_GROUPS,
+  DOMESTIC_REGIONS,
+  CB_REGIONS,
+  rowKeyOf,
+  cellKeyOf,
+  defaultFeeOf,
+  carrierSupports,
+  groupSupportsTemp,
+  type FeeGroup,
+} from './multiCartFeeMatrix'
 
 /**
  * 新增 / 編輯多購物車 dialog（依規劃原始設計 + 設計決議）。
@@ -18,38 +33,8 @@ import { FreeShippingTargetType, type FreeShippingRow } from '@/admin/views/mark
  * 驗證：名稱未填、運費金額為負數 → 紅框標示且不可儲存。
  */
 
-export type CheckoutMode = '標單必結' | '自選結帳' | '棄標結帳' | '暫停結帳' | '商城結帳'
-export type TempLayer = '常溫' | '冷藏' | '冷凍'
-
-export interface MultiCartRecord {
-  date: string
-  name: string
-  id: string
-  desc: string
-  locked?: boolean
-  /** 釘選置頂（資料排序用，與 locked／預設購物車無關） */
-  pinned?: boolean
-  /** 轉帳匯款金流備註（HTML） */
-  note?: string
-  mode: CheckoutMode
-  temp: TempLayer
-  coupon: boolean
-  reward: boolean
-  on: boolean
-  payList: string[]
-  logiList: string[]
-  /** 運費矩陣：使用者調整過的格子（key = scope|物流|sub|付款|格index） */
-  feeVals?: Record<string, number>
-  /** 運費矩陣：關閉的「物流 × 付款」組合（key = scope|物流|sub|付款） */
-  feeOff?: Record<string, boolean>
-  deleted?: boolean
-}
-
-export interface MultiCartFormPayload {
-  /** 編輯模式帶原 ID；新增模式 undefined */
-  editingId?: string
-  record: MultiCartRecord
-}
+// 型別移至 ./multiCartTypes（對齊 checkout-setting/types）；此處轉出，既有引用路徑不變
+export type { CheckoutMode, TempLayer, MultiCartRecord, MultiCartFormPayload }
 
 interface Props {
   visible?: boolean
@@ -102,82 +87,8 @@ const PAY_OPTIONS = [
   '貨到付款',
   '取貨現場付款（限自取）',
 ]
-/** 物流方式；自取不計運費 */
-const LOGI_OPTIONS: Array<{ value: string; noFee?: boolean }> = [
-  { value: '宅配' },
-  { value: '超商配送' },
-  { value: '跨境' },
-  { value: '自取', noFee: true },
-  { value: '商家自建（如郵局）' },
-]
-/** 物流方式勾選群組（含自取；自取不計運費、不進運費矩陣） */
+/** 物流方式勾選群組（含自取；自取不計運費、不進運費矩陣）。運費矩陣定義見 ./multiCartFeeMatrix */
 const logiMethodOptions = LOGI_OPTIONS
-const TEMP_OPTIONS: TempLayer[] = ['常溫', '冷藏', '冷凍']
-
-// ── 運費矩陣定義（與規劃原始設計一致） ─────────
-interface FeeGroup {
-  name: string
-  dot: string
-  sub?: string
-  /** [物流商名稱, 客代數, 支援溫層] */
-  carriers: Array<[string, number, TempLayer[]]>
-}
-/** 國內預設運費（本島常溫/冷藏/冷凍、離島常溫/冷藏/冷凍） */
-const DOMESTIC_FEE: Record<string, number[]> = {
-  on: [60, 110, 130, 100, 150, 170],
-  cod: [70, 120, 140, 110, 160, 180],
-}
-/** 跨境預設運費（馬來西亞常溫/冷藏/冷凍、香港常溫/冷藏/冷凍） */
-const CB_FEE: Record<string, number[]> = {
-  on: [100, 200, 200, 0, 0, 0],
-  cod: [100, 200, 200, 0, 0, 0],
-}
-/** 「全溫層皆支援」標記；沿用 TEMP_OPTIONS 以免溫層順序漂移導致運費索引對不上 */
-const ALL_TEMPS: TempLayer[] = TEMP_OPTIONS
-const METHOD_CONFIG: Record<string, FeeGroup[]> = {
-  宅配: [
-    {
-      name: '宅配',
-      dot: '#3b82f6',
-      carriers: [
-        ['新竹物流', 3, ['常溫']],
-        ['嘉里大榮常溫', 2, ['常溫']],
-        ['嘉里大榮低溫', 0, ['冷藏', '冷凍']],
-        ['嘉里快遞', 0, ALL_TEMPS],
-        ['黑貓宅急便', 0, ALL_TEMPS],
-      ],
-    },
-  ],
-  超商配送: [
-    { name: '超商配送 - 黑貓', dot: '#f97316', carriers: [['黑貓宅急便（門市寄件）', 0, ['常溫']]] },
-    {
-      name: '超商配送 - 7-11',
-      dot: '#f97316',
-      carriers: [
-        ['7-11 B2C 到府收件', 0, ['常溫']],
-        ['7-11 B2C 冷凍到府收件', 0, ['冷凍']],
-        ['7-11 交貨便（門市寄件）', 0, ['常溫']],
-      ],
-    },
-    {
-      name: '超商配送 - 全家',
-      dot: '#f97316',
-      carriers: [
-        ['全家常溫到府收件', 0, ['常溫']],
-        ['全家冷凍到府收件', 0, ['冷凍']],
-      ],
-    },
-  ],
-  '商家自建（如郵局）': [
-    { name: '商家自建（如郵局）', dot: '#8b5cf6', carriers: [['中華郵局', 0, ALL_TEMPS]] },
-  ],
-}
-const CB_GROUPS: FeeGroup[] = [
-  { name: 'Presco 跨境物流', dot: '#a855f7', sub: '宅配', carriers: [['Presco 跨境物流（宅配＋超商代收）', 1, ['常溫']]] },
-  { name: 'Presco 跨境物流', dot: '#a855f7', sub: '超商配送', carriers: [['Presco 跨境物流（宅配＋超商代收）', 1, ['常溫']]] },
-]
-const DOMESTIC_REGIONS = ['台灣本島', '台灣離島']
-const CB_REGIONS = ['馬來西亞（目的地）', '香港（目的地）']
 
 // ── 表單 state ─────────────────────────────────
 const name = ref('')
@@ -276,13 +187,6 @@ const isFeeEmpty = computed(
   () => feePays.value.length === 0 || (domesticGroups.value.length === 0 && !showCrossBorder.value),
 )
 
-const rowKeyOf = (scope: string, g: FeeGroup, payId: string) =>
-  `${scope}|${g.name}|${g.sub ?? ''}|${payId}`
-const cellKeyOf = (scope: string, g: FeeGroup, payId: string, k: number) =>
-  `${rowKeyOf(scope, g, payId)}|${k}`
-function defaultFeeOf(scope: string, payId: string, k: number): number {
-  return (scope === 'dom' ? DOMESTIC_FEE : CB_FEE)[payId][k]
-}
 function cellValue(scope: string, g: FeeGroup, payId: string, k: number): number {
   return feeVals.value[cellKeyOf(scope, g, payId, k)] ?? defaultFeeOf(scope, payId, k)
 }
@@ -303,12 +207,6 @@ function toggleFeeEdit(scope: string): void {
 const selectedTempIndex = computed(() => TEMP_OPTIONS.indexOf(temp.value))
 
 // ── 溫層支援過濾（配送溫層為單選 → 矩陣收斂到該溫層） ──
-function carrierSupports(c: [string, number, TempLayer[]], t: TempLayer): boolean {
-  return c[2].includes(t)
-}
-function groupSupportsTemp(g: FeeGroup, t: TempLayer): boolean {
-  return g.carriers.some((c) => carrierSupports(c, t))
-}
 /** 群組內只列出支援選定溫層的物流商（左欄說明清單用） */
 function visibleCarriers(g: FeeGroup): Array<[string, number, TempLayer[]]> {
   return g.carriers.filter((c) => carrierSupports(c, temp.value))

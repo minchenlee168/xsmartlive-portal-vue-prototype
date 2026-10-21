@@ -1,5 +1,5 @@
-export { default as PageCardLayout } from './PageCardLayout.vue'
-export { default as PageTitle } from './PageTitle.vue'
+export { default as BasePageContainer } from './BasePageContainer.vue'
+export { default as PageHeader } from './PageHeader.vue'
 export { default as PaginationTable } from './PaginationTable.vue'
 export { default as LoaderSpinner } from './LoaderSpinner.vue'
 export { default as Empty } from './Empty.vue'

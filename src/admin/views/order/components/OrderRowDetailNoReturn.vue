@@ -10,7 +10,12 @@ import ShippingListPrintDialog from './ShippingListPrintDialog.vue'
 import { useShippingBatches, type BatchShippingStatus, type OrderBatch } from '../composables/useShippingBatches'
 import { usePrintLog } from '../composables/usePrintLog'
 import PrintHistoryDialog from './PrintHistoryDialog.vue'
-import { orderStatusOf, orderStatusMeta, orderAbnormalReason } from '../orderStatus'
+import OrderMergeRecordPanel from './OrderMergeRecordPanel.vue'
+import OrderSourceCard from './OrderSourceCard.vue'
+import OrderInvoiceCard from './OrderInvoiceCard.vue'
+import OrderItemsSection from './OrderItemsSection.vue'
+import type { OrderRow, ProductRow } from '../orderTypes'
+import { ORDER_SOURCE_LABEL, paymentBadgeOf } from '../orderLabels'
 
 /**
  * 訂單列表 row expansion 展開內容。
@@ -20,79 +25,6 @@ import { orderStatusOf, orderStatusMeta, orderAbnormalReason } from '../orderSta
  * 2. 出貨管理：動作按鈕列 + 配送物流狀態 + 出貨狀態 Timeline + 出貨單備註
  * 3. 商品明細 table + 訂單總計（運費 / 商品總額 / 總計）
  */
-
-/** 合併訂單「原始訂單」一列的精簡快照 */
-interface MergeSourceLite {
-  createdAt: string
-  orderNo: string
-  buyerName: string
-  /** 原始訂單總額(含運費) */
-  amount: number
-  /** 商品淨額(不含運費) */
-  productAmount: number
-  itemCount: number
-  shippingMethod: string
-  paymentMethodLabel?: string
-  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
-  /** 原始訂單來源;合併紀錄面板逐筆顯示 + 推導合併單「多種訂單來源」用 */
-  orderSource: 'post' | 'live' | 'group' | 'shop'
-  /** 商品摘要(如「純棉素色短T(黑) × 2」);合併單商品明細用 */
-  productSummary?: string
-}
-/** 合併紀錄:有值代表此單是 M 開頭合併訂單 */
-interface MergeRecord {
-  mergedAt: string
-  paymentMethodLabel: string
-  sources: MergeSourceLite[]
-}
-
-interface OrderRow {
-  id: string
-  createdAt: string
-  cartTag: { label: string; bg: string; color: string }
-  orderNo: string
-  buyerName: string
-  buyerPhone: string
-  amount: number
-  itemCount: number
-  shippingMethod: string
-  /** 收件地址;超商配送時存「門市名（地址）」,宅配存一般地址;未帶時沿用 prototype 預設 */
-  receiverAddress?: string
-  paymentStatus: 'paid' | 'unpaid' | 'refunded' | 'pending_refund' | 'paying' | 'payment_failed'
-  /** 付款方式標籤(如「貨到付款」「信用卡一次付清」「ATM 轉帳」);決定配送方式可否變更 */
-  paymentMethodLabel?: string
-  shippingStatus: 'pending' | 'preparing' | 'shipping' | 'awaiting_receipt' | 'arrived' | 'completed' | 'cancelled' | 'delivery_abnormal'
-  /** 配送異常原因(物流商回報);delivery_abnormal 時以 tooltip 顯示 */
-  abnormalReason?: string
-  carrierStatus: 'unconfigured' | 'configured'
-  trackingStatus: string | null
-  carrierName?: string
-  orderSource: 'post' | 'live' | 'group' | 'shop'
-  socialPlatform?: 'facebook' | 'line' | 'instagram' | 'tiktok' | 'other'
-  multiCart: 'default' | 'main' | 'ice' | 'ice_grocery'
-  sessionName?: 'session_0620' | 'session_0622' | 'session_0624' | 'session_0625'
-  channel: string
-  couponActivity?: string
-  couponDiscount?: number
-  pointsDiscount?: number
-  dispatchBatchCount?: number
-  invoiceNumber?: string
-  invoiceIssuedAt?: string
-  /** 發票狀態(六值);未設時依 invoiceNumber 推 issued / not_issued */
-  invoiceStatus?: 'not_issued' | 'issued' | 'not_required' | 'voided' | 'issue_failed' | 'void_failed'
-  /** 合併紀錄;有值代表此單為 M 開頭合併訂單 */
-  mergeRecord?: MergeRecord
-  /** 取消處理方式(退回重新結帳 / 取消不退回購物車);已取消訂單顯示用 */
-  cancelMethod?: 'return' | 'void'
-  /** 取消時間;已取消訂單顯示用 */
-  cancelTime?: string
-  /** 取消原因;已取消訂單顯示用 */
-  cancelReason?: string
-  /** 是否適用「期間首購後免運」活動;true 則商品明細顯示免運折抵 */
-  promoFirstFreeShipping?: boolean
-  /** 是否為此活動的「首購」訂單(首購付運費、不享免運折抵) */
-  promoFirstPurchase?: boolean
-}
 
 interface Props {
   order: OrderRow
@@ -127,65 +59,16 @@ const shippingBadge = computed<{ label: string; severity: TagSeverity }>(() => {
 })
 /** 付款狀態 badge（已退款＝取消已付款訂單、辦理退款後的付款終態） */
 const paymentBadge = computed<{ label: string; severity: TagSeverity }>(() => paymentBadgeOf(props.order.paymentStatus))
-/** 付款狀態 → badge(供合併紀錄面板逐列原始訂單用) */
-function paymentBadgeOf(s: OrderRow['paymentStatus']): { label: string; severity: TagSeverity } {
-  if (s === 'paid') return { label: '已付款', severity: 'success' }
-  if (s === 'paying') return { label: '付款中', severity: 'info' }
-  if (s === 'payment_failed') return { label: '付款失敗', severity: 'danger' }
-  if (s === 'pending_refund') return { label: '待退款', severity: 'warn' }
-  if (s === 'refunded') return { label: '已退款', severity: 'secondary' }
-  return { label: '待付款', severity: 'warn' }
-}
-/** 合併紀錄面板「出貨方式」顯示:常溫宅配 → 宅配(與合併編輯頁一致) */
-function shortShipping(m: string): string {
-  return m === '常溫宅配' ? '宅配' : m
-}
-/** 點原始訂單列 → 通知父層另開該原始訂單檢視彈窗 */
+/** 點原始訂單列 → 通知父層另開該原始訂單檢視彈窗（合併紀錄面板轉拋） */
 function openSourceOrder(orderNo: string): void {
   emit('open-source-order', orderNo)
 }
-/** 複製訂單編號 */
-function copyOrderNo(no: string): void {
-  navigator.clipboard?.writeText(no)
-}
-/** 合併紀錄面板:預設收合,點標題列展開 */
-const mergeExpanded = ref(false)
-
-/** 訂單狀態:依 orderStatus.ts 的貨態×付款矩陣推導(與列表頁一致) */
-const orderStatusBadge = computed<{ label: string; severity: TagSeverity }>(() => orderStatusMeta(orderStatusOf(props.order)))
-/** 異常處理時的原因說明(供 tooltip);非異常為 null */
-const orderStatusReason = computed<string | null>(() => orderAbnormalReason(props.order))
-
-/** 訂單來源 → 顯示文字 */
-const ORDER_SOURCE_LABEL: Record<OrderRow['orderSource'], { short: string; full: string }> = {
-  post:  { short: '貼文', full: '貼文收單' },
-  live:  { short: '直播', full: '直播收單' },
-  group: { short: '社團', full: '社團收單' },
-  shop:  { short: '商城', full: '商城訂單' },
-}
-/** 合併訂單:子訂單付款方式 / 訂單來源是否分歧 → 摘要與卡片顯示「多種…」 */
+/** 合併訂單:子訂單付款方式分歧 → 付款方式卡顯示「多種付款方式」 */
 const isMixedMergePayment = computed(
   () => !!props.order.mergeRecord && new Set(props.order.mergeRecord.sources.map((s) => s.paymentMethodLabel ?? '—')).size > 1,
 )
-const isMixedMergeSource = computed(
-  () => !!props.order.mergeRecord && new Set(props.order.mergeRecord.sources.map((s) => s.orderSource)).size > 1,
-)
-/** 合併來源列用：訂單來源 → 完整文字（DataTable slot 的 data 為 any，用具型別 helper 包住索引） */
-const sourceFullLabel = (s: OrderRow['orderSource']) => ORDER_SOURCE_LABEL[s]?.full ?? '—'
+/** 訂單來源短標籤（商品明細列的「訂單來源」欄用） */
 const sourceLabel = computed(() => ORDER_SOURCE_LABEL[props.order.orderSource].short)
-const socialLabel = computed(() => {
-  const map = { facebook: 'Facebook', line: 'LINE', instagram: 'Instagram', tiktok: 'TikTok', other: '其他' } as const
-  return props.order.socialPlatform ? map[props.order.socialPlatform] : '—'
-})
-const sessionLabel = computed(() => {
-  const map = { session_0620: '6-20 開箱直播', session_0622: '6-22 美妝直播', session_0624: '6-24 晚間生鮮直播', session_0625: '6-25 服飾團' } as const
-  return props.order.sessionName ? map[props.order.sessionName] : '—'
-})
-/** 訂單來源卡：直播訂單 / 商城訂單；合併單若子訂單來源分歧顯示「多種訂單來源」 */
-const orderSourceCardLabel = computed(() =>
-  isMixedMergeSource.value ? '多種訂單來源' : ORDER_SOURCE_LABEL[props.order.orderSource].full,
-)
-/** 訂單狀態(整體生命週期)→ 依出貨狀態收斂,與列表頁「訂單狀態」欄一致 */
 
 /** 出貨狀態 5 階段（用 PrimeVue Timeline 水平顯示） */
 interface StepItem { key: string; label: string; isCurrent: boolean; isPast: boolean; time: string; icon: string }
@@ -241,7 +124,6 @@ const subtotal = computed(() => Math.max(0, props.order.amount - shippingFee.val
 const total = computed(() => props.order.amount)
 
 /** 商品明細：prototype mock 一筆,小計＝商品總額(subtotal),單價由小計 ÷ 數量反推 */
-interface ProductRow { name: string; spec: string; source: string; price: number; qty: number; lineTotal: number }
 const productRows = computed<ProductRow[]>(() => {
   // 合併訂單:列出各原始訂單本來的商品(名稱／規格／訂單來源皆依原始訂單呈現)
   if (props.order.mergeRecord) {
@@ -705,237 +587,12 @@ function onInvoiceIssued(payload: { number: string; time: string }): void {
   props.order.invoiceStatus = 'issued'
 }
 
-// ── 發票資訊卡:發票狀態可編輯,下拉只開放從目前狀態走得通的值 ──
-type InvoiceStatus = NonNullable<OrderRow['invoiceStatus']>
-const INVOICE_STATUS_OPTIONS: Array<{ label: string; value: InvoiceStatus }> = [
-  { label: '尚未開立', value: 'not_issued' },
-  { label: '已開立',   value: 'issued' },
-  { label: '不需開立', value: 'not_required' },
-  { label: '已作廢',   value: 'voided' },
-  { label: '開立失敗', value: 'issue_failed' },
-  { label: '作廢失敗', value: 'void_failed' },
-]
-/** mock 沒設 invoiceStatus 時,依 invoiceNumber 推「已開立 / 尚未開立」 */
-const invoiceStatusValue = computed<InvoiceStatus>(() =>
-  props.order.invoiceStatus ?? (props.order.invoiceNumber ? 'issued' : 'not_issued'),
-)
-function invoiceStatusMeta(s: InvoiceStatus): { label: string; severity: TagSeverity } {
-  const map: Record<InvoiceStatus, { label: string; severity: TagSeverity }> = {
-    not_issued:   { label: '尚未開立', severity: 'warn' },
-    issued:       { label: '已開立',   severity: 'success' },
-    not_required: { label: '不需開立', severity: 'secondary' },
-    voided:       { label: '已作廢',   severity: 'danger' },
-    issue_failed: { label: '開立失敗', severity: 'danger' },
-    void_failed:  { label: '作廢失敗', severity: 'danger' },
-  }
-  return map[s]
-}
-/** 從目前狀態走得通的目標(含自己);開立後只能作廢、作廢後可重開,其餘依規範。 */
-function invoiceReachable(s: InvoiceStatus): InvoiceStatus[] {
-  const map: Record<InvoiceStatus, InvoiceStatus[]> = {
-    issued:       ['issued', 'voided'],
-    voided:       ['voided', 'issued'],
-    not_issued:   ['not_issued', 'issued', 'not_required'],
-    not_required: ['not_required', 'issued'],
-    issue_failed: ['issue_failed', 'issued', 'not_required'],
-    void_failed:  ['void_failed', 'voided', 'issued'],
-  }
-  return map[s]
-}
-const editingInvoice = ref(false)
-/** 進入編輯時記下原始狀態:供「(目前)」標記與可切換規則判斷(選了新值也不會跟著跑) */
-const invoiceStatusBeforeEdit = ref<InvoiceStatus>('issued')
-/**
- * Select 直接綁定副本:選了就即時寫入(彈窗底部「儲存」才寫回列表)。
- * 因此就算沒按卡片上的打勾,底部「儲存」也能捕捉到這次變更並同步到 table。
- */
-const editInvoiceStatus = computed<InvoiceStatus>({
-  get: () => invoiceStatusValue.value,
-  set: (v) => {
-    props.order.invoiceStatus = v
-    // 由尚未開立 → 已開立:補一組 mock 號碼與時間(prototype)
-    if (v === 'issued' && !props.order.invoiceNumber) {
-      props.order.invoiceNumber = `IV-${props.order.orderNo.replace(/\D/g, '').slice(-8)}`
-      props.order.invoiceIssuedAt = props.order.createdAt
-    }
-  },
-})
-function startEditInvoice(): void {
-  invoiceStatusBeforeEdit.value = invoiceStatusValue.value
-  editingInvoice.value = true
-}
-function invoiceOptionDisabled(opt: { value: InvoiceStatus }): boolean {
-  return !invoiceReachable(invoiceStatusBeforeEdit.value).includes(opt.value)
-}
-/** 下拉中不可選項目的原因說明(顯示於選項後方灰字) */
-function invoiceDisabledReason(v: InvoiceStatus): string {
-  switch (v) {
-    case 'issue_failed':
-    case 'void_failed': return '由系統回報'
-    case 'voided': return '要先開立過'
-    case 'issued': return '要先開立'
-    case 'not_issued': return '不可倒回'
-    case 'not_required': return '目前狀態不適用'
-    default: return ''
-  }
-}
-function commitInvoice(): void {
-  // 資料已於 Select 選取當下寫入副本,這裡只收合編輯模式並提示
-  editingInvoice.value = false
-  toast.add({ severity: 'success', summary: `訂單 ${props.order.orderNo} 發票狀態已更新為「${invoiceStatusMeta(invoiceStatusValue.value).label}」`, life: 2000 })
-}
 </script>
 
 <template>
   <div class="flex flex-col gap-4 p-4 bg-[var(--p-content-hover-background)]">
-    <!-- 原始訂單 · 合併紀錄：僅合併訂單(有 mergeRecord)顯示，置於最上方；白底細框(同其他卡片) -->
-    <div
-      v-if="order.mergeRecord"
-      class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4"
-    >
-      <!-- 標題列（可點收合/展開）：icon + 標題 + 由 N 筆合併 tag + 合併時間 + chevron。預設收合 -->
-      <div
-        class="flex flex-wrap items-center gap-x-3 gap-y-1 cursor-pointer select-none"
-        role="button"
-        tabindex="0"
-        :aria-expanded="mergeExpanded"
-        @click="mergeExpanded = !mergeExpanded"
-        @keydown.enter.prevent="mergeExpanded = !mergeExpanded"
-        @keydown.space.prevent="mergeExpanded = !mergeExpanded"
-      >
-        <i class="pi pi-sitemap text-[var(--p-primary-color)] shrink-0"></i>
-        <Tag value="原始訂單" />
-        <span class="text-sm font-bold text-[var(--p-text-color)] shrink-0">合併紀錄</span>
-        <span class="text-sm text-[var(--p-text-muted-color)] shrink-0">（由 {{ order.mergeRecord.sources.length }} 筆合併）</span>
-        <span class="ml-auto text-xs text-[var(--p-text-muted-color)] shrink-0">
-          合併時間 {{ order.mergeRecord.mergedAt }}
-        </span>
-        <i
-          class="pi pi-chevron-down text-xs text-[var(--p-text-muted-color)] shrink-0 transition-transform"
-          :class="{ 'rotate-180': mergeExpanded }"
-        ></i>
-      </div>
-
-      <!-- 展開內容：摘要 + 原始訂單表 + footer（預設收合） -->
-      <template v-if="mergeExpanded">
-        <!-- 摘要：付款狀態 / 付款方式(label 左、值接續) -->
-        <div class="flex flex-col gap-2 text-sm">
-          <div class="flex items-center gap-3 flex-wrap">
-            <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款狀態</span>
-            <Tag :value="paymentBadge.label" :severity="paymentBadge.severity" />
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">付款方式</span>
-            <span class="text-[var(--p-text-color)]">{{ isMixedMergePayment ? '多種付款方式' : order.mergeRecord.paymentMethodLabel }}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="w-16 shrink-0 text-[var(--p-text-muted-color)]">訂單來源</span>
-            <span class="text-[var(--p-text-color)]">{{ orderSourceCardLabel }}</span>
-          </div>
-        </div>
-
-        <!-- 原始訂單：桌機 DataTable(整列可點) / 手機卡片列(design.md §7.5：多欄表格手機不橫向捲動) -->
-        <DataTable :value="order.mergeRecord.sources" data-key="orderNo" striped-rows class="hidden md:block w-full"
-          :pt="{ column: { headerCell: { style: 'white-space: nowrap;' } }, bodyRow: { style: 'cursor: pointer' } }"
-          @row-click="(e) => openSourceOrder(e.data.orderNo)">
-          <Column header="建立時間" field="createdAt" />
-          <Column header="訂單編號">
-            <template #body="{ data }">
-              <span class="inline-flex items-center gap-1">
-                <span class="font-bold text-[var(--p-text-color)]">{{ data.orderNo }}</span>
-                <Button
-                  v-tooltip.top="'複製'"
-                  :aria-label="`複製訂單編號 ${data.orderNo}`"
-                  icon="pi pi-copy"
-                  severity="secondary"
-                  variant="text"
-                  size="small"
-                  rounded
-                  @click.stop="copyOrderNo(data.orderNo)"
-                />
-              </span>
-            </template>
-          </Column>
-          <Column header="訂購人" field="buyerName" />
-          <Column header="金額">
-            <template #body="{ data }">
-              <span class="font-bold text-[var(--p-text-color)]">${{ data.amount.toLocaleString() }}</span>
-            </template>
-          </Column>
-          <Column header="件數" field="itemCount" />
-          <Column header="出貨方式">
-            <template #body="{ data }">{{ shortShipping(data.shippingMethod) }}</template>
-          </Column>
-          <Column header="付款方式">
-            <template #body="{ data }">
-              <span class="block max-w-[140px] truncate" :title="data.paymentMethodLabel">{{ data.paymentMethodLabel ?? '—' }}</span>
-            </template>
-          </Column>
-          <Column header="訂單來源">
-            <template #body="{ data }">{{ sourceFullLabel(data.orderSource) }}</template>
-          </Column>
-          <Column header="付款">
-            <template #body="{ data }">
-              <Tag :value="paymentBadgeOf(data.paymentStatus).label" :severity="paymentBadgeOf(data.paymentStatus).severity" />
-            </template>
-          </Column>
-          <Column header="操作" body-class="text-right">
-            <template #body="{ data }">
-              <Button
-                v-tooltip.top="'另開原始訂單檢視頁'"
-                aria-label="另開原始訂單檢視頁"
-                icon="pi pi-external-link"
-                severity="secondary"
-                variant="text"
-                size="small"
-                rounded
-                @click.stop="openSourceOrder(data.orderNo)"
-              />
-            </template>
-          </Column>
-        </DataTable>
-
-        <!-- 手機卡片列 -->
-        <div class="md:hidden divide-y divide-[var(--p-content-border-color)]">
-          <div v-for="src in order.mergeRecord.sources" :key="src.orderNo" class="flex flex-col gap-2 py-3 first:pt-0 text-sm">
-            <div class="flex items-center justify-between gap-2">
-              <span class="inline-flex items-center gap-1 min-w-0">
-                <span class="font-bold text-[var(--p-text-color)]">{{ src.orderNo }}</span>
-                <Button
-                  v-tooltip.top="'複製'"
-                  :aria-label="`複製訂單編號 ${src.orderNo}`"
-                  icon="pi pi-copy"
-                  severity="secondary"
-                  variant="text"
-                  size="small"
-                  rounded
-                  @click.stop="copyOrderNo(src.orderNo)"
-                />
-              </span>
-              <Tag :value="paymentBadgeOf(src.paymentStatus).label" :severity="paymentBadgeOf(src.paymentStatus).severity" class="shrink-0" />
-            </div>
-            <div class="rounded-md bg-[var(--p-content-hover-background)] px-3 py-2 flex flex-col gap-1">
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">建立時間</span><span class="text-[var(--p-text-color)]">{{ src.createdAt }}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">訂購人</span><span class="text-[var(--p-text-color)]">{{ src.buyerName }}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">金額</span><span class="font-bold text-[var(--p-text-color)]">${{ src.amount.toLocaleString() }}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">件數</span><span class="text-[var(--p-text-color)]">{{ src.itemCount }}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">出貨方式</span><span class="text-[var(--p-text-color)]">{{ shortShipping(src.shippingMethod) }}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)] shrink-0">付款方式</span><span class="text-[var(--p-text-color)] truncate">{{ src.paymentMethodLabel ?? '—' }}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--p-text-muted-color)]">訂單來源</span><span class="text-[var(--p-text-color)]">{{ sourceFullLabel(src.orderSource) }}</span></div>
-            </div>
-            <div class="flex justify-end">
-              <Button label="查看原始訂單" icon="pi pi-external-link" severity="secondary" variant="outlined" size="small" @click="openSourceOrder(src.orderNo)" />
-            </div>
-          </div>
-        </div>
-
-        <!-- footer 提示 -->
-        <div class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)]">
-          <i class="pi pi-info-circle text-xs"></i>
-          <span>點任一筆另開原始訂單檢視頁</span>
-        </div>
-      </template>
-    </div>
+    <!-- 原始訂單 · 合併紀錄：僅合併訂單(有 mergeRecord)顯示，置於最上方 -->
+    <OrderMergeRecordPanel :order="order" @open-source-order="openSourceOrder" />
 
     <!-- 上方 4 卡 grid：配送資訊 / 訂單來源 / 付款方式 / 發票資訊 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1102,42 +759,7 @@ function commitInvoice(): void {
       </div>
 
       <!-- 訂單來源：訂單狀態 / 訂單來源 / 社群平台 / 多購物車 / 場次名稱 -->
-      <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
-        <span class="text-sm font-bold text-[var(--p-text-color)]">訂單來源</span>
-        <!-- 訂單狀態:原始訂單檢視隱藏(已併入合併單,狀態以合併單為準) -->
-        <div v-if="!hideShipping" class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">訂單狀態</span>
-          <!-- 異常處理:tag 內文字後加驚嘆號,hover 顯示異常原因(配送異常 or 不該發生的組合) -->
-          <Tag
-            v-if="orderStatusReason"
-            :severity="orderStatusBadge.severity"
-            class="cursor-help"
-            v-tooltip.top="orderStatusReason"
-          >
-            <span class="inline-flex items-center gap-1">
-              {{ orderStatusBadge.label }}
-              <i class="pi pi-exclamation-circle text-xs"></i>
-            </span>
-          </Tag>
-          <Tag v-else :value="orderStatusBadge.label" :severity="orderStatusBadge.severity" />
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">訂單來源</span>
-          <span class="font-medium text-[var(--p-text-color)]">{{ orderSourceCardLabel }}</span>
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">社群平台</span>
-          <span class="text-[var(--p-text-color)]">{{ socialLabel }}</span>
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">多購物車</span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300">{{ order.cartTag.label }}</span>
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">場次名稱</span>
-          <span class="text-[var(--p-text-color)]">{{ sessionLabel }}</span>
-        </div>
-      </div>
+      <OrderSourceCard :order="order" :hide-shipping="hideShipping" />
 
       <!-- 付款方式：整卡編輯 -->
       <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
@@ -1215,62 +837,7 @@ function commitInvoice(): void {
       </div>
 
       <!-- 發票資訊：發票狀態可編輯(下拉只開放走得通的值,如已開立只能改已作廢) -->
-      <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-2">
-        <!-- 標題 + 編輯鉛筆(比照配送資訊 / 付款方式,編輯入口放標題旁) -->
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-bold text-[var(--p-text-color)]">發票資訊</span>
-          <Button v-if="!detailReadOnly && !editingInvoice" v-tooltip.top="'編輯'" aria-label="編輯發票資訊" icon="pi pi-pencil" severity="secondary" variant="text" size="small" rounded @click="startEditInvoice" />
-          <Button v-else-if="editingInvoice" v-tooltip.top="'確認'" aria-label="確認發票資訊" icon="pi pi-check" severity="secondary" variant="text" size="small" rounded @click="commitInvoice" />
-        </div>
-        <!-- 發票狀態:原始訂單檢視 / 已取消訂單隱藏 -->
-        <div v-if="!detailReadOnly" class="flex items-center justify-between text-sm">
-          <span class="text-[var(--p-text-muted-color)]">發票狀態</span>
-          <Tag v-if="!editingInvoice" :value="invoiceStatusMeta(invoiceStatusValue).label" :severity="invoiceStatusMeta(invoiceStatusValue).severity" />
-          <!-- 編輯模式：Select(走不通的值 disabled,標「(目前)」與原因) -->
-          <Select
-            v-else
-            v-model="editInvoiceStatus"
-            :options="INVOICE_STATUS_OPTIONS"
-            option-label="label"
-            option-value="value"
-            :option-disabled="invoiceOptionDisabled"
-            size="small"
-            class="!w-[160px]"
-            scroll-height="auto"
-            @click.stop
-          >
-            <template #option="{ option }">
-              <span class="inline-flex items-center gap-1">
-                <span>{{ option.label }}</span>
-                <span v-if="option.value === invoiceStatusBeforeEdit" class="text-xs text-[var(--p-text-muted-color)]">（目前）</span>
-                <span v-else-if="invoiceOptionDisabled(option)" class="text-xs text-[var(--p-text-muted-color)]">— {{ invoiceDisabledReason(option.value) }}</span>
-              </span>
-            </template>
-          </Select>
-        </div>
-        <div class="flex items-center gap-2 text-sm text-[var(--p-text-color)]">
-          <i class="pi pi-id-card text-sm text-[var(--p-text-muted-color)]"></i>
-          電子發票（會員載具）
-        </div>
-        <!-- 有發票號碼(已開立 / 已作廢)：顯示號碼 + 開立時間；否則橘字提示 -->
-        <div v-if="order.invoiceNumber" class="flex flex-col gap-1 pt-2 border-t border-[var(--p-content-border-color)] text-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">發票號碼</span>
-            <span class="font-medium text-[var(--p-text-color)]">{{ order.invoiceNumber }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">開立時間</span>
-            <span class="text-xs text-[var(--p-text-muted-color)]">{{ order.invoiceIssuedAt }}</span>
-          </div>
-        </div>
-        <!-- 尚未開立提示:原始訂單檢視 / 已取消訂單不顯示 -->
-        <div v-else-if="!detailReadOnly" class="pt-2 border-t border-[var(--p-content-border-color)]">
-          <span class="inline-flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
-            <i class="pi pi-exclamation-circle text-sm"></i>
-            尚未開立
-          </span>
-        </div>
-      </div>
+      <OrderInvoiceCard :order="order" :read-only="detailReadOnly" />
     </div>
 
     <!-- 已取消:此訂單已取消整塊取代出貨管理；原始訂單檢視模式隱藏 -->
@@ -1596,55 +1163,15 @@ function commitInvoice(): void {
     </div>
 
     <!-- 商品明細（單一扁平商品表 + 訂單總計） -->
-    <div class="rounded-lg border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] p-4 flex flex-col gap-4">
-      <span class="text-sm font-bold text-[var(--p-text-color)]">商品明細</span>
-      <DataTable :value="productRows" data-key="name" class="w-full"
-        :pt="{ column: { headerCell: { style: 'white-space: nowrap;' } } }">
-        <Column header="商品名稱" field="name" />
-        <Column header="規格" field="spec" />
-        <Column header="訂單來源" field="source" />
-        <Column header="單價">
-          <template #body="{ data }">{{ data.price.toLocaleString() }}</template>
-        </Column>
-        <Column header="數量">
-          <template #body="{ data }">{{ data.qty }}</template>
-        </Column>
-        <Column header="小計">
-          <template #body="{ data }">
-            <span class="font-bold">{{ data.lineTotal.toLocaleString() }}</span>
-          </template>
-        </Column>
-      </DataTable>
-
-      <div class="flex items-start justify-end gap-4 pt-2">
-        <div class="flex flex-col gap-2 text-sm min-w-[200px]">
-          <div class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">商品總額</span>
-            <span class="text-[var(--p-text-color)]">${{ subtotal.toLocaleString() }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">運費</span>
-            <span class="text-[var(--p-text-color)]">${{ shippingFee }}</span>
-          </div>
-          <div v-if="couponDiscount > 0" class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">優惠券折抵</span>
-            <span class="text-red-600 dark:text-red-400">-${{ couponDiscount.toLocaleString() }}</span>
-          </div>
-          <div v-if="pointsDiscount > 0" class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">紅利折抵</span>
-            <span class="text-red-600 dark:text-red-400">-${{ pointsDiscount.toLocaleString() }}</span>
-          </div>
-          <div v-if="freeShipDiscount > 0" class="flex items-center justify-between">
-            <span class="text-[var(--p-text-muted-color)]">期間首購後免運折抵</span>
-            <span class="text-red-600 dark:text-red-400">-${{ freeShipDiscount.toLocaleString() }}</span>
-          </div>
-          <div class="flex items-center justify-between pt-2 border-t border-[var(--p-content-border-color)]">
-            <span class="font-medium text-[var(--p-text-color)]">訂單總計</span>
-            <span class="text-base font-bold text-[var(--p-primary-color)]">${{ total.toLocaleString() }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <OrderItemsSection
+      :product-rows="productRows"
+      :subtotal="subtotal"
+      :shipping-fee="shippingFee"
+      :coupon-discount="couponDiscount"
+      :points-discount="pointsDiscount"
+      :free-ship-discount="freeShipDiscount"
+      :total="total"
+    />
 
     <!-- 狀態切換確認彈窗：跟「設定配送」一致的 #header slot 樣式 -->
     <Dialog

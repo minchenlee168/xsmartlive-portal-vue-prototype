@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 import type { FormSubmitEvent } from '@primevue/forms'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 
-import FormField from '@/admin/components/ui/FormField.vue'
+import BaseFormField from '@/admin/components/ui/BaseFormField.vue'
 import LoaderSpinner from '@/admin/components/portal-ui/LoaderSpinner.vue'
 import { useGlobalToast } from '@/admin/composables/useGlobalToast'
 import { applyCategoryDefaultImageApi } from '@/admin/api/portal-product'
@@ -316,7 +316,7 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
         {{ t('portal_product.form.section.basic') }}
       </h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.name')"
             class-name="max-w-none col-span-2"
           >
@@ -335,9 +335,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
             >
               {{ $form.name.error?.message }}
             </Message>
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.category')"
             class-name="max-w-none col-span-2"
           >
@@ -347,9 +347,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :max-category-selection="MAX_CATEGORIES"
               :is-disabled="isReadonly"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.live_keyword')"
             class-name="max-w-none col-span-2"
           >
@@ -360,9 +360,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :placeholder="t('portal_product.form.placeholder.live_keyword')"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.tags')"
             class-name="max-w-none col-span-2"
           >
@@ -377,9 +377,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :options="availableTags"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.coupon_enabled')"
             class-name="max-w-none col-span-2"
           >
@@ -388,9 +388,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               name="isCouponEnabled"
               :disabled="isReadonly"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.weight', { unit: t('portal_product.text.unit_gram') })"
             class-name="max-w-none"
           >
@@ -402,9 +402,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               suffix=" g"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.intro')"
             class-name="max-w-none col-span-2"
           >
@@ -419,7 +419,7 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               name="intro"
               editor-style="height: 320px"
             />
-          </FormField>
+          </BaseFormField>
         </div>
     </section>
 
@@ -480,7 +480,7 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
         {{ t('portal_product.form.section.sales_options') }}
       </h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.cost_price')"
             class-name="max-w-none"
           >
@@ -494,9 +494,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :min="0"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.original_price')"
             class-name="max-w-none"
           >
@@ -510,9 +510,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :min="0"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.sale_price')"
             class-name="max-w-none"
           >
@@ -526,9 +526,9 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :min="0"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.stock')"
             class-name="max-w-none"
           >
@@ -539,7 +539,7 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :min="0"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
 
           <div class="text-center py-8 col-span-4 flex flex-col items-center gap-4">
             <p class="text-sm text-gray-600">
@@ -575,7 +575,7 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
         {{ t('portal_product.form.section.details') }}
       </h3>
         <div class="grid grid-cols-1 gap-4 max-w-2xl">
-          <FormField
+          <BaseFormField
             :label="t('portal_product.form.field.note')"
             class-name="max-w-none"
           >
@@ -587,7 +587,7 @@ async function handleApplyCategoryDefaultImage(categoryId: number): Promise<void
               :placeholder="t('portal_product.form.placeholder.note')"
               class="w-full"
             />
-          </FormField>
+          </BaseFormField>
         </div>
     </section>
 

@@ -9,7 +9,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import FormField from '@/admin/components/ui/FormField.vue';
+import BaseFormField from '@/admin/components/ui/BaseFormField.vue';
 import { BonusGiftType, BonusSource, type BonusPointsRow } from '../types';
 import {
   DEFAULT_CURRENCY,
@@ -332,7 +332,7 @@ function handleSave() {
       <!-- 新增 / 編輯 / 複製：表單 -->
       <template v-else>
       <!-- 紅利點數名稱 -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.name')"
         :required="!isView"
         class-name="max-w-none"
@@ -349,10 +349,10 @@ function handleSave() {
         <Message v-if="nameInvalid" size="small" severity="error" variant="simple">
           {{ $t('bonus_points.form_dialog.validation.name') }}
         </Message>
-      </FormField>
+      </BaseFormField>
 
       <!-- 取得來源 -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.source')"
         :required="!isView"
         class-name="max-w-none"
@@ -371,10 +371,10 @@ function handleSave() {
         <Message v-if="sourceInvalid" size="small" severity="error" variant="simple">
           {{ $t('bonus_points.form_dialog.validation.source') }}
         </Message>
-      </FormField>
+      </BaseFormField>
 
       <!-- 發送人數限制 -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.send_limit')"
         :optional="true"
         :hint="$t('bonus_points.form_dialog.hint.send_limit')"
@@ -391,10 +391,10 @@ function handleSave() {
           :input-style="{ width: '100%' }"
           :placeholder="$t('bonus_points.form_dialog.placeholder.send_limit')"
         />
-      </FormField>
+      </BaseFormField>
 
       <!-- 每人領取次數上限 -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.per_member_limit')"
         :optional="true"
         :hint="$t('bonus_points.form_dialog.hint.per_member_limit')"
@@ -411,10 +411,10 @@ function handleSave() {
           :input-style="{ width: '100%' }"
           :placeholder="$t('bonus_points.form_dialog.placeholder.per_member_limit')"
         />
-      </FormField>
+      </BaseFormField>
 
       <!-- 取得門檻（僅消費來源） -->
-      <FormField
+      <BaseFormField
         v-if="isConsumption"
         :label="$t('bonus_points.form_dialog.field.threshold')"
         class-name="max-w-none"
@@ -460,10 +460,10 @@ function handleSave() {
             {{ $t('bonus_points.form_dialog.validation.min_spend') }}
           </Message>
         </div>
-      </FormField>
+      </BaseFormField>
 
       <!-- 贈送類型 / 贈送點數（依來源動態命名） -->
-      <FormField
+      <BaseFormField
         :label="giftFieldLabel"
         :required="!isView"
         class-name="max-w-none"
@@ -533,10 +533,10 @@ function handleSave() {
             <span class="text-[var(--p-text-muted-color)]">{{ $t('bonus_points.form_dialog.register_note.line2', { symbol: currencySymbol }) }}</span>
           </div>
         </Message>
-      </FormField>
+      </BaseFormField>
 
       <!-- 單筆贈送上限（消費 + 百分比才顯示） -->
-      <FormField
+      <BaseFormField
         v-if="isConsumption && isPercentage"
         :label="$t('bonus_points.form_dialog.field.gift_cap')"
         :optional="true"
@@ -555,7 +555,7 @@ function handleSave() {
           :input-style="{ width: '100%' }"
           :placeholder="$t('bonus_points.value.unlimited')"
         />
-      </FormField>
+      </BaseFormField>
 
       <!-- 跨幣別扣點說明（收合，預設不展開；避免與上方贈點說明框同時擠出多個藍框） -->
       <Accordion class="bonus-cross-currency">
@@ -587,7 +587,7 @@ function handleSave() {
       </Accordion>
 
       <!-- 描述（富文本） -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.description')"
         class-name="max-w-none"
       >
@@ -601,10 +601,10 @@ function handleSave() {
           class="min-h-[80px] rounded-md border border-[var(--p-content-border-color)] px-3 py-2 text-sm"
           v-html="description || '—'"
         ></div>
-      </FormField>
+      </BaseFormField>
 
       <!-- 紅利點數備註 -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.note')"
         class-name="max-w-none"
       >
@@ -618,10 +618,10 @@ function handleSave() {
           :aria-label="$t('bonus_points.form_dialog.field.note')"
           :placeholder="$t('bonus_points.form_dialog.placeholder.note')"
         />
-      </FormField>
+      </BaseFormField>
 
       <!-- 開始至結束時間 -->
-      <FormField
+      <BaseFormField
         :label="$t('bonus_points.form_dialog.field.period')"
         :required="!isView"
         class-name="max-w-none"
@@ -644,7 +644,7 @@ function handleSave() {
         <Message v-if="periodInvalid" size="small" severity="error" variant="simple">
           {{ $t('bonus_points.form_dialog.validation.period') }}
         </Message>
-      </FormField>
+      </BaseFormField>
       </template>
     </div>
 

@@ -5,6 +5,7 @@ import { useGlobalToast } from '@/admin/composables/useGlobalToast'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FreeShippingFormDialog from './components/FreeShippingFormDialog.vue'
+import FreeShippingDetailDialog from './components/FreeShippingDetailDialog.vue'
 import { mockFreeShippingList } from './mockData'
 import {
   FREE_TYPE_LABEL_KEY,
@@ -35,8 +36,11 @@ const batchMode = ref(false)
 const selected = ref<FreeShippingRow[]>([])
 
 const isFormDialogVisible = ref(false)
-const formMode = ref<'create' | 'edit' | 'view'>('create')
+const formMode = ref<'create' | 'edit'>('create')
 const editingRow = ref<FreeShippingRow | null>(null)
+// 檢視走獨立的 FreeShippingDetailDialog（與新增／編輯分離）
+const isDetailDialogVisible = ref(false)
+const detailRow = ref<FreeShippingRow | null>(null)
 
 const statusTabs = computed(() => [
   { value: 'all' as LifecycleFilter, label: t('free_shipping.status_tab.all') },
@@ -137,9 +141,8 @@ function handleCreate() {
   isFormDialogVisible.value = true
 }
 function handleView(row: FreeShippingRow) {
-  formMode.value = 'view'
-  editingRow.value = row
-  isFormDialogVisible.value = true
+  detailRow.value = row
+  isDetailDialogVisible.value = true
 }
 function handleEdit(row: FreeShippingRow) {
   formMode.value = 'edit'
@@ -410,6 +413,11 @@ watch([statusTab, appliedKeyword, freeTypeFilter, statusFilter], () => {
       :mode="formMode"
       :row="editingRow"
       @submit="handleFormSubmit"
+    />
+
+    <FreeShippingDetailDialog
+      v-model:visible="isDetailDialogVisible"
+      :row="detailRow"
     />
   </div>
 </template>

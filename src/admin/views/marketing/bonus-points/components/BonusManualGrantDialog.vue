@@ -8,7 +8,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import FormField from '@/admin/components/ui/FormField.vue';
+import BaseFormField from '@/admin/components/ui/BaseFormField.vue';
 import { useGlobalToast } from '@/admin/composables/useGlobalToast';
 import {
   mockMembers,
@@ -310,7 +310,7 @@ function handleConfirm() {
 
       <!-- 4. 贈點設定：點數 + 原因 -->
       <div class="flex flex-col gap-4 border-t border-[var(--p-content-border-color)] pt-4">
-        <FormField
+        <BaseFormField
           :label="$t('bonus_points.manual_grant.field.points')"
           :required="true"
           class-name="max-w-none"
@@ -327,9 +327,9 @@ function handleConfirm() {
             />
             <InputGroupAddon>{{ $t('bonus_points.form_dialog.unit.point') }}</InputGroupAddon>
           </InputGroup>
-        </FormField>
+        </BaseFormField>
 
-        <FormField
+        <BaseFormField
           :label="$t('bonus_points.manual_grant.field.reason')"
           :optional="true"
           :hint="$t('bonus_points.manual_grant.hint.reason')"
@@ -344,7 +344,7 @@ function handleConfirm() {
             :aria-label="$t('bonus_points.manual_grant.field.reason')"
             :placeholder="$t('bonus_points.manual_grant.placeholder.reason')"
           />
-        </FormField>
+        </BaseFormField>
       </div>
 
       <!-- 5. 發放摘要（送出前最後一眼確認，取代 modal-on-modal 二次確認） -->

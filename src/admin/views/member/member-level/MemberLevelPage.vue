@@ -7,7 +7,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import PageCardLayout from '@/admin/components/portal-ui/PageCardLayout.vue';
+import BasePageContainer from '@/admin/components/portal-ui/BasePageContainer.vue';
 import LevelEditDialog from './components/LevelEditDialog.vue';
 import LevelMembersDialog from './components/LevelMembersDialog.vue';
 import LevelTable from './components/LevelTable.vue';
@@ -62,7 +62,7 @@ function handleLevelSave(level: MemberLevel) {
 </script>
 
 <template>
-  <PageCardLayout
+  <BasePageContainer
     :title="$t('member_level.setting_page.title')"
     :show-back="false"
   >
@@ -104,5 +104,5 @@ function handleLevelSave(level: MemberLevel) {
       :level="activeMembersRow"
       :setting="setting"
     />
-  </PageCardLayout>
+  </BasePageContainer>
 </template>
